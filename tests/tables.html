@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<!--[if IE 7]>    <html class="no-js ie7 ie" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js ie8 ie" lang="en"> <![endif]-->
+<!--[if IE 9 ]>   <html class="no-js ie9 ie" lang="en"> <![endif]-->
+<!--[if (gt IE 9)|!(IE)]><!-->
+<html lang="en" class="no-js no-ie8">
+<!--<![endif]-->
+
+<head>
+    <link href="/cassette.axd/stylesheet/e24865b494690313753e94aca918ca2fef639561/WGP2017" type="text/css"
+        rel="stylesheet" />
+
+
+    <meta name="robots" content="noydir, noodp">
+
+    <meta charset="utf-8">
+    <script
+        type="text/javascript">window.NREUM || (NREUM = {}); NREUM.info = { "beacon": "bam.eu01.nr-data.net", "errorBeacon": "bam.eu01.nr-data.net", "licenseKey": "977d75db3f", "applicationID": "16522979", "transactionName": "MhBSZQoZX0tVW0VdXQtacWIoV11ZTVdEQEFKA19dFB1ISFVfVBpTFgVI", "queueTime": 0, "applicationTime": 240, "agent": "", "atts": "" }</script>
+    <script
+        type="text/javascript">(window.NREUM || (NREUM = {})).loader_config = { licenseKey: "977d75db3f", applicationID: "16522979" }; window.NREUM || (NREUM = {}), __nr_require = function (e, t, n) { function r(n) { if (!t[n]) { var i = t[n] = { exports: {} }; e[n][0].call(i.exports, function (t) { var i = e[n][1][t]; return r(i || t) }, i, i.exports) } return t[n].exports } if ("function" == typeof __nr_require) return __nr_require; for (var i = 0; i < n.length; i++)r(n[i]); return r }({ 1: [function (e, t, n) { function r() { } function i(e, t, n) { return function () { return o(e, [u.now()].concat(c(arguments)), t ? null : this, n), t ? void 0 : this } } var o = e("handle"), a = e(6), c = e(7), f = e("ee").get("tracer"), u = e("loader"), s = NREUM; "undefined" == typeof window.newrelic && (newrelic = s); var d = ["setPageViewName", "setCustomAttribute", "setErrorHandler", "finished", "addToTrace", "inlineHit", "addRelease"], p = "api-", l = p + "ixn-"; a(d, function (e, t) { s[t] = i(p + t, !0, "api") }), s.addPageAction = i(p + "addPageAction", !0), s.setCurrentRouteName = i(p + "routeName", !0), t.exports = newrelic, s.interaction = function () { return (new r).get() }; var m = r.prototype = { createTracer: function (e, t) { var n = {}, r = this, i = "function" == typeof t; return o(l + "tracer", [u.now(), e, n], r), function () { if (f.emit((i ? "" : "no-") + "fn-start", [u.now(), r, i], n), i) try { return t.apply(this, arguments) } catch (e) { throw f.emit("fn-err", [arguments, this, e], n), e } finally { f.emit("fn-end", [u.now()], n) } } } }; a("actionText,setName,setAttribute,save,ignore,onEnd,getContext,end,get".split(","), function (e, t) { m[t] = i(l + t) }), newrelic.noticeError = function (e, t) { "string" == typeof e && (e = new Error(e)), o("err", [e, u.now(), !1, t]) } }, {}], 2: [function (e, t, n) { function r() { return c.exists && performance.now ? Math.round(performance.now()) : (o = Math.max((new Date).getTime(), o)) - a } function i() { return o } var o = (new Date).getTime(), a = o, c = e(8); t.exports = r, t.exports.offset = a, t.exports.getLastTimestamp = i }, {}], 3: [function (e, t, n) { function r(e, t) { var n = e.getEntries(); n.forEach(function (e) { "first-paint" === e.name ? d("timing", ["fp", Math.floor(e.startTime)]) : "first-contentful-paint" === e.name && d("timing", ["fcp", Math.floor(e.startTime)]) }) } function i(e, t) { var n = e.getEntries(); n.length > 0 && d("lcp", [n[n.length - 1]]) } function o(e) { e.getEntries().forEach(function (e) { e.hadRecentInput || d("cls", [e]) }) } function a(e) { if (e instanceof m && !g) { var t = Math.round(e.timeStamp), n = { type: e.type }; t <= p.now() ? n.fid = p.now() - t : t > p.offset && t <= Date.now() ? (t -= p.offset, n.fid = p.now() - t) : t = p.now(), g = !0, d("timing", ["fi", t, n]) } } function c(e) { d("pageHide", [p.now(), e]) } if (!("init" in NREUM && "page_view_timing" in NREUM.init && "enabled" in NREUM.init.page_view_timing && NREUM.init.page_view_timing.enabled === !1)) { var f, u, s, d = e("handle"), p = e("loader"), l = e(5), m = NREUM.o.EV; if ("PerformanceObserver" in window && "function" == typeof window.PerformanceObserver) { f = new PerformanceObserver(r); try { f.observe({ entryTypes: ["paint"] }) } catch (v) { } u = new PerformanceObserver(i); try { u.observe({ entryTypes: ["largest-contentful-paint"] }) } catch (v) { } s = new PerformanceObserver(o); try { s.observe({ type: "layout-shift", buffered: !0 }) } catch (v) { } } if ("addEventListener" in document) { var g = !1, y = ["click", "keydown", "mousedown", "pointerdown", "touchstart"]; y.forEach(function (e) { document.addEventListener(e, a, !1) }) } l(c) } }, {}], 4: [function (e, t, n) { function r(e, t) { if (!i) return !1; if (e !== i) return !1; if (!t) return !0; if (!o) return !1; for (var n = o.split("."), r = t.split("."), a = 0; a < r.length; a++)if (r[a] !== n[a]) return !1; return !0 } var i = null, o = null, a = /Version\/(\S+)\s+Safari/; if (navigator.userAgent) { var c = navigator.userAgent, f = c.match(a); f && c.indexOf("Chrome") === -1 && c.indexOf("Chromium") === -1 && (i = "Safari", o = f[1]) } t.exports = { agent: i, version: o, match: r } }, {}], 5: [function (e, t, n) { function r(e) { function t() { e(a && document[a] ? document[a] : document[i] ? "hidden" : "visible") } "addEventListener" in document && o && document.addEventListener(o, t, !1) } t.exports = r; var i, o, a; "undefined" != typeof document.hidden ? (i = "hidden", o = "visibilitychange", a = "visibilityState") : "undefined" != typeof document.msHidden ? (i = "msHidden", o = "msvisibilitychange") : "undefined" != typeof document.webkitHidden && (i = "webkitHidden", o = "webkitvisibilitychange", a = "webkitVisibilityState") }, {}], 6: [function (e, t, n) { function r(e, t) { var n = [], r = "", o = 0; for (r in e) i.call(e, r) && (n[o] = t(r, e[r]), o += 1); return n } var i = Object.prototype.hasOwnProperty; t.exports = r }, {}], 7: [function (e, t, n) { function r(e, t, n) { t || (t = 0), "undefined" == typeof n && (n = e ? e.length : 0); for (var r = -1, i = n - t || 0, o = Array(i < 0 ? 0 : i); ++r < i;)o[r] = e[t + r]; return o } t.exports = r }, {}], 8: [function (e, t, n) { t.exports = { exists: "undefined" != typeof window.performance && window.performance.timing && "undefined" != typeof window.performance.timing.navigationStart } }, {}], ee: [function (e, t, n) { function r() { } function i(e) { function t(e) { return e && e instanceof r ? e : e ? f(e, c, o) : o() } function n(n, r, i, o) { if (!p.aborted || o) { e && e(n, r, i); for (var a = t(i), c = v(n), f = c.length, u = 0; u < f; u++)c[u].apply(a, r); var d = s[w[n]]; return d && d.push([b, n, r, a]), a } } function l(e, t) { h[e] = v(e).concat(t) } function m(e, t) { var n = h[e]; if (n) for (var r = 0; r < n.length; r++)n[r] === t && n.splice(r, 1) } function v(e) { return h[e] || [] } function g(e) { return d[e] = d[e] || i(n) } function y(e, t) { u(e, function (e, n) { t = t || "feature", w[n] = t, t in s || (s[t] = []) }) } var h = {}, w = {}, b = { on: l, addEventListener: l, removeEventListener: m, emit: n, get: g, listeners: v, context: t, buffer: y, abort: a, aborted: !1 }; return b } function o() { return new r } function a() { (s.api || s.feature) && (p.aborted = !0, s = p.backlog = {}) } var c = "nr@context", f = e("gos"), u = e(6), s = {}, d = {}, p = t.exports = i(); p.backlog = s }, {}], gos: [function (e, t, n) { function r(e, t, n) { if (i.call(e, t)) return e[t]; var r = n(); if (Object.defineProperty && Object.keys) try { return Object.defineProperty(e, t, { value: r, writable: !0, enumerable: !1 }), r } catch (o) { } return e[t] = r, r } var i = Object.prototype.hasOwnProperty; t.exports = r }, {}], handle: [function (e, t, n) { function r(e, t, n, r) { i.buffer([e], r), i.emit(e, t, n) } var i = e("ee").get("handle"); t.exports = r, r.ee = i }, {}], id: [function (e, t, n) { function r(e) { var t = typeof e; return !e || "object" !== t && "function" !== t ? -1 : e === window ? 0 : a(e, o, function () { return i++ }) } var i = 1, o = "nr@id", a = e("gos"); t.exports = r }, {}], loader: [function (e, t, n) { function r() { if (!E++) { var e = b.info = NREUM.info, t = p.getElementsByTagName("script")[0]; if (setTimeout(u.abort, 3e4), !(e && e.licenseKey && e.applicationID && t)) return u.abort(); f(h, function (t, n) { e[t] || (e[t] = n) }); var n = a(); c("mark", ["onload", n + b.offset], null, "api"), c("timing", ["load", n]); var r = p.createElement("script"); r.src = "https://" + e.agent, t.parentNode.insertBefore(r, t) } } function i() { "complete" === p.readyState && o() } function o() { c("mark", ["domContent", a() + b.offset], null, "api") } var a = e(2), c = e("handle"), f = e(6), u = e("ee"), s = e(4), d = window, p = d.document, l = "addEventListener", m = "attachEvent", v = d.XMLHttpRequest, g = v && v.prototype; NREUM.o = { ST: setTimeout, SI: d.setImmediate, CT: clearTimeout, XHR: v, REQ: d.Request, EV: d.Event, PR: d.Promise, MO: d.MutationObserver }; var y = "" + location, h = { beacon: "bam.nr-data.net", errorBeacon: "bam.nr-data.net", agent: "js-agent.newrelic.com/nr-1184.min.js" }, w = v && g && g[l] && !/CriOS/.test(navigator.userAgent), b = t.exports = { offset: a.getLastTimestamp(), now: a, origin: y, features: {}, xhrWrappable: w, userAgent: s }; e(1), e(3), p[l] ? (p[l]("DOMContentLoaded", o, !1), d[l]("load", r, !1)) : (p[m]("onreadystatechange", i), d[m]("onload", r)), c("mark", ["firstbyte", a.getLastTimestamp()], null, "api"); var E = 0 }, {}], "wrap-function": [function (e, t, n) { function r(e) { return !(e && e instanceof Function && e.apply && !e[a]) } var i = e("ee"), o = e(7), a = "nr@original", c = Object.prototype.hasOwnProperty, f = !1; t.exports = function (e, t) { function n(e, t, n, i) { function nrWrapper() { var r, a, c, f; try { a = this, r = o(arguments), c = "function" == typeof n ? n(r, a) : n || {} } catch (u) { p([u, "", [r, a, i], c]) } s(t + "start", [r, a, i], c); try { return f = e.apply(a, r) } catch (d) { throw s(t + "err", [r, a, d], c), d } finally { s(t + "end", [r, a, f], c) } } return r(e) ? e : (t || (t = ""), nrWrapper[a] = e, d(e, nrWrapper), nrWrapper) } function u(e, t, i, o) { i || (i = ""); var a, c, f, u = "-" === i.charAt(0); for (f = 0; f < t.length; f++)c = t[f], a = e[c], r(a) || (e[c] = n(a, u ? c + i : i, o, c)) } function s(n, r, i) { if (!f || t) { var o = f; f = !0; try { e.emit(n, r, i, t) } catch (a) { p([a, n, r, i]) } f = o } } function d(e, t) { if (Object.defineProperty && Object.keys) try { var n = Object.keys(e); return n.forEach(function (n) { Object.defineProperty(t, n, { get: function () { return e[n] }, set: function (t) { return e[n] = t, t } }) }), t } catch (r) { p([r]) } for (var i in e) c.call(e, i) && (t[i] = e[i]); return t } function p(t) { try { e.emit("internal-error", t) } catch (n) { } } return e || (e = i), n.inPlace = u, n.flag = a, n } }, {}] }, {}, ["loader"]);</script>
+    <meta name="author" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="google-site-verification" content="j6X7hj8sozCvswV_5f1pqCz7f0UQA24Ccoe49t6eX00">
+    <script src="/js/modernizr.min.js"></script>
+
+
+
+    <!-- create dataLayer for Google Tag Manager -->
+    <script>
+        dataLayer = [];
+    </script>
+
+    <!-- Google Tag Manager -->
+    <script>(function (w, d, s, l, i) {
+            w[l] = w[l] || []; w[l].push({
+                'gtm.start':
+                    new Date().getTime(), event: 'gtm.js'
+            }); var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+                    'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-PJM2VSN');</script>
+    <!-- End Google Tag Manager -->
+
+    <style>
+
+    </style>
+
+    <!-- site-specific code -->
+
+    <!-- end site-specific code -->
+    <link rel="shortcut icon" href="/images/Volley/brands/WGP2017/favicon.ico" />
+    <link rel="canonical"
+        href="http://worldgrandprix.2017.fivb.com/en/group1/competition/teams/chn-china/team_roster" />
+    <link href="http://worldgrandprix.2017.fivb.com" rel="alternate" hreflang="x-default" />
+    <link href="http://worldgrandprix.2017.fivb.com/en/group1/competition/teams/chn-china/team_roster" rel="alternate"
+        hreflang="en" />
+    <title>
+        World Grand Prix Group 1 - Team Roster - China - FIVB World Grand Prix 2017
+    </title>
+</head>
+<!-- FIVB-PRD-IIS03 8.0.0.0 @ Release @ 2020/12/04 12:08:34:388+01:00 -->
+
+<body id="BodyTag" class="tmpl-content WGP2017a tmpl-step2">
+    <noscript>
+        <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PJM2VSN" height="0" width="0"
+            style="display: none; visibility: hidden"></iframe>
+    </noscript>
+
+    <form method="post" action="./team_roster" id="MainForm">
+        <div class="aspNetHidden">
+            <input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE"
+                value="PTaAyI9bQdXn7ukX+axEiYnycypAxsTpKXnW/i2mum1vIwKqytjCMOVZDkxNEn2i6i3AW3eWJYQAnvnRZJpqo9HVmLFCBqWpQ1XzLRtoCVcLyvMJDm2F1wrf5P9rF+tKzTiDtHI9LEDbL5jffkbBTqnKLOqgvlTJ6KrxcUJLQP84tCD0ftvdGQvbSEOtf1DOc3vKTJ888QErnN7bYoYm88f8L2Fidl4NU06fpOtVYqEmKWwkQxbfaVyXfzvyuuxkJCqoHY8L75Ztqnk7wupDaa2XX7GjNC3BCCROejsdfFo/RnTvYhiM6z0QEADFBF+3W3JO4srSAaUFR77RPTXo+L775obpz50F9w2iWxzNulJt5Ws5fkr/RTJePijTKFpKkR6pDQPQsIRY1l8BYrn59FKmELlZup+hG1jVZIACkvZ7tAe/K668iZ3fcdwCxG9nPfZuCRKPuCdx2erbEkaIrrrhW2G8pU/+D7gEsZYEz/U=" />
+        </div>
+
+        <div class="aspNetHidden">
+
+            <input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="2F18DBCD" />
+        </div>
+
+        <div id="mobile-panel-left" class="mobile-panel left">
+            <!-- <nav id="MobileNavigation1_EventNavigationSection">
+    <ul>
+        <li class="lvl1 hasSub">
+            <span class="header">
+                <a href="#">Competitions</a>
+                <a href="#" class="toggler"></a>
+            </span>
+            <ul class="competitions subs">
+                
+                        <li id="MobileNavigation1_EventNavigation_EventLiNav_0" class="lvl2 hasSub">
+                            <span class="header">
+                                <a id="MobileNavigation1_EventNavigation_Link_0">Groups</a>
+                                <a href="#" class="toggler"></a>
+                            </span>
+                            
+                                    <ul class="subs">
+                                
+                                    <li id="MobileNavigation1_EventNavigation_EventSubNavigation_0_EventLiSubNav_0"><a id="MobileNavigation1_EventNavigation_EventSubNavigation_0_SubLink_0" class="active" href="/en/group1">Group 1</a></li>
+                                
+                                    <li id="MobileNavigation1_EventNavigation_EventSubNavigation_0_EventLiSubNav_1"><a id="MobileNavigation1_EventNavigation_EventSubNavigation_0_SubLink_1" href="/en/group2">Group 2</a></li>
+                                
+                                    <li id="MobileNavigation1_EventNavigation_EventSubNavigation_0_EventLiSubNav_2"><a id="MobileNavigation1_EventNavigation_EventSubNavigation_0_SubLink_2" href="/en/group3">Group 3</a></li>
+                                
+                                    </ul>
+                                
+                        </li>    
+                    
+                        <li id="MobileNavigation1_EventNavigation_EventLiNav_1" class="lvl2 hasSub">
+                            <span class="header">
+                                <a id="MobileNavigation1_EventNavigation_Link_1">Finals</a>
+                                <a href="#" class="toggler"></a>
+                            </span>
+                            
+                                    <ul class="subs">
+                                
+                                    <li id="MobileNavigation1_EventNavigation_EventSubNavigation_1_EventLiSubNav_0"><a id="MobileNavigation1_EventNavigation_EventSubNavigation_1_SubLink_0" href="/en/finals-1">Final 1</a></li>
+                                
+                                    <li id="MobileNavigation1_EventNavigation_EventSubNavigation_1_EventLiSubNav_1"><a id="MobileNavigation1_EventNavigation_EventSubNavigation_1_SubLink_1" href="/en/finals-2">Final 2</a></li>
+                                
+                                    <li id="MobileNavigation1_EventNavigation_EventSubNavigation_1_EventLiSubNav_2"><a id="MobileNavigation1_EventNavigation_EventSubNavigation_1_SubLink_2" href="/en/finals-3">Final 3</a></li>
+                                
+                                    </ul>
+                                
+                        </li>    
+                    
+            </ul>
+        </li>
+    </ul>
+</nav>   
+
+<nav>
+    <ul>
+        
+                <li id="MobileNavigation1_MainNavigation_LiNav_0" class="lvl1 active open">
+                    <span class="header">
+                        <a href="/en/group1">Group1</a>
+                        <a href="#" class="toggler"></a>
+                    </span>
+                    
+                </li>    
+            
+                <li id="MobileNavigation1_MainNavigation_LiNav_1" class="lvl1">
+                    <span class="header">
+                        <a href="/en/group1/news">News</a>
+                        <a href="#" class="toggler"></a>
+                    </span>
+                    
+                </li>    
+            
+                <li id="MobileNavigation1_MainNavigation_LiNav_2" class="lvl1">
+                    <span class="header">
+                        <a href="/en/group1/schedule">Schedule</a>
+                        <a href="#" class="toggler"></a>
+                    </span>
+                    
+                </li>    
+            
+                <li id="MobileNavigation1_MainNavigation_LiNav_3" class="lvl1 hasSub">
+                    <span class="header">
+                        <a href="/en/group1/competition/formula">Competition</a>
+                        <a href="#" class="toggler"></a>
+                    </span>
+                    
+                            <ul class="subs">
+                        
+                            <li id="MobileNavigation1_MainNavigation_SubNavigation_3_LiSubNav_0"><a href="/en/group1/competition/venues">Venues</a></li>
+                        
+                            <li id="MobileNavigation1_MainNavigation_SubNavigation_3_LiSubNav_1"><a href="/en/group1/competition/formula">Formula</a></li>
+                        
+                            <li id="MobileNavigation1_MainNavigation_SubNavigation_3_LiSubNav_2"><a href="/en/group1/competition/poolsdistribution">Pools Distribution</a></li>
+                        
+                            <li id="MobileNavigation1_MainNavigation_SubNavigation_3_LiSubNav_3"><a href="/en/group1/competition/results-and-ranking/round1">Results and Ranking</a></li>
+                        
+                            <li id="MobileNavigation1_MainNavigation_SubNavigation_3_LiSubNav_4"><a href="/en/group1/competition/poolrankingcriteria">Pool Ranking Criteria</a></li>
+                        
+                            <li id="MobileNavigation1_MainNavigation_SubNavigation_3_LiSubNav_5"><a href="/en/group1/statistics/bestscorers">Statistics</a></li>
+                        
+                            </ul>
+                        
+                </li>    
+            
+                <li id="MobileNavigation1_MainNavigation_LiNav_4" class="lvl1 active open">
+                    <span class="header">
+                        <a href="/en/group1/competition/teams">Teams</a>
+                        <a href="#" class="toggler"></a>
+                    </span>
+                    
+                </li>    
+            
+                <li id="MobileNavigation1_MainNavigation_LiNav_5" class="lvl1 hasSub">
+                    <span class="header">
+                        <a href="http://">Media</a>
+                        <a href="#" class="toggler"></a>
+                    </span>
+                    
+                            <ul class="subs">
+                        
+                            <li id="MobileNavigation1_MainNavigation_SubNavigation_5_LiSubNav_0"><a href="/en/group1/media/accreditation">Accreditation</a></li>
+                        
+                            <li id="MobileNavigation1_MainNavigation_SubNavigation_5_LiSubNav_1"><a href="/en/group1/media/statisticalpreviews">Statistical Previews</a></li>
+                        
+                            <li id="MobileNavigation1_MainNavigation_SubNavigation_5_LiSubNav_2"><a href="/en/group1/media/photos">Photos</a></li>
+                        
+                            </ul>
+                        
+                </li>    
+            
+    </ul>
+</nav>  
+ -->
+        </div>
+        <div id="mobile-panel-right" class="mobile-panel right">
+            <ul class="quicklinks">
+                <li><a href="http://www.fivb.org/en/volleyball/index.asp">volleyball</a></li>
+                <li><a href="http://www.fivb.org/EN/BeachVolleyball/">beach volleyball</a></li>
+                <li><a href="http://www.fivb.org/EN/Development/">growing the game</a></li>
+                <li><a href="http://www.fivb.org/EN/FIVB/">the fivb</a></li>
+                <li><a href="http://www.fivb.org/EN/Media/">media</a></li>
+            </ul>
+
+
+            <div class="site-indicator">
+
+                <a id="MobileBar1_Sites_Site_0" class="active" href="/en">WGP2017</a>
+
+                <a id="MobileBar1_Sites_Site_1" href="http://worldleague.2017.fivb.com/en">WL2017</a>
+
+            </div>
+
+
+            <div class="visitor-rel">
+                <a href="#" class="timezone"></a>
+                <a class="lang active" href="/en/group1/competition/teams/chn-china/team_roster">en</a>
+            </div>
+
+            <div class="social">
+                <a href="https://www.facebook.com/FIVBVolleyballWorld/" class="fb" target="_blank"></a>
+                <a href="https://twitter.com/fivbvolleyball" class="tw" target="_blank"></a>
+                <a href="http://www.youtube.com/videofivb" class="yt" target="_blank"></a>
+                <a href="http://www.instagram.com/volleyballworld" class="inst" target="_blank"></a>
+            </div>
+        </div>
+
+        <div id="AngularPanel" class="main-wrapper" ng-app="fivb"
+            data-servicematchcenterbar="/en/api/volley/matches/426,427,428/en/user/lives">
+
+            <div class="top-bar">
+                <div class="grid grid-pad">
+                    <div class="">
+                        <a href="#mobile-panel-left" class="toggler-panel-left"></a>
+
+
+                        <a class="hamburger-button" href="#mobile-panel-left"></a>
+                        <div class="hamburger-submenu">
+                            <ul>
+                                <li class="lvl1">
+                                    <span class="header"><a id="Header1_TopBar_Hamburger1_Burgers_Link_0"
+                                            href="http://www.fivb.com/en/thefivb">The FIVB</a></span>
+                                    <ul class="subs">
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_0_Link_0"
+                                                href="http://www.fivb.com/en/thefivb">The FIVB</a></li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_0_Link_1"
+                                                href="http://www.fivb.com/en/thefivb/about">About</a></li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_0_Link_2"
+                                                href="http://www.fivb.com/en/thefivb/11goals">FIVB 11 Goals</a></li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_0_Link_3"
+                                                href="http://www.fivb.com/en/thefivb/about">FIVB President</a></li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_0_Link_4"
+                                                href="http://www.fivb.com/en/thefivb/structure">Structure</a></li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_0_Link_5"
+                                                href="http://www.fivb.com/en/thefivb/legal">Legal</a></li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_0_Link_6"></a></li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_0_Link_7"
+                                                href="http://www.fivb.com/en/thefivb/confederations">Confederations</a>
+                                        </li>
+                                    </ul>
+                                </li>
+
+                                <li class="lvl1">
+                                    <span class="header"><a id="Header1_TopBar_Hamburger1_Burgers_Link_1"
+                                            href="http://www.fivb.com/en/volleyball">Volleyball</a></span>
+                                    <ul class="subs">
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_1_Link_0"
+                                                href="http://www.fivb.com/en/volleyball/competitions">Competitions</a>
+                                        </li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_1_Link_1"
+                                                href="http://www.fivb.com/en/volleyball/calendar">Calendar</a></li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_1_Link_2"
+                                                href="http://www.fivb.com/en/volleyball/rankings">World Ranking</a></li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_1_Link_3"
+                                                href="http://www.fivb.com/en/volleyball/regulationsofficialforms">Regulations</a>
+                                        </li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_1_Link_4"
+                                                href="http://www.fivb.com/en/volleyball/thegame_glossary">The Game</a>
+                                        </li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_1_Link_5"
+                                                href="http://www.fivb.org/en/volleyball/VIS.asp">Volleyball Information
+                                                System (VIS)</a></li>
+                                    </ul>
+                                </li>
+
+                                <li class="lvl1">
+                                    <span class="header"><a id="Header1_TopBar_Hamburger1_Burgers_Link_2"
+                                            href="http://www.fivb.com/en/beachvolleyball">Beach Volleyball</a></span>
+                                    <ul class="subs">
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_2_Link_0">Competitions</a>
+                                        </li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_2_Link_1"
+                                                href="http://www.fivb.com/en/beachvolleyball/calendar">Calendar</a></li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_2_Link_2"
+                                                href="http://www.fivb.com/en/beachvolleyball/rankingmen">Ranking</a>
+                                        </li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_2_Link_3"
+                                                href="http://www.fivb.com/en/beachvolleyball/beachplayersdatabase">Players
+                                                Database</a></li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_2_Link_4"
+                                                href="http://www.fivb.com/en/beachvolleyball/thegame_bvb_glossary/refereeing">Refereeing</a>
+                                        </li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_2_Link_5"
+                                                href="http://www.fivb.com/en/beachvolleyball/tools">Documents &
+                                                Forms</a></li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_2_Link_6"
+                                                href="http://www.fivb.com/en/beachvolleyball/tools/forms">Partnership</a>
+                                        </li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_2_Link_7"
+                                                href="http://www.fivb.com/en/beachvolleyball/thegame_bvb_glossary">The
+                                                Game</a></li>
+                                    </ul>
+                                </li>
+
+                                <li class="lvl1">
+                                    <span class="header"><a id="Header1_TopBar_Hamburger1_Burgers_Link_3"
+                                            href="http://www.fivb.com/en/snowvolleyball">Snow Volleyball</a></span>
+                                    <ul class="subs">
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_3_Link_0"
+                                                href="http://www.fivb.com/en/snowvolleyball/news">News</a></li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_3_Link_1"
+                                                href="http://www.fivb.com/en/snowvolleyball/whatissnowvolleyball">About
+                                                Snow Volleyball</a></li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_3_Link_2"
+                                                href="http://www.fivb.com/en/snowvolleyball/calendar">Calendar</a></li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_3_Link_3"
+                                                href="http://www.fivb.com/en/snowvolleyball/forms">Forms</a></li>
+                                    </ul>
+                                </li>
+
+                                <li class="lvl1">
+                                    <span class="header"><a id="Header1_TopBar_Hamburger1_Burgers_Link_4"
+                                            href="http://www.fivb.com/en/players">Players</a></span>
+                                    <ul class="subs">
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_4_Link_0"
+                                                href="http://www.fivb.com/en/players/athletes-commission">Athletes'
+                                                Commission</a></li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_4_Link_1"
+                                                href="http://www.fivb.com/en/players/athletes_relief_support_fund">Relief
+                                                Support</a></li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_4_Link_2"
+                                                href="http://www.fivb.com/en/players/contact">Contact</a></li>
+                                    </ul>
+                                </li>
+
+                                <li class="lvl1">
+                                    <span class="header"><a id="Header1_TopBar_Hamburger1_Burgers_Link_5"
+                                            href="http://www.fivb.com/en/development">Development</a></span>
+                                    <ul class="subs">
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_5_Link_0"
+                                                href="http://www.fivb.com/en/development">Development</a></li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_5_Link_1"
+                                                href="http://www.fivb.com/en/development/projectsplatform"
+                                                target="_blank">Projects Hub</a></li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_5_Link_2"
+                                                href="http://www.fivb.com/en/refereeingandrules">Refereeing and
+                                                Rules</a></li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_5_Link_3"
+                                                href="http://www.fivb.com/en/development/education">Education</a></li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_5_Link_4"
+                                                href="http://www.fivb.com/en/medical">Medical</a></li>
+                                    </ul>
+                                </li>
+
+                                <li class="lvl1">
+                                    <span class="header"><a id="Header1_TopBar_Hamburger1_Burgers_Link_6"
+                                            href="http://www.fivb.com/en/media">Media</a></span>
+                                    <ul class="subs">
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_6_Link_0"
+                                                href="http://www.fivb.com/en/media/news_pressrelease">Press Release</a>
+                                        </li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_6_Link_1"></a></li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_6_Link_2"
+                                                href="http://www.fivb.com/en/media/mediaaccreditation">Media
+                                                Accreditation </a></li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_6_Link_3"></a></li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_6_Link_4"
+                                                href="http://www.fivb.com/en/media/mediaaccreditation">Press Contact</a>
+                                        </li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_6_Link_5"
+                                                href="http://www.fivb.com/en/media/mediaaccreditation">Media
+                                                Operations</a></li>
+
+                                        <li><a id="Header1_TopBar_Hamburger1_Burgers_Children_6_Link_6"></a></li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+
+
+                        <ul class="quicklinks">
+                            <li><a href="http://www.fivb.org/en/volleyball/index.asp">volleyball</a></li>
+                            <li><a href="http://www.fivb.org/EN/BeachVolleyball/">beach volleyball</a></li>
+                            <li><a href="http://www.fivb.org/EN/Development/">growing the game</a></li>
+                            <li><a href="http://www.fivb.org/EN/FIVB/">the fivb</a></li>
+                            <li><a href="http://www.fivb.org/EN/Media/">media</a></li>
+                        </ul>
+
+
+                        <div class="site-indicator">
+
+                            <a id="Header1_TopBar_Sites_Site_0" class="active" href="/en">WGP2017</a>
+
+                            <a id="Header1_TopBar_Sites_Site_1" href="http://worldleague.2017.fivb.com/en">WL2017</a>
+
+                        </div>
+
+                    </div>
+                    <div class="menu-right">
+                        <div class="logo">
+                            <a href="http://www.fivb.org/">
+                                <img src="/images/Volley/lgo_fivb_small.png" width="77" height="31" />
+                            </a>
+                            <a href="#mobile-panel-right" class="toggler-panel-right">
+                                <img src="/images/Volley/lgo_fivb_small.png" width="77" height="31" />
+                            </a>
+                        </div>
+
+                        <div class="signin-button">
+                            <div class="signin-signin"><span class="title"> Sign in</span></div>
+                            <div class="signin-my-account"><span class="title">My Account</span><img src=""
+                                    class="signin-avatar" /></div>
+                            <div class="signin-myaccount-menu">
+                                <ul>
+                                    <li><a id="edit-account" href="https://account.fivb.com" target="_blank">Edit</a>
+                                    </li>
+                                    <li>
+                                        <a id="signout" href="#">Logout</a>
+                                        <div class="loading-small"></div>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="social">
+                            <a href="https://www.facebook.com/FIVBVolleyballWorld/" class="fb" target="_blank"></a>
+                            <a href="https://twitter.com/fivbvolleyball" class="tw" target="_blank"></a>
+                            <a href="http://www.youtube.com/videofivb" class="yt" target="_blank"></a>
+                            <a href="http://www.instagram.com/volleyballworld" class="inst" target="_blank"></a>
+                        </div>
+                        <div class="visitor-rel">
+                            <a href="#" class="timezone"></a>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <header class="main-header">
+
+                <div class="grid grid-pad">
+                    <div class="col-3-12 brand">
+                        <a href="/en/">
+                        </a>
+                    </div>
+                    <div class="col-9-12 tag-counter">
+
+
+
+
+
+
+
+                        <section class="liveCenterBar" ng-class="{hidden: matches.length == 0}">
+
+
+                            <div class="loading-indicator" ng-if="loading"></div>
+                            <div class="boxes hidden" ng-cloak>
+                                <div class="lbl">Live</div>
+                                <div class="wrap">
+                                    <div class="box" ng-repeat="match in matches">
+                                        <a ng-hide="!(match.LiveStreamUri&&match.LiveStreamUri.length)" target="_blank"
+                                            href="{{match.LiveStreamUri}}" class="livestream icon-container">
+                                            <span class="livestream-txt">
+                                                LIVE
+                                            </span>
+                                        </a>
+                                        <a ng-href="{{match.Url}}">
+                                            <team-box name="match.TeamA.Name" flag="match.TeamA.flagUrl"
+                                                country="match.TeamA.Country" align="left"></team-box>
+                                            <team-box name="match.TeamB.Name" flag="match.TeamB.flagUrl"
+                                                country="match.TeamB.Country" align="right"></team-box>
+                                            <span class="score">{{match.MatchPointsA}} - {{match.MatchPointsB}}</span>
+                                        </a>
+                                        <ol class="sets" ng-if="match.Sets.length > 0">
+                                            <li ng-repeat="set in match.Sets" ng-if="match.Sets.length < 6"
+                                                ng-class="{current:$last}">{{set.PointsA}} - {{set.PointsB}}
+                                            </li>
+                                            <li ng-repeat="set in match.Sets" ng-if="match.Sets.length > 5"
+                                                ng-class="{current:$last}">{{set.PointsA}}-{{set.PointsB}}
+                                            </li>
+                                        </ol>
+                                        <div class="footer" ng-if="match.City"><span class="left">{{match.City}}
+                                                ({{match.CountryName}})</span><span
+                                                class="right">{{match.Round.Name}}<span ng-if="match.Gender">
+                                                    <!-- - {{match.Gender}} --></span></span></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="actions hidden" ng-cloak>
+                                <a id="Header1_ctl09_LastResults" href="/en/group1/schedule#lastResults">Last
+                                    Results</a>
+                                <a id="Header1_ctl09_NextMatches" href="/en/group1/schedule#nextMatches">Next
+                                    Matches</a>
+                            </div>
+
+
+
+                        </section>
+
+
+
+
+                        <div id="Header1_CtaView" class="cta hidden">
+
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-pad nav-search">
+
+                    <div id="Header1_EventNavigation_navigationContainer"
+                        class="col-12-12 main-navigation top EventNavigation">
+                        <nav>
+                            <ul class="lvl1">
+                                <li id="Header1_EventNavigation_Navigation_Li_0"><a
+                                        id="Header1_EventNavigation_Navigation_Link_0"
+                                        data-related="subnav-0">Groups</a></li>
+
+                                <li id="Header1_EventNavigation_Navigation_Li_1"><a
+                                        id="Header1_EventNavigation_Navigation_Link_1"
+                                        data-related="subnav-1">Finals</a></li>
+                            </ul>
+                            <div class="subs">
+                                <div id="Header1_EventNavigation_SubNavigation_Div_0" class="sub" data-id="subnav-0">
+                                    <div class="links col-1-1">
+
+                                        <a id="Header1_EventNavigation_SubNavigation_Links_0_Link_0" class="active"
+                                            group-click="" data-title="Group 1" data-type="group"
+                                            href="/en/group1"><span>Group 1</span></a>
+
+                                        <a id="Header1_EventNavigation_SubNavigation_Links_0_Link_1" group-click=""
+                                            data-title="Group 2" data-type="group" href="/en/group2"><span>Group
+                                                2</span></a>
+
+                                        <a id="Header1_EventNavigation_SubNavigation_Links_0_Link_2" group-click=""
+                                            data-title="Group 3" data-type="group" href="/en/group3"><span>Group
+                                                3</span></a>
+
+                                    </div>
+                                </div>
+
+                                <div id="Header1_EventNavigation_SubNavigation_Div_1" class="sub" data-id="subnav-1">
+                                    <div class="links col-1-1">
+
+                                        <a id="Header1_EventNavigation_SubNavigation_Links_1_Link_0" group-click=""
+                                            data-title="Final 1" data-type="final" href="/en/finals-1"><span>Final
+                                                1</span></a>
+
+                                        <a id="Header1_EventNavigation_SubNavigation_Links_1_Link_1" group-click=""
+                                            data-title="Final 2" data-type="final" href="/en/finals-2"><span>Final
+                                                2</span></a>
+
+                                        <a id="Header1_EventNavigation_SubNavigation_Links_1_Link_2" group-click=""
+                                            data-title="Final 3" data-type="final" href="/en/finals-3"><span>Final
+                                                3</span></a>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </nav>
+                    </div>
+
+
+                    <div class="col-12-12 main-navigation">
+                        <!-- change 12-12 to 9-12 when search gets developed -->
+                        <nav>
+
+                            <ul class="lvl1">
+
+                                <li id="Header1_MainNavigation_Navigation_Li_0" class="active">
+                                    <a id="Header1_MainNavigation_Navigation_Link_0" href="/en/group1">Group1</a>
+                                </li>
+
+                                <li id="Header1_MainNavigation_Navigation_Li_1">
+                                    <a id="Header1_MainNavigation_Navigation_Link_1" href="/en/group1/news">News</a>
+                                </li>
+
+                                <li id="Header1_MainNavigation_Navigation_Li_2">
+                                    <a id="Header1_MainNavigation_Navigation_Link_2"
+                                        href="/en/group1/schedule">Schedule</a>
+                                </li>
+
+                                <li id="Header1_MainNavigation_Navigation_Li_3">
+                                    <a id="Header1_MainNavigation_Navigation_Link_3" data-related="subnav-3"
+                                        href="/en/group1/competition/formula">Competition</a>
+                                </li>
+
+                                <li id="Header1_MainNavigation_Navigation_Li_4" class="active">
+                                    <a id="Header1_MainNavigation_Navigation_Link_4"
+                                        href="/en/group1/competition/teams">Teams</a>
+                                </li>
+
+                                <li id="Header1_MainNavigation_Navigation_Li_5">
+                                    <a id="Header1_MainNavigation_Navigation_Link_5" data-related="subnav-5">Media</a>
+                                </li>
+                            </ul>
+
+                            <div class="subs">
+
+
+
+
+
+
+
+                                <div id="Header1_MainNavigation_SubNavigation_Div_3" class="sub" data-id="subnav-3">
+                                    <div class="links col-1-1">
+
+                                        <a id="Header1_MainNavigation_SubNavigation_Links_3_Link_0"
+                                            href="/en/group1/competition/venues">Venues</a>
+
+                                        <a id="Header1_MainNavigation_SubNavigation_Links_3_Link_1"
+                                            href="/en/group1/competition/formula">Formula</a>
+
+                                        <a id="Header1_MainNavigation_SubNavigation_Links_3_Link_2"
+                                            href="/en/group1/competition/poolsdistribution">Pools Distribution</a>
+
+                                        <a id="Header1_MainNavigation_SubNavigation_Links_3_Link_3"
+                                            href="/en/group1/competition/results-and-ranking/round1">Results and
+                                            Ranking</a>
+
+                                        <a id="Header1_MainNavigation_SubNavigation_Links_3_Link_4"
+                                            href="/en/group1/competition/poolrankingcriteria">Pool Ranking Criteria</a>
+
+                                        <a id="Header1_MainNavigation_SubNavigation_Links_3_Link_5"
+                                            href="/en/group1/statistics/bestscorers">Statistics</a>
+
+                                    </div>
+                                    <!--<div class="side col-1-3">
+            </div> -->
+                                </div>
+
+
+
+                                <div id="Header1_MainNavigation_SubNavigation_Div_5" class="sub" data-id="subnav-5">
+                                    <div class="links col-1-1">
+
+                                        <a id="Header1_MainNavigation_SubNavigation_Links_5_Link_0"
+                                            href="/en/group1/media/accreditation">Accreditation</a>
+
+                                        <a id="Header1_MainNavigation_SubNavigation_Links_5_Link_1"
+                                            href="/en/group1/media/statisticalpreviews">Statistical Previews</a>
+
+                                        <a id="Header1_MainNavigation_SubNavigation_Links_5_Link_2"
+                                            href="/en/group1/media/photos">Photos</a>
+
+                                    </div>
+                                    <!--<div class="side col-1-3">
+            </div> -->
+                                </div>
+                            </div>
+
+                        </nav>
+                    </div>
+
+                    <!--
+        <div class="col-3-12 search">
+            <div class="inner">
+                <input type="text" placeholder="Search..." />
+                <input type="submit" value="search" />
+            </div>
+        </div>
+        -->
+
+                </div>
+
+
+
+                <div class="grid grid-pad breadcrumb">
+                    <div class="col-1-1">
+                        <div class="inner">
+                            <ul>
+                                <li><a id="Header1_Breadcrumb_BreadcrumbLinks_Link_0" href="/en">Home</a>
+                                </li>
+
+                                <li><a id="Header1_Breadcrumb_BreadcrumbLinks_Link_1" href="/en/group1">Group1</a>
+                                </li>
+
+                                <li><a id="Header1_Breadcrumb_BreadcrumbLinks_Link_2"
+                                        href="/en/group1/competition">Competition </a>
+                                </li>
+
+                                <li><a id="Header1_Breadcrumb_BreadcrumbLinks_Link_3"
+                                        href="/en/group1/competition/teams">Teams</a>
+                                </li>
+
+                                <li><a id="Header1_Breadcrumb_BreadcrumbLinks_Link_4"
+                                        href="/en/group1/competition/teams/chn-china">China</a>
+                                </li>
+
+                                <li>
+                                    <span id="Header1_Breadcrumb_BreadcrumbLinks_Label_5">Team Roster</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+
+
+
+                <div data-contentid=''
+                    class="ooyala-video-container-popup ooyala-video-container-popup-autoplay onetime ooyala-video-container"
+                    id='video-container'></div>
+
+            </header>
+
+            <div class="sso-popup-container">
+                <div class="sso-popup-wrapper" id="sso-popup-wrapper">
+                    <div class="sso-popup-left">
+                        <div class="title">Experience Volleyball like never before!</div>
+                        <div class="desc">Watch unlimited number of video clips and match highlights on your phone,
+                            tablet, laptop, and TV by just registering.</div>
+                        <div class="cta-wrapper">
+                            <a href="#" class="sso-cta"><span>Access</span>
+                                <span
+                                    class="arrow--l-r right"><span></span><span></span><span></span><span></span><span></span></span></a>
+                        </div>
+                        <div class="hashtag">#BePartOfTheGame</div>
+                    </div>
+                    <div class="sso-popup-right">
+                        <div class="text-container">
+                            <div class="text-icon text-icon1"></div>
+                            <div class="text text1">Watch anywhere, anytime! Highlights, exclusive content, clips,
+                                interviews and more.</div>
+                        </div>
+                        <div class="line-row">
+                            <div class="line"></div>
+                            <div class="line"></div>
+                        </div>
+                        <div class="text-container">
+                            <div class="text-icon text-icon2"></div>
+                            <div class="text text2">Watch top plays from the matches with video highlights and recaps.
+                            </div>
+                        </div>
+                        <div class="line-row">
+                            <div class="line"></div>
+                            <div class="line"></div>
+                        </div>
+                        <div class="text-container">
+                            <div class="text-icon text-icon3"></div>
+                            <div class="text text3">Customize your volleyball experience and get access to exclusive
+                                deals!</div>
+                        </div>
+                        <div class="line-row">
+                            <div class="line"></div>
+                            <div class="line"></div>
+                        </div>
+                        <div class="text-container">
+                            <div class="text-icon text-icon4"></div>
+                            <div class="text text4">Be Part of the game and get behind the scenes access!</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <article class="content-wrapper" role="main">
+
+                <div class="grid grid-pad">
+
+                    <div class="col-1-1 title-box">
+                        <div class="bg alt">
+                            <h3 class="h1-title">Teams</h3>
+
+                            <h2 id="currentTeam"><img id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Image"
+                                    src="/-/media/flags/flag_chn.png?h=60&amp;thn=0&amp;w=60&amp;hash=9CA00272EB5465FCE60315D18BA1065A" />China
+                            </h2>
+                        </div>
+
+                        <ul id="teamPicker" class="team-list">
+                            <li id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Li_0">
+                                <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Link_0"
+                                    href="/en/group1/competition/teams/bel-belgium">
+                                    <figure class="team">
+                                        <img id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Image_0"
+                                            src="/-/media/flags/flag_bel.png?h=30&amp;thn=0&amp;w=30&amp;hash=598CC2A8527BFA5DECCA4F53428023DA" />
+                                        <figcaption>Belgium</figcaption>
+                                    </figure>
+                                </a>
+                            </li>
+
+                            <li id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Li_1">
+                                <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Link_1"
+                                    href="/en/group1/competition/teams/bra-brazil">
+                                    <figure class="team">
+                                        <img id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Image_1"
+                                            src="/-/media/flags/flag_bra.png?h=30&amp;thn=0&amp;w=30&amp;hash=D52DA6EE3B4212FD7685C90A76FC5968" />
+                                        <figcaption>Brazil</figcaption>
+                                    </figure>
+                                </a>
+                            </li>
+
+                            <li id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Li_2" class="selected">
+                                <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Link_2"
+                                    href="/en/group1/competition/teams/chn-china">
+                                    <figure class="team">
+                                        <img id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Image_2"
+                                            src="/-/media/flags/flag_chn.png?h=30&amp;thn=0&amp;w=30&amp;hash=11507CA5D55127D4B162430AB8613CDE" />
+                                        <figcaption>China</figcaption>
+                                    </figure>
+                                </a>
+                            </li>
+
+                            <li id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Li_3">
+                                <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Link_3"
+                                    href="/en/group1/competition/teams/dom-dominican%20republic">
+                                    <figure class="team">
+                                        <img id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Image_3"
+                                            src="/-/media/flags/flag_dom.png?h=30&amp;thn=0&amp;w=30&amp;hash=99E2AFEF8C0C25B2CF0A93D8564F786D" />
+                                        <figcaption>Dominican Republic</figcaption>
+                                    </figure>
+                                </a>
+                            </li>
+
+                            <li id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Li_4">
+                                <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Link_4"
+                                    href="/en/group1/competition/teams/ita-italy">
+                                    <figure class="team">
+                                        <img id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Image_4"
+                                            src="/-/media/flags/flag_ita.png?h=30&amp;thn=0&amp;w=30&amp;hash=F51DE04CE7E928CA8A12199FA4104DDB" />
+                                        <figcaption>Italy</figcaption>
+                                    </figure>
+                                </a>
+                            </li>
+
+                            <li id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Li_5">
+                                <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Link_5"
+                                    href="/en/group1/competition/teams/jpn-japan">
+                                    <figure class="team">
+                                        <img id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Image_5"
+                                            src="/-/media/flags/flag_jpn.png?h=30&amp;thn=0&amp;w=30&amp;hash=21170532B6E8293C369D27D727C4766D" />
+                                        <figcaption>Japan</figcaption>
+                                    </figure>
+                                </a>
+                            </li>
+
+                            <li id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Li_6">
+                                <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Link_6"
+                                    href="/en/group1/competition/teams/ned-netherlands">
+                                    <figure class="team">
+                                        <img id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Image_6"
+                                            src="/-/media/flags/flag_ned.png?h=30&amp;thn=0&amp;w=30&amp;hash=9546C1D0DCF884131D59CEA4EBB36D86" />
+                                        <figcaption>Netherlands</figcaption>
+                                    </figure>
+                                </a>
+                            </li>
+
+                            <li id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Li_7">
+                                <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Link_7"
+                                    href="/en/group1/competition/teams/rus-russia">
+                                    <figure class="team">
+                                        <img id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Image_7"
+                                            src="/-/media/flags/flag_rus.png?h=30&amp;thn=0&amp;w=30&amp;hash=F39B6885B2CE500B279FFACEDE3EBE8B" />
+                                        <figcaption>Russia</figcaption>
+                                    </figure>
+                                </a>
+                            </li>
+
+                            <li id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Li_8">
+                                <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Link_8"
+                                    href="/en/group1/competition/teams/srb-serbia">
+                                    <figure class="team">
+                                        <img id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Image_8"
+                                            src="/-/media/flags/flag_srb.png?h=30&amp;thn=0&amp;w=30&amp;hash=21617CA184FE2E7C4B9BDEFB8FF71D10" />
+                                        <figcaption>Serbia</figcaption>
+                                    </figure>
+                                </a>
+                            </li>
+
+                            <li id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Li_9">
+                                <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Link_9"
+                                    href="/en/group1/competition/teams/tha-thailand">
+                                    <figure class="team">
+                                        <img id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Image_9"
+                                            src="/-/media/flags/flag_tha.png?h=30&amp;thn=0&amp;w=30&amp;hash=50FF513E1DD855C075500E4C4598747A" />
+                                        <figcaption>Thailand</figcaption>
+                                    </figure>
+                                </a>
+                            </li>
+
+                            <li id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Li_10">
+                                <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Link_10"
+                                    href="/en/group1/competition/teams/tur-turkey">
+                                    <figure class="team">
+                                        <img id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Image_10"
+                                            src="/-/media/flags/flag_tur.png?h=30&amp;thn=0&amp;w=30&amp;hash=2FE8DE65ACC972BFF5F73A29104E2D76" />
+                                        <figcaption>Turkey</figcaption>
+                                    </figure>
+                                </a>
+                            </li>
+
+                            <li id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Li_11">
+                                <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Link_11"
+                                    href="/en/group1/competition/teams/usa-usa">
+                                    <figure class="team">
+                                        <img id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_0_Teams_Image_11"
+                                            src="/-/media/flags/flag_usa.png?h=30&amp;thn=0&amp;w=30&amp;hash=7F5C245F23F800005D3D79A6DE18B1D7" />
+                                        <figcaption>USA</figcaption>
+                                    </figure>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="col-1-1">
+                        <div id="mobileSubnav">Overview</div>
+                        <nav id="subnav">
+                            <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_1_wcmenu_0_TabsList_Link_0"
+                                data-gtm-category="" href="/en/group1/competition/teams/chn-china">Overview</a>
+
+                            <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_1_wcmenu_0_TabsList_Link_1"
+                                class="selected" data-gtm-category=""
+                                href="/en/group1/competition/teams/chn-china/team_roster">Team Roster</a>
+
+                            <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_1_wcmenu_0_TabsList_Link_2"
+                                data-gtm-category="" href="/en/group1/competition/teams/chn-china/players">Players</a>
+
+                            <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_1_wcmenu_0_TabsList_Link_3"
+                                data-gtm-category=""
+                                href="/en/group1/competition/teams/chn-china/facts_and_figures">Facts & Figures</a>
+                        </nav>
+                        <div id="submenu">
+
+
+                            <nav class="lvl2">
+
+                            </nav>
+
+
+
+                            <ul class="tools">
+                                <li>
+                                    <button
+                                        id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_1_SocialBox_PrintButton"
+                                        class="print" type="button" title="Print this Page"></button>
+                                </li>
+                                <li class="tw">
+
+                                    <a href="https://twitter.com/share" class="twitter-share-button" data-size="medium"
+                                        data-count="none">Tweet</a>
+                                    <script>
+                                        // Performant asynchronous method of loading widgets.js
+                                        window.twttr = (function (d, s, id) {
+                                            var js, fjs = d.getElementsByTagName(s)[0],
+                                                t = window.twttr || {};
+                                            if (!d.getElementById(id)) {
+                                                js = d.createElement(s);
+                                                js.id = id;
+                                                js.src = "https://platform.twitter.com/widgets.js";
+                                                fjs.parentNode.insertBefore(js, fjs);
+                                            }
+                                            if (!t.ready) {
+                                                t._e = [];
+                                                t.ready = function (f) {
+                                                    t._e.push(f);
+                                                };
+                                            }
+                                            return t;
+                                        }(document, "script", "twitter-wjs"));
+                                    </script>
+
+                                    <script>
+                                        // Wait until twttr to be ready before adding event listeners
+                                        twttr.ready(function (twttr) {
+                                            twttr.events.bind('tweet', function (event) {
+                                                //GTM
+                                                console.log('GA Tracking::share-twitter');
+                                                dataLayer.push({
+                                                    'event': 'GA Tracking',
+                                                    'eventCategory': 'share',
+                                                    'eventAction': 'share-twitter',
+                                                    'eventLabel': window.location.href,
+                                                    'eventValue': 0,
+                                                    'eventNonInteraction': false
+                                                });
+                                            });
+                                        });
+                                    </script>
+                                </li>
+                                <li class="fb">
+
+
+                                    <script>
+                                        function fbShare(url, title, descr, image, winWidth, winHeight) {
+                                            var winTop = (screen.height / 2) - (winHeight / 2);
+                                            var winLeft = (screen.width / 2) - (winWidth / 2);
+                                            window.open('http://www.facebook.com/sharer.php?s=100&p[title]=' + title + '&p[summary]=' + descr + '&p[url]=' + url + '&p[images][0]=' + image, 'sharer', 'top=' + winTop + ',left=' + winLeft + ',toolbar=0,status=0,width=' + winWidth + ',height=' + winHeight);
+
+                                            dataLayer.push({
+                                                'event': 'GA Tracking',
+                                                'eventCategory': 'share',
+                                                'eventAction': 'share-facebook',
+                                                'eventLabel': url,
+                                                'eventValue': 0,
+                                                'eventNonInteraction': false
+                                            });
+                                        }
+                                    </script>
+
+                                    <a class="facebook-share-btn"
+                                        href="javascript:fbShare('http://worldgrandprix.2017.fivb.com/en/group1/competition/teams/chn-china/team_roster', '', '', '', 520, 350)">
+                                        <span class="facebook-share-btn__icon">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" class="_1pbq"
+                                                color="#ffffff">
+                                                <path fill="#ffffff" fill-rule="evenodd" d="M8 14H3.667C2.733 13.9 2 13.167 2 12.233V3.667A1.65 1.65 0 0 1
+            3.667 2h8.666A1.65 1.65 0 0 1 14 3.667v8.566c0 .934-.733
+            1.667-1.667
+            1.767H10v-3.967h1.3l.7-2.066h-2V6.933c0-.466.167-.9.867-.9H12v-1.8c.033
+            0-.933-.266-1.533-.266-1.267 0-2.434.7-2.467
+            2.133v1.867H6v2.066h2V14z"></path>
+                                            </svg>
+                                        </span>
+                                        <span class="facebook-share-btn__label">Share</span>
+                                    </a>
+
+                                </li>
+                            </ul>
+
+
+
+                        </div>
+                        <div class="white-box">
+                            <div class="grid-pad">
+
+
+                                <section id="roster" class="col-1-1">
+
+                                    <h3 class="full">Team roster</h3>
+                                    <section class="tabs-content">
+                                        <table>
+                                            <tr>
+                                                <th>N°</th>
+                                                <th>Name</th>
+                                                <th>Birthdate</th>
+                                                <th>Height</th>
+                                                <th>Weight</th>
+                                                <th>Spike</th>
+                                                <th>Block</th>
+                                                <th>World championships</th>
+                                                <th>Olympic games</th>
+                                                <th>Other</th>
+                                                <th>Total</th>
+                                                <th>Club</th>
+                                            </tr>
+
+                                            <tr>
+                                                <td><span class="number">1</span></td>
+                                                <td>
+                                                    <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_1_wcmenucontent_0_TeamRosterBox_Link_0"
+                                                        href="/en/group1/competition/teams/chn-china/players/xinyue-yuan?id=59121">Xinyue
+                                                        Yuan</a>
+
+                                                </td>
+                                                <td>21/12/1996</td>
+                                                <td>201</td>
+                                                <td>78</td>
+                                                <td>317</td>
+                                                <td>311</td>
+                                                <td>24</td>
+                                                <td>8</td>
+                                                <td>50</td>
+                                                <td>82</td>
+                                                <td>Bayi</td>
+                                            </tr>
+
+                                            <tr>
+                                                <td><span class="number">2</span></td>
+                                                <td>
+                                                    <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_1_wcmenucontent_0_TeamRosterBox_Link_1"
+                                                        href="/en/group1/competition/teams/chn-china/players/ting-zhu?id=59124">Ting
+                                                        Zhu</a>
+                                                    <span
+                                                        id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_1_wcmenucontent_0_TeamRosterBox_IsCaptain_1"
+                                                        class="captain">c</span>
+                                                </td>
+                                                <td>29/11/1994</td>
+                                                <td>198</td>
+                                                <td>78</td>
+                                                <td>327</td>
+                                                <td>300</td>
+                                                <td>24</td>
+                                                <td>8</td>
+                                                <td>62</td>
+                                                <td>94</td>
+                                                <td>Henan</td>
+                                            </tr>
+
+                                            <tr>
+                                                <td><span class="number">3</span></td>
+                                                <td>
+                                                    <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_1_wcmenucontent_0_TeamRosterBox_Link_2"
+                                                        href="/en/group1/competition/teams/chn-china/players/jing-li?id=59109">Jing
+                                                        Li</a>
+
+                                                </td>
+                                                <td>09/08/1991</td>
+                                                <td>186</td>
+                                                <td>73</td>
+                                                <td>310</td>
+                                                <td>305</td>
+                                                <td>0</td>
+                                                <td>0</td>
+                                                <td>0</td>
+                                                <td>0</td>
+                                                <td>ZHEJIANG</td>
+                                            </tr>
+
+                                            <tr>
+                                                <td><span class="number">4</span></td>
+                                                <td>
+                                                    <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_1_wcmenucontent_0_TeamRosterBox_Link_3"
+                                                        href="/en/group1/competition/teams/chn-china/players/jingwen-qian?id=59114">Jingwen
+                                                        Qian</a>
+
+                                                </td>
+                                                <td>11/05/1998</td>
+                                                <td>186</td>
+                                                <td>70</td>
+                                                <td>305</td>
+                                                <td>297</td>
+                                                <td>0</td>
+                                                <td>0</td>
+                                                <td>0</td>
+                                                <td>0</td>
+                                                <td>Shandong</td>
+                                            </tr>
+
+                                            <tr>
+                                                <td><span class="number">5</span></td>
+                                                <td>
+                                                    <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_1_wcmenucontent_0_TeamRosterBox_Link_4"
+                                                        href="/en/group1/competition/teams/chn-china/players/yi-gao?id=59106">Yi
+                                                        Gao</a>
+
+                                                </td>
+                                                <td>22/07/1998</td>
+                                                <td>193</td>
+                                                <td>66</td>
+                                                <td>304</td>
+                                                <td>298</td>
+                                                <td>0</td>
+                                                <td>0</td>
+                                                <td>0</td>
+                                                <td>0</td>
+                                                <td>Bayi</td>
+                                            </tr>
+
+                                            <tr>
+                                                <td><span class="number">6</span></td>
+                                                <td>
+                                                    <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_1_wcmenucontent_0_TeamRosterBox_Link_5"
+                                                        href="/en/group1/competition/teams/chn-china/players/xiangyu-gong?id=59108">Xiangyu
+                                                        Gong</a>
+
+                                                </td>
+                                                <td>21/04/1997</td>
+                                                <td>186</td>
+                                                <td>72</td>
+                                                <td>313</td>
+                                                <td>302</td>
+                                                <td>12</td>
+                                                <td>8</td>
+                                                <td>15</td>
+                                                <td>35</td>
+                                                <td>Jiangsu</td>
+                                            </tr>
+
+                                            <tr>
+                                                <td><span class="number">7</span></td>
+                                                <td>
+                                                    <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_1_wcmenucontent_0_TeamRosterBox_Link_6"
+                                                        href="/en/group1/competition/teams/chn-china/players/linyu-diao?id=59104">Linyu
+                                                        Diao</a>
+
+                                                </td>
+                                                <td>07/04/1994</td>
+                                                <td>182</td>
+                                                <td>69</td>
+                                                <td>309</td>
+                                                <td>303</td>
+                                                <td>0</td>
+                                                <td>0</td>
+                                                <td>0</td>
+                                                <td>0</td>
+                                                <td>Jiangsu</td>
+                                            </tr>
+
+                                            <tr>
+                                                <td><span class="number">9</span></td>
+                                                <td>
+                                                    <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_1_wcmenucontent_0_TeamRosterBox_Link_7"
+                                                        href="/en/group1/competition/teams/chn-china/players/changning-zhang?id=59122">Changning
+                                                        Zhang</a>
+
+                                                </td>
+                                                <td>06/11/1995</td>
+                                                <td>193</td>
+                                                <td>80</td>
+                                                <td>315</td>
+                                                <td>303</td>
+                                                <td>0</td>
+                                                <td>0</td>
+                                                <td>43</td>
+                                                <td>43</td>
+                                                <td>Jiangsu</td>
+                                            </tr>
+
+                                            <tr>
+                                                <td><span class="number">10</span></td>
+                                                <td>
+                                                    <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_1_wcmenucontent_0_TeamRosterBox_Link_8"
+                                                        href="/en/group1/competition/teams/chn-china/players/xiaotong-liu?id=59112">Xiaotong
+                                                        Liu</a>
+
+                                                </td>
+                                                <td>16/02/1990</td>
+                                                <td>188</td>
+                                                <td>80</td>
+                                                <td>312</td>
+                                                <td>300</td>
+                                                <td>24</td>
+                                                <td>8</td>
+                                                <td>70</td>
+                                                <td>102</td>
+                                                <td>Beijing</td>
+                                            </tr>
+
+                                            <tr>
+                                                <td><span class="number">12</span></td>
+                                                <td>
+                                                    <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_1_wcmenucontent_0_TeamRosterBox_Link_9"
+                                                        href="/en/group1/competition/teams/chn-china/players/yixin-zheng?id=59123">Yixin
+                                                        Zheng</a>
+
+                                                </td>
+                                                <td>06/05/1995</td>
+                                                <td>187</td>
+                                                <td>71</td>
+                                                <td>316</td>
+                                                <td>307</td>
+                                                <td>0</td>
+                                                <td>0</td>
+                                                <td>47</td>
+                                                <td>47</td>
+                                                <td>Fujian</td>
+                                            </tr>
+
+                                            <tr>
+                                                <td><span class="number">15</span></td>
+                                                <td>
+                                                    <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_1_wcmenucontent_0_TeamRosterBox_Link_10"
+                                                        href="/en/group1/competition/teams/chn-china/players/li-lin?id=59111">Li
+                                                        Lin</a>
+
+                                                </td>
+                                                <td>05/07/1992</td>
+                                                <td>171</td>
+                                                <td>65</td>
+                                                <td>294</td>
+                                                <td>294</td>
+                                                <td>24</td>
+                                                <td>8</td>
+                                                <td>52</td>
+                                                <td>84</td>
+                                                <td>Fujian</td>
+                                            </tr>
+
+                                            <tr>
+                                                <td><span class="number">16</span></td>
+                                                <td>
+                                                    <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_1_wcmenucontent_0_TeamRosterBox_Link_11"
+                                                        href="/en/group1/competition/teams/chn-china/players/xia-ding?id=59105">Xia
+                                                        Ding</a>
+
+                                                </td>
+                                                <td>13/01/1990</td>
+                                                <td>180</td>
+                                                <td>67</td>
+                                                <td>305</td>
+                                                <td>300</td>
+                                                <td>12</td>
+                                                <td>8</td>
+                                                <td>58</td>
+                                                <td>78</td>
+                                                <td>Liaoning</td>
+                                            </tr>
+
+                                            <tr>
+                                                <td><span class="number">17</span></td>
+                                                <td>
+                                                    <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_1_wcmenucontent_0_TeamRosterBox_Link_12"
+                                                        href="/en/group1/competition/teams/chn-china/players/yuanyuan-wang?id=59117">Yuanyuan
+                                                        Wang</a>
+
+                                                </td>
+                                                <td>14/07/1997</td>
+                                                <td>195</td>
+                                                <td>75</td>
+                                                <td>312</td>
+                                                <td>300</td>
+                                                <td>0</td>
+                                                <td>0</td>
+                                                <td>0</td>
+                                                <td>0</td>
+                                                <td>Tianjin</td>
+                                            </tr>
+
+                                            <tr>
+                                                <td><span class="number">18</span></td>
+                                                <td>
+                                                    <a id="wcbody_0_wcgridpad584e65ba5c164448ac8660bf842604ba_1_wcmenucontent_0_TeamRosterBox_Link_13"
+                                                        href="/en/group1/competition/teams/chn-china/players/mengjie-wang?id=59116">Mengjie
+                                                        Wang</a>
+
+                                                </td>
+                                                <td>14/11/1995</td>
+                                                <td>172</td>
+                                                <td>65</td>
+                                                <td>289</td>
+                                                <td>280</td>
+                                                <td>12</td>
+                                                <td>0</td>
+                                                <td>30</td>
+                                                <td>42</td>
+                                                <td>Shandong</td>
+                                            </tr>
+
+                                        </table>
+                                    </section>
+
+                                </section>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </article>
+            <div id="push"></div>
+        </div>
+
+
+        <footer class="main-footer">
+            <div class="brands-bar">
+                <div class="grid">
+                    <div class="container">
+                        <div class="level2">
+                            <span class="lbl">&nbsp;</span>
+                        </div>
+                        <div class="level2">
+                        </div>
+                        <div class="level2">
+                            <span class="lbl">FIVB Official Suppliers &nbsp;</span>
+                            <a target="_blank" href="http://mikasasports.com/"><img alt=""
+                                    src="/-/media/beach/netherlands2015/sponsors/mikasa.png?la=en&amp;h=84&amp;w=187&amp;hash=3A742E48ABFFD90CEE344BA9E7EE750D"
+                                    style="width: 187px;"></a><br>
+                            <a href="http://www.senoh.jp/english/" target="_blank"><img alt="Senoh_logo" width="300"
+                                    src="/-/media/fivb/logos/senoh-logo.png?la=en&amp;hash=A91E53FF01222FD71B626BD7CC2D9BB4"></a>
+                        </div>
+                        <div class="level2">
+                            <span class="lbl">FIVB Indoor Volleyball&nbsp;</span><span class="lbl">Supplier</span>
+                            <a target="_blank" href="http://www.gerflor.com/"><img alt="" width="135"
+                                    style="margin-top: 25px;"
+                                    src="/-/media/fivb2014/logos/lgo_gerflor.png?la=en&amp;hash=38A9E00D3BB7724ED9E0F46392DCA23A"></a>
+                        </div>
+                        <div class="level2">
+                            <span class="lbl">FIVB Official Supporters</span>
+                            <a href="http://www.dbschenker.com/ho-en/start.html" target="_blank"><img alt=""
+                                    style="margin-top: 3px; width: 148px;"
+                                    src="/-/media/beach/netherlands2015/sponsors/schenker.png?la=en&amp;w=148&amp;hash=5F4D1CE4830270E36CF3B1BCBE9EEC40"></a><br>
+                            <a href="http://www.asics.com" target="_blank"><img alt="" height="66" width="148"
+                                    style="margin-top: 3px; width: 148px;"
+                                    src="/-/media/fivb/logos/asics.png?la=en&amp;hash=191A9617D4F79D09C7456F509496B0AF"></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-pad others">
+                <div class="col-8-12">
+                    <div class="quick-links">
+
+                    </div>
+                </div>
+                <div class="col-4-12">
+
+
+
+                </div>
+            </div>
+
+            <div class="copy">
+                <div class="grid grid-pad">
+                    <div class="col-1-1">
+                        <span>Copyright&copy; 2017 FIVB - All rights reserved</span>
+                        <a href="http://worldgrandprix.2017.fivb.com/en/terms-of-service">Terms of Service</a>
+                        <a href="http://worldgrandprix.2017.fivb.com/en/privacy-policy">Privacy policy</a>
+                        <span>Follow us:</span>
+                        <a class="fb" href="https://www.facebook.com/FIVBVolleyballWorld/">facebook</a>
+                        <a class="tw" href="https://twitter.com/fivbvolleyball">twitter</a>
+                        <a class="yt" href="http://www.youtube.com/videofivb">youtube</a>
+                        <a class="inst" href="http://www.instagram.com/volleyballworld">instagram</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+        <div class="cookie-message-container">
+            <div class="open-button">
+                <div class="message-wrapper">
+                    <span class="cookie-message">
+                        This website uses cookies to ensure you get the best experience on our website. For more
+                        information please read our <a target="_blank" href="http://www.fivb.com/cookies">Cookies
+                            Policy</a>.
+                    </span>
+                </div>
+                <div class="close-btn-container">
+                    <a class="icon btn-cookie-close">Ok</a>
+                </div>
+            </div>
+        </div>
+
+
+        <div>
+            <script src="/cassette.axd/script/cd5141b8a7cb50bf32cda0c865d47784cd63f2df/js/core"
+                type="text/javascript"></script>
+            <script src="/cassette.axd/script/cb220dd3b83fcf342cd98096053798c94ca05765/js/Volley/auth"
+                type="text/javascript"></script>
+            <script src="/cassette.axd/script/1caa1bb25be3a6ce05a1e88ad2965c79ac8e3c9e/js/Volley/team"
+                type="text/javascript"></script>
+            <script src="/cassette.axd/script/76ae110e0e02af1e05ca91033a27eaab5f943392/js/Volley/smart-app-banner"
+                type="text/javascript"></script>
+            <script src="/cassette.axd/script/afba5765547b90d2142dc610931cd9ed786c7553/js/Volley/bxslider"
+                type="text/javascript"></script>
+            <script src="/cassette.axd/script/42fe84b8b2434edf51e16609893d957551cdfb0a/js/Volley/live-box"
+                type="text/javascript"></script>
+            <script src="/cassette.axd/script/b197a89be1ea7ff40427cb37a1286c5b9a14226e/js/Fivb/galaxy-bar"
+                type="text/javascript"></script>
+            <script src="/cassette.axd/script/0db769322648c7feab21ce63ef557c328d42b9ca/js/Volley/scroll"
+                type="text/javascript"></script>
+            <script src="/cassette.axd/script/934e21f94c295a626c47aa34140d187edebad745/js/Volley/angular"
+                type="text/javascript"></script>
+            <script src="/cassette.axd/script/c5b9e73d6c8375957413e4cba3a5be979ba933d1/js/Beach/cookie-accept-message"
+                type="text/javascript"></script>
+        </div>
+
+    </form>
+</body>
+
+</html>

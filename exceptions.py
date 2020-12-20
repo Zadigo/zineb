@@ -1,0 +1,2 @@
+class NoRequestWarning(UserWarning):
+    pass

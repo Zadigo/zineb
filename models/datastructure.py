@@ -1,0 +1,238 @@
+import secrets
+from collections import OrderedDict
+
+import pandas
+from zineb.http.responses import HTMLResponse
+
+
+class FieldDescripor:
+    cached_fields = OrderedDict()
+    
+    def __getitem__(self, key):
+        return self.cached_fields[key]
+
+
+class Base(type):
+    def __new__(cls, name, bases, attrs):
+        super_new = super().__new__
+        parents = [b for b in bases if isinstance(b, Base)]
+
+        if not parents:
+            return super_new(cls, name, bases, attrs)
+
+        fields = []
+        if name != 'Model':
+            new_attrs = {}
+            class_module = attrs.pop('__module__')
+            class_qualname = attrs.pop('__qualname__')
+
+            fields = list(attrs.keys())
+            # Normally, we should have all the fields
+            # anad/or remaining methods of the class
+            descriptor = FieldDescripor()
+            descriptor.cached_fields.update(**attrs)
+            new_attrs.update(
+                {
+                    '_meta': descriptor, 
+                    '__module__': class_module, 
+                    '__qualname__': class_qualname
+                }
+            )
+            new_class = super_new(cls, name, bases, new_attrs)
+            setattr(new_class, '_fields', fields)
+            return new_class
+
+        new_class = super_new(cls, name, bases, attrs)
+        return new_class
+
+
+class Registry:
+    def _create_base_dict(self):
+        base = {}
+        for field in self._fields:
+            base.setdefault(field)
+        return base
+
+
+class DataStructure(Registry, metaclass=Base):
+    def __init__(self, html_document=None, html_tag=None, response=None):
+        self._cached_result = {}
+        self.html_document = html_document
+        self.html_tag = html_tag
+        self.response = response
+        self.parser = self._choose_parser()
+
+    def _resolve(self, name):
+        """
+        Gets the cached field object that was registered
+        on the model
+
+        Parameters
+        ----------
+
+            name (str): the field name to get
+
+        Raises
+        ------
+
+            KeyError: When the field is absent
+
+        Returns
+        -------
+
+            type: returns zineb.fields.Field object
+        """
+        try:
+            return self._meta.cached_fields[name]
+        except:
+            raise KeyError(f"The field is not present on your model. Available fields are: {', '.join(self._meta.cached_fields)}")
+
+    def _choose_parser(self):
+        if self.html_tag is not None:
+            return self.html_tag
+
+        if self.html_document is not None:
+            return self.html_document
+
+        if self.response is not None:
+            if not isinstance(self.response, HTMLResponse):
+                raise TypeError('The request object should be a zineb.response.HTMLResponse object')
+            return self.response.html_page
+
+    def _parse_tags(self, tags, field_name, field_obj, base, attributes=None):
+        for index, tag in enumerate(tags):
+            new_base = base.copy()
+            if attributes is not None:
+                lhs, rhs = attributes
+                if lhs == 'id':
+                    if index == rhs:
+                        new_base.update({field_name: field_obj.resolve(tag.text)})
+            else:
+                new_base.update({field_name: field_obj.resolve(tag.text)})
+            # self._cached_result.append(new_base)
+
+    def add_expression(self, name, expression, attrs:dict={}):
+        """
+        Adds a value to your Model object using an expression
+
+        Parameters
+        ----------
+
+                field_name (str): the name of field on which to add a given value
+                expression (str): an expression used to query or parse tags in the document
+        """
+        obj = self._resolve(name)
+
+        try:
+            # Find the first element of the
+            # page or the object
+            tag = self.parser.find(expression, attrs=attrs)
+        except:
+            return
+
+        element_text = None
+        if tag or tag is not None:
+            element_text = tag.text
+
+            resolved_value = obj.resolve(element_text)
+
+            cached_field = self._cached_result.get(name, None)
+            if cached_field is None:
+                self._cached_result.setdefault(name, [])
+                cached_field = self._cached_result.get(name)
+            cached_field.append(resolved_value)
+            self._cached_result.update({name: cached_field})
+
+    def add_value(self, name, value):
+        """
+        Adds a value to your Model object. This definition does not
+        require a BeautifulSoup object
+
+        Parameters
+        ----------
+
+                field_name (str): the name of field on which to add a given value
+                value (str): the value to add to the model
+        """
+        obj = self._resolve(name)
+        resolved_value = obj.resolve(value)
+        
+        cached_field = self._cached_result.get(name, None)            
+        if cached_field is None:
+            self._cached_result.setdefault(name, [])
+            cached_field = self._cached_result.get(name)
+        cached_field.append(resolved_value)
+        self._cached_result.update({name: cached_field})
+
+    def resolve_fields(self):
+        if self._cached_result:
+            # Check that the arrays are
+            # of equal length before running
+            # the DataFrame otherwise it will
+            # raise an error
+
+            return pandas.DataFrame(
+                self._cached_result, 
+                columns=self._meta.cached_fields,
+                # dtype=[]
+            )
+        return self._cached_result
+
+
+class Model(DataStructure):
+    """
+    A Model is a class that helps you structure
+    your scrapped data efficiently for later use
+
+    Your custom models have to inherit from this
+    base Model class and implement a set of fields
+    from zineb.models.fields. For example:
+
+            class MyCustomModel(Model):
+                name = CharField()
+
+    Once you've created the model, you can then use
+    it within your project like so:
+
+            custom_model = MyCustommodel()
+            custom_model.add_value('name', 'p')
+            custom_modem.resolve_fields()
+
+            -> pandas.DataFrame
+    """
+    def __str__(self) -> str:
+        return str(self._cached_result)
+        
+    def __repr__(self):
+        return f"{self.__class__.__name__}"
+
+    def __getitem__(self, field):
+        return self._cached_result.get(field, None)
+
+    def __setitem__(self, field, value):
+        self.add_value(field, value)
+        
+    def save(self, commit=True, filename=None, **kwargs):
+        """
+        Save the model's dataframe to a file.
+
+        By setting commit to False, you will get a copy of the
+        dataframe in order to run additional actions on it
+
+        Parameters
+        ----------
+
+            commit (bool, optional): save immediately. Defaults to True.
+            filename (str, optional): the file name to use. Defaults to None.
+
+        Returns
+        -------
+
+            dataframe: pandas dataframe object
+        """
+        df = self.resolve_fields()
+        if commit:
+            if filename is None:
+                filename = f'{secrets.token_hex(nbytes=5)}.json'
+            return df.to_json(filename, orient='records')
+        return df.copy()
