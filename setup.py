@@ -61,7 +61,7 @@ setuptools.setup(
     license='MIT',
     long_description=read_files('README.md'),
     long_description_content_type='text/markdown',
-    url='https://github.com/Zadigo/zineb',
+    url='https://github.com/Zadigo/zineb/releases/tag/0.0.1-pre-alpha',
     classifiers=classifiers,
     keywords=['python', 'web scrapping', 'scrapping'],
     python_requires='>=3.9'
