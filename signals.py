@@ -43,6 +43,7 @@ pre_save = signal
 post_save = signal
 
 pre_request = signal
+post_request = signal
 
 # class A:
 #     def create_order(self):

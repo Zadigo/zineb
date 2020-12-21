@@ -1,22 +1,49 @@
-from collections import OrderedDict, deque
-from functools import cached_property
+from collections import deque
 
-from w3lib.html import strip_html5_whitespace
-from w3lib.url import is_url, urljoin
+from w3lib.url import urljoin
 from zineb.extractors.base import Extractor
 
 
-class LinkExtractor:
-    def __init__(self, url_must_contain=None, unique=False, base_url=None):
+class LinkExtractor(Extractor):
+    """
+    Extract all links using a BeautifulSoup object
+
+    This helper class is a useful wrapper for rapidly getting
+    the links from a BeautifulSoup element
+
+    Parameters
+    ----------
+
+        url_must_contain (str, optional): only get items which url contains x. Defaults to None.
+        unique (bool, optional): links must be unique accross document. Defaults to False.
+        base_url (str, optional): [description]. Defaults to None.
+        only_valid_links (bool, optional): links must be valid (start with http). Defaults to False.
+    """
+    def __init__(self, url_must_contain=None, unique=False, 
+                 base_url=None, only_valid_links=False):
         self.base_url = base_url
         self.unique = unique
         self.validated_links = []
+        self.url_must_contain = url_must_contain
+        self.only_valid_links = only_valid_links
+
+    def __enter__(self):
+        return self.validated_links
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return False
 
     def __len__(self):
         return len(self.validated_links)
 
     def __iter__(self):
         return iter(self.validated_links)
+
+    def __getitem__(self, index):
+        return self.validated_links[index]
+
+    def __str__(self):
+        return str(self.validated_links)
 
     def _document_links(self, soup):
         """
@@ -54,12 +81,21 @@ class LinkExtractor:
         for tag in self._document_links(soup):
             element_name = tag.name
             if tag and element_name == 'a' and isinstance(element_name, str):
-                yield tag, tag.attrs
+                if self.url_must_contain is not None:
+                    attrs = tag.attrs
+                    url = attrs.get('href')
+                    if url is not None:
+                        if self.url_must_contain in url:
+                            yield tag, attrs
+                else:
+                    yield tag, tag.attrs
 
     def _recompose_path(self, path):
-        return urljoin(self.base_url, path)
+        if path.startswith('/'):    
+            return urljoin(self.base_url, path)
+        return path
 
-    def finalize(self, soup):
+    def resolve(self, soup):
         """
         Return all the lists from a given
         document
@@ -85,4 +121,13 @@ class LinkExtractor:
             if href is not None:
                 attrs['href'] = self._recompose_path(attrs['href'])
             self.validated_links.append(Link(element, attrs=attrs))
-        return self.validated_links
+
+        if self.unique:
+            self.validated_links = {
+                link for link in self.validated_links
+            }
+
+        if self.only_valid_links:
+            self.validated_links = list(
+                filter(lambda x: x.is_valid, self.validated_links)
+            )

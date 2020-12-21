@@ -1,3 +1,4 @@
+from collections import ChainMap
 from functools import cached_property
 from io import BytesIO
 from urllib.parse import urljoin
@@ -6,6 +7,7 @@ import pandas
 from bs4 import BeautifulSoup
 from PIL import Image
 from w3lib.html import strip_html5_whitespace
+from w3lib.url import is_url
 from zineb.extractors.images import ImageExtractor
 from zineb.extractors.links import LinkExtractor
 
@@ -13,12 +15,6 @@ from zineb.extractors.links import LinkExtractor
 class BaseResponse:
     def __init__(self, response) -> None:
         self.cached_response = response
-
-    @cached_property
-    def page_title(self):
-        return strip_html5_whitespace(
-            self.html_page.find('title').text
-        )
     
 
 class HTMLResponse(BaseResponse):
@@ -52,10 +48,17 @@ class HTMLResponse(BaseResponse):
     def __repr__(self):
         return f"{self.__class__.__name__}(title={self.page_title})"
 
+    @cached_property    
+    def page_title(self):
+        return strip_html5_whitespace(
+            self.html_page.find('title').text
+        )
+
     @cached_property
     def links(self):
         extractor = LinkExtractor()
-        return extractor.finalize(self.html_page)
+        extractor.resolve(self.html_page)
+        return extractor.validated_links
 
     @cached_property
     def images(self):
@@ -119,14 +122,72 @@ class ImageResponse(BaseResponse):
 
 
 class JsonResponse(BaseResponse):
-    pass
-    # def __init__(self, response):
-    #     super().__init__(response)
-    #     try:
-    #         response = response.json()
-    #     except:
-    #         response = None
+    def __init__(self, response, **kwargs):
+        super().__init__(response)
+        try:
+            self.raw_data = response.json()
+        except:
+            raise TypeError('Response should be an HTTP request response')
+        else:
+            self.response_data = pandas.DataFrame(data=self.raw_data)
 
-    #     if isinstance(response, dict):
-    #         pd = pandas.DataFrame()
-    #         self.response = pd.from_dict(response, orient='records')
+    def __str__(self):
+        return str(self.raw_data)
+
+    def __add__(self, b):
+        return self.raw_data + b.raw_data
+
+    def __getitem__(self, index):
+        return self.raw_data[index]
+
+    @cached_property
+    def columns(self):
+        return self.response_data.columns
+
+    def links(self, unique=False):
+        """
+        Retrieve all the links with in the JSON element
+
+        Parameters
+        ----------
+
+            unique (bool, optional): links should be unique. Defaults to False.
+
+        Returns
+        -------
+
+            list: list of all the links
+        """
+        link_mappings = []
+        for item in self.raw_data:
+            values = filter(lambda x: is_url(x), item.values())
+            link_mappings.append(list(values))
+        flattened_links = ChainMap(*link_mappings)
+        if unique:
+            return {link for link in flattened_links}
+        return flattened_links
+
+    def get_response_from_key(self, key):
+        """
+        There might be cases when you would like to create a
+        DataFrame starting from a specific key in the dict
+
+        Parameters
+        ----------
+
+            key (str): a key within the dictionnary
+
+        Raises
+        ------
+
+            KeyError: [description]
+
+        Returns
+        -------
+
+            DataFrame: a pandas DataFrame
+        """
+        try:
+            return pandas.DataFrame(data=self.raw_data[key])
+        except:
+            raise KeyError('The given key does not exist on the response')

@@ -5,22 +5,11 @@ from requests.sessions import Request, Session
 from w3lib.url import urljoin
 from zineb.html.tags import ImageTag, Link
 from zineb.http.responses import HTMLResponse, JsonResponse
-from zineb.signals import pre_request
+from zineb.signals import pre_request, post_request
 from zineb.utils.general import create_logger
 
 
-class HTTPRequest:
-    """
-    Represents a basic HTTP request which wraps
-    an HTMLResponse and base HTTP request
-
-    Parameters
-    ----------
-
-            url (str): the url to which to send the request
-    """
-    referer = None
-
+class BaseRequest:
     def __init__(self, url, **kwargs):
         self.logger = create_logger(self.__class__.__name__)
 
@@ -46,14 +35,7 @@ class HTTPRequest:
         self.session = session
         self.prepared_request = prepared_request
         self._http_response = None
-        self.html_response = None
-        # self.headers = None
-        self.counter = kwargs.get('counter', 0)
         self.resolved = False
-        self.middlewares = {}
-        # Use this to pass parameters into
-        # the HTTPRequest object
-        self.options = OrderedDict()
 
     def __repr__(self):
         return f"{self.__class__.__name__}(url={self.url}, resolved={self.resolved})"
@@ -61,6 +43,18 @@ class HTTPRequest:
     def __call__(self, url, *args, **kwds):
         self.__init__(url)
         self._send()
+        post_request.send('SomeSignal', self)
+
+    def _set_headers(self, request, **extra_headers):
+        result = pre_request.send('UserAgent', self)
+        # headers = {'User-Agent': 'Zineb - v-0.0.1'}
+        # extra_headers.update(headers)
+        # request.headers = headers
+        return request
+
+    def _send(self):
+        """Sends a new HTTP request to the web"""
+        return self.session.send(self.prepared_request)
 
     @classmethod
     def follow(cls, url):
@@ -76,37 +70,45 @@ class HTTPRequest:
         for url in urls:
             instance = cls(url)
             # headers = instance._request.headers
-            # headers.update({'referer': cls.referer})
+            # headers.update({'referer': referer})
             instance._send()
             responses.append(instance)
         return responses
 
-    def _set_headers(self, request, **extra_headers):
-        # headers = {'User-Agent': 'Zineb - v-0.0.1'}
-        # extra_headers.update(headers)
-        # request.headers = headers
-        return request
-        # return self._run_middlewares('User-Agent', using=headers)
 
-    # def _run_middlewares(self, name, request=None, response=None, using=None):
-    #     if self.middlewares is not None:
-    #         for middleware in self.middlewares:
-    #             if middleware.__class__.__name__ == name:
-    #                 pass
+class HTTPRequest(BaseRequest):
+    """
+    Represents a basic HTTP request which wraps
+    an HTMLResponse and base HTTP request
 
-    def _parse_response_headers(self, headers):
-        for header, value in headers.items():
-            header = header.replace('-', '_')
-            setattr(self, header.lower(), value)
+    Parameters
+    ----------
+
+            url (str): the url to which to send the request
+    """
+    referer = None
+
+    def __init__(self, url, **kwargs):
+        super().__init__(url, **kwargs)
+        self.html_response = None
+        # self.headers = None
+        self.counter = kwargs.get('counter', 0)
+        self.middlewares = {}
+        # Use this to pass parameters into
+        # the HTTPRequest object
+        self.options = OrderedDict()
+
+    # def _parse_response_headers(self, headers):
+    #     for header, value in headers.items():
+    #         header = header.replace('-', '_')
+    #         setattr(self, header.lower(), value)
 
     def _send(self):
         """Sends a new HTTP request to the web"""
-        result = pre_request.send('UserAgent', self)
-
-        response = self.session.send(self.prepared_request)
+        response = super()._send()
         if response.ok:
-            headers = response.__dict__.get('headers')
-            self._parse_response_headers(headers)
+            # headers = response.__dict__.get('headers')
+            # self._parse_response_headers(headers)
             self.logger.info(f'Sent request for {self.url}')
             self._http_response = response
             self.html_response = HTMLResponse(response, url=self.url)
@@ -122,20 +124,23 @@ class HTTPRequest:
         return urljoin(self._http_response.url, path)
 
 
-class JsonRequest(HTTPRequest):
+class JsonRequest(BaseRequest):
     def __init__(self, url, **kwargs):
-        self.json_response = None
         super().__init__(url, **kwargs)
+        self.json_response = None
 
     def _send(self):
-        response = self.session.send(self.prepared_request)
+        response = super()._send()
         if response.ok:
-            headers = response.__dict__.get('headers')
-            self._parse_response_headers(headers)
+            # headers = response.__dict__.get('headers')
+            # self._parse_response_headers(headers)
+            self._http_response = response
             self.logger.info(f'Sent request for {self.url}')
-        self.json_response = JsonResponse(response.json())
-        self.resolved = True
+            self.json_response = JsonResponse(response, url=self.url)
+            self.resolved = True
+            self.session.close()
+            # post_request.send('MySignal', self)
 
 
-class FormRequest:
+class FormRequest(BaseRequest):
     pass

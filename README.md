@@ -98,30 +98,91 @@ request.urljoin("/kendall-jenner")
 
 ## Models
 
-Models are simple way that you can use to structure data in your project.
+Models are a simple way that you can use to structure your scrapped data properly before saving them to a file.
 
 ### Creating and using a model
 
-Creating a model is very simple. You have to subclass the Model object from `zineb.models.Model` and then add fields from `zineb.models.fields` to it. Here is a basic example:
+In order to create a model, you just need to subclass the Model object from `zineb.models.Model` and then add fields to it using `zineb.models.fields`.
 
 ```
-from models.fields import CharField
 from zineb.models.datastructure import Model
+from models.fields import CharField
 
 class Player(Model):
     name = CharField()
 
 ```
 
-On its own, a model does nothing. In order to make it work, you have to call it, add values to it and then resolve the fields.
+On its own, a model does nothing. In order to make it work, you have to add values to it and then resolve the fields.
 
-You can add values in multiple ways. The first, and easiest way to add values is through the `add_value`.
+You can add values in multiple ways. The first, and easiest way to add values is through the `add_value` method:
 
 ```
-player = Player()
 player.add_value('name', 'Kendall Jenner')
 ```
 
+Once a value is added to the field, a series of checks and validations are run on the value.
+
+__Checks__ make sure that the value that was passed respects the constraints that were passed as a keyword arguments:
+
+    - Max length
+    - Mininum/Maximum
+    - Not null or blank
+
+For instance, suppose you want only values that do not exceed a certain length:
+
+```
+name = CharField(max_length=50)
+```
+
+Or suppose you want a default value for fields that are empty or blank:
+
+```
+name = CharField(default='Kylie Jenner')
+```
+
+Validators and checks have two different purposes.
+
+__Validators__ validate the value itself. For instance, making sure that an URL is indeed an url or that an email follows the expected pattern that you would expect from an email.
+
+Zineb comes with a default set of validators (`zineb.validators`). But you can also create your own validator and pass it to your field:
+
+```
+from zineb.models.datastructure import Model
+from models.fields import CharField
+
+def custom_validator(value):
+    if value == 'Kendall Jenner':
+        return 'Kylie Jenner'
+    return value
+
+class Player(Model):
+    name = CharField(validators=[custom_validator])
+```
+
+You can also create validators that match a specific regex pattern:
+
+```
+from zineb.models.datastructure import Model
+from zineb.models.fields import CharField
+from zineb.models.validators import regex_compiler
+
+@regex_compiler(r'\d+')
+def custom_validator(value):
+    if value > 10:
+        return value
+    return 0
+
+class Player(Model):
+    age = IntegerField(validators=[custom_validator])
+
+player = Player()
+player.add_value('age', 14)
+```
+
+Once the field tries to resolve the value, it will run __checks__ if any, will __validate__ the value using the validators and custom validators if any.
+
+It's important to understand that the result of the regex compiler is reinjected into your custom validator on which you can then do various other checks.
 
 
 method consits of passing a query expression that will then automatically resolve in getting the elements from the given page.

@@ -42,12 +42,13 @@ classifiers = [
 
 install_requires = [
     'beautifulsoup4>=4.9.3',
-    'numpy>',
+    'numpy==1.19.3',
     'requests>=2.25.1',
     'Pillow>=8.0.1',
     'jupyter>',
     'pandas>=1.1.5',
-    'PyDispatcher>=2.0.5'
+    'PyDispatcher>=2.0.5',
+    'w3lib>=1.22.0'
 ]
 
 

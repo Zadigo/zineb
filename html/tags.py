@@ -13,6 +13,7 @@ class BaseTags:
         elif isinstance(html_page, BeautifulSoup):
             self.html_page = html_page
 
+
 class HTMLTag(BaseTags):
     tag_name = None
 
@@ -67,8 +68,11 @@ class Link(HTMLTag):
             return value in self.href
         return False
 
-    # def __str__(self):
-    #     return str(self.href)
+    def __str__(self):
+        return str(self.href)
+
+    def __hash__(self):
+        return hash(self.href)
 
     def __repr__(self):
         return f"{self.__class__.__name__}(url={self.href}, valid={self.is_valid})"

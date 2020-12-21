@@ -1,36 +1,43 @@
 import os
+import logging
+
+
 
 PROJECT_PATH = os.path.dirname(os.path.dirname(__file__))
 
 SETTINGS_FILE = os.path.join(PROJECT_PATH, 'settings', 'base.py')
 
-# You can set up a basic database that can be
-# used to store the data that you retrieve
 
-# DATABASE = {
-#     'name': None,
-#     'backend': 'sqlite'
-# }
+# You an limit the scrapping to certain amount of
+# domains. Register the acceptable domains to scrap
+# in the list below
 
-# Use this configuration file to monitor, configure... the
+DOMAINS = []
+
+
+# Use this configuration file to monitor and configure the
 # way your spider will be crawling the internet
 
 CONFIGURATION_FILE = os.path.join(PROJECT_PATH, 'settings', 'project.conf')
 
 
+# Logging is done primaryly in the console.
+# It is however possible to log to a file by
+# specifying the LOG_TO_FILE parameter
+
 LOG_TO_FILE = False
+
+LOG_FILE = os.path.join(PROJECT_PATH, 'zineb.logs')
 
 LOG_FORMAT = '%(asctime)s [%(name)s] %(levelname)s: %(message)s'
 
-LOG_FILE = None
-
-LOG_LEVEL = 'DEBUG'
-
+LOG_LEVEL = logging.DEBUG
 
 
 # A set of codes that will be executed before or after
 # certain specific actions within the application
 
 MIDDLEWARES = [
-    'zineb.middlewares.user_agent.UserAgent'
+    'zineb.middlewares.user_agent.UserAgent',
+    'zineb.middlewares.history.History'
 ]

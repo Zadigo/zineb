@@ -1,3 +1,4 @@
+import re
 import secrets
 from collections import OrderedDict
 
@@ -62,7 +63,24 @@ class DataStructure(Registry, metaclass=Base):
         self.response = response
         self.parser = self._choose_parser()
 
-    def _resolve(self, name):
+    @staticmethod
+    def _expression_resolver(expression: str):
+        attr = None
+        if '__' in expression:
+            expression, attr = expression.split('__', 1)
+        tag_id = tag_class = {}
+        tag = re.search(r'^(\w+)(?=\.|\#)', expression)
+        if tag:
+            tag = tag.group()[-1]
+        a = re.search(r'(?<=\.)(?P<class>\w+\-?\w+)', expression)
+        b = re.search(r'(?<=\#)(?P<id>\w+\-?\w+)', expression)
+        if a:
+            tag_id = a.groupdict()
+        if b:
+            tag_class = b.groupdict()
+        return tag, tag_id | tag_class, attr
+
+    def _get_field_by_name(self, name):
         """
         Gets the cached field object that was registered
         on the model
@@ -88,6 +106,13 @@ class DataStructure(Registry, metaclass=Base):
             raise KeyError(f"The field is not present on your model. Available fields are: {', '.join(self._meta.cached_fields)}")
 
     def _choose_parser(self):
+        # In case we get both the HTML document
+        # and a tag, use the most global element
+        # in order to have a better change to get
+        # something from it
+        if self.html_document and self.html_tag:
+            return self.html_document
+
         if self.html_tag is not None:
             return self.html_tag
 
@@ -111,7 +136,7 @@ class DataStructure(Registry, metaclass=Base):
                 new_base.update({field_name: field_obj.resolve(tag.text)})
             # self._cached_result.append(new_base)
 
-    def add_expression(self, name, expression, attrs:dict={}):
+    def add_expression(self, name, expression):
         """
         Adds a value to your Model object using an expression
 
@@ -123,16 +148,25 @@ class DataStructure(Registry, metaclass=Base):
         """
         obj = self._resolve(name)
 
-        try:
-            # Find the first element of the
-            # page or the object
-            tag = self.parser.find(expression, attrs=attrs)
-        except:
-            return
+        allow_pseudos = ['text', 'href', 'src']
+        tag, attrs, pseudo = self._expression_resolver(expression)
+        if pseudo not in allow_pseudos:
+            raise TypeError(f"Pseudo should be one of {', '.join(allow_pseudos)}")
+        
+        # In this specific case, only find the first
+        # occurrence of a given tag on the page or
+        # within the HTML soup object
+        tag = self.parser.find(tag, attrs=attrs)
 
         element_text = None
         if tag or tag is not None:
-            element_text = tag.text
+            element_text = None
+            if pseudo == 'text':
+                element_text = tag.text
+            else:
+                element_attrs = tag.attrs
+                if tag.has_attr(pseudo):
+                    element_text = element_attrs.get(pseudo)
 
             resolved_value = obj.resolve(element_text)
 
@@ -154,8 +188,9 @@ class DataStructure(Registry, metaclass=Base):
                 field_name (str): the name of field on which to add a given value
                 value (str): the value to add to the model
         """
-        obj = self._resolve(name)
-        resolved_value = obj.resolve(value)
+        obj = self._get_field_by_name(name)
+        obj.resolve(value)
+        resolved_value = obj._cached_result
         
         cached_field = self._cached_result.get(name, None)            
         if cached_field is None:
@@ -234,5 +269,8 @@ class Model(DataStructure):
         if commit:
             if filename is None:
                 filename = f'{secrets.token_hex(nbytes=5)}.json'
+            else:
+                if not filename.endswith('json'):
+                    filename = f'{filename}.json'
             return df.to_json(filename, orient='records')
         return df.copy()
