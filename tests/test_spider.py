@@ -1,15 +1,27 @@
 import unittest
+from unittest.case import TestCase
 
+from bs4 import BeautifulSoup
 from zineb.app import Zineb
 from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse
-from bs4 import BeautifulSoup
 
 
 class Spider(Zineb):
     start_urls = [
         'http://example.com'
     ]
+
+
+class SpiderMeta(Zineb):
+    start_urls = [
+        'http://example.com'
+    ]
+
+    class Meta:
+        domains = [
+            'http://example.com'
+        ]
 
 
 class TestSpider(unittest.TestCase):
@@ -33,5 +45,17 @@ class TestSpider(unittest.TestCase):
         self.assertEqual(http_request.html_response.page_title, 'Example Domain')
 
 
+class TestMeta(unittest.TestCase):
+    def setUp(self):
+        self.spider = SpiderMeta()
+
+    def test_spider_init(self):
+        self.assertIsInstance(self.spider._meta, dict)
+        self.assertDictEqual(self.spider._meta, {'domains': ['http://example.com']})
+
 if __name__ == "__main__":
-    unittest.main()
+    # unittest.main()
+    runner = unittest.TextTestRunner()
+    suite = unittest.TestSuite()
+    suite.addTest(TestMeta('test_spider_init'))
+    runner.run(suite)

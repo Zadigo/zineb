@@ -3,6 +3,14 @@ from collections import OrderedDict
 
 
 class Settings:
+    """ 
+    Represents the settings file of the project
+
+    Returns
+    -------
+
+        OrderedDict: [description]
+    """
     _settings = OrderedDict()
 
     def __init__(self) -> None:
@@ -31,3 +39,6 @@ class Settings:
 
     def get(self, key, default=None):
         return self._settings.get(key, default)
+
+    def has_setting(self, key):
+        return key in self._settings.keys()

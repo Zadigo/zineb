@@ -28,6 +28,7 @@ class BaseRequest:
                 raise TypeError(f'The source from {repr(url)} is not valid')
 
         session = Session()
+        self.headers = kwargs.get('headers', {})
         self._request = self._set_headers(Request(method='GET', url=url))
         prepared_request = session.prepare_request(self._request)
 
@@ -46,7 +47,7 @@ class BaseRequest:
         post_request.send('SomeSignal', self)
 
     def _set_headers(self, request, **extra_headers):
-        result = pre_request.send('UserAgent', self)
+        user_agent = pre_request.send('UserAgent', self)
         # headers = {'User-Agent': 'Zineb - v-0.0.1'}
         # extra_headers.update(headers)
         # request.headers = headers
@@ -54,6 +55,9 @@ class BaseRequest:
 
     def _send(self):
         """Sends a new HTTP request to the web"""
+        # domain_validity = pre_request.send(
+        #     'ApplicationChecks', self, name='_check_domain_is_valid'
+        # )
         return self.session.send(self.prepared_request)
 
     @classmethod
@@ -91,14 +95,14 @@ class HTTPRequest(BaseRequest):
     def __init__(self, url, **kwargs):
         super().__init__(url, **kwargs)
         self.html_response = None
-        # self.headers = None
         self.counter = kwargs.get('counter', 0)
         self.middlewares = {}
-        # Use this to pass parameters into
-        # the HTTPRequest object
+        # Use this to pass additional parameters 
+        # into the HTTPRequest object
         self.options = OrderedDict()
 
-    # def _parse_response_headers(self, headers):
+    # def _parse_response_headers(self, response):
+    #     headers = response.__dict__.get('headers')
     #     for header, value in headers.items():
     #         header = header.replace('-', '_')
     #         setattr(self, header.lower(), value)
@@ -107,8 +111,6 @@ class HTTPRequest(BaseRequest):
         """Sends a new HTTP request to the web"""
         response = super()._send()
         if response.ok:
-            # headers = response.__dict__.get('headers')
-            # self._parse_response_headers(headers)
             self.logger.info(f'Sent request for {self.url}')
             self._http_response = response
             self.html_response = HTMLResponse(response, url=self.url)
@@ -132,15 +134,12 @@ class JsonRequest(BaseRequest):
     def _send(self):
         response = super()._send()
         if response.ok:
-            # headers = response.__dict__.get('headers')
-            # self._parse_response_headers(headers)
             self._http_response = response
             self.logger.info(f'Sent request for {self.url}')
             self.json_response = JsonResponse(response, url=self.url)
             self.resolved = True
             self.session.close()
-            # post_request.send('MySignal', self)
-
+            
 
 class FormRequest(BaseRequest):
     pass

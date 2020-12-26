@@ -14,6 +14,11 @@ SETTINGS_FILE = os.path.join(PROJECT_PATH, 'settings', 'base.py')
 
 DOMAINS = []
 
+# Ensure that every request is sent if and only if
+# the scheme is HTTPS
+
+ENSURE_HTTPS = False
+
 
 # Use this configuration file to monitor and configure the
 # way your spider will be crawling the internet
@@ -38,6 +43,20 @@ LOG_LEVEL = logging.DEBUG
 # certain specific actions within the application
 
 MIDDLEWARES = [
+    'zineb.middlewares.core.ApplicationChecks',
     'zineb.middlewares.user_agent.UserAgent',
     'zineb.middlewares.history.History'
 ]
+
+
+# Use this to set a base set of headers for
+# every HTTP request in the application
+
+HEADERS = {}
+
+
+# Register all the steps that were run by
+# the application. This includes HTTP requests,
+# download history or file creation history
+
+HISTORY = False

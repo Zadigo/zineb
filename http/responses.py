@@ -42,8 +42,8 @@ class HTMLResponse(BaseResponse):
                 self.html_page = self._get_soup(response.text)
             except:
                 raise ValueError("'response' should be either a string or a response object")
-        # self.response = response
-        self.kwargs = kwargs
+
+        self.kwargs = kwargs.copy()
 
     def __repr__(self):
         return f"{self.__class__.__name__}(title={self.page_title})"
@@ -191,3 +191,7 @@ class JsonResponse(BaseResponse):
             return pandas.DataFrame(data=self.raw_data[key])
         except:
             raise KeyError('The given key does not exist on the response')
+
+
+class XMLResponse(BaseResponse):
+    pass
