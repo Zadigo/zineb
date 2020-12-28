@@ -1,4 +1,8 @@
+import re
 from functools import cached_property
+
+from nltk.tokenize import PunktSentenceTokenizer, WordPunctTokenizer
+from sklearn.feature_extraction.text import CountVectorizer
 from zineb.utils.html import deep_clean
 
 
@@ -7,7 +11,7 @@ class Extractor:
         raise NotImplementedError('Should be implemented by the subclasses')
     
     def __exit__(self, exc_type, exc_val, exc_tb):
-        return NotImplementedError('Should be implemented by the subclasses')
+        return False
 
     def resolve(self, soup):
         raise NotImplementedError(('Provide functionnalities for quickly '
@@ -98,3 +102,44 @@ class RowExtractor(Extractor):
                 else:
                     self.rows = self._get_rows(tbody)
             return self._compose
+
+
+class Text(Extractor):
+    """
+    Extract all the text from a soup object
+    """
+    tokenizer = WordPunctTokenizer()
+
+    def __init__(self):
+        self.text = None
+        self.tokens = None
+
+    def __enter__(self):
+        return self.tokens
+
+    @cached_property
+    def _stop_words(self):
+        with open('extractors/stop_words', mode='r') as f:
+            data = f.readlines()
+            words = data.copy()
+        new_words = []
+        for word in words:
+            new_words.append(word.replace('\n', ''))
+        return new_words
+
+    def resolve(self, soup):
+        text = soup.text
+        self.tokens = self.tokenizer.tokenize(text)
+        self.text = text
+
+    def vectorize(self, min_df=1, max_df=1, return_matrix=False):
+        if self.text is not None:
+            tokenizer = PunktSentenceTokenizer()
+            sentences = tokenizer.sentences_from_text(self.text)
+
+            vectorizer = CountVectorizer(
+                min_df=min_df, max_df=max_df, stop_words=self._stop_words
+            )
+            matrix = vectorizer.fit_transform(sentences)
+            return matrix if return_matrix else vectorizer.get_feature_names()
+        return None

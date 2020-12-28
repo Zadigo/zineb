@@ -1,5 +1,7 @@
+import re
 from collections import deque
 
+from nltk.tokenize import WordPunctTokenizer
 from w3lib.url import urljoin
 from zineb.extractors.base import Extractor
 
@@ -94,6 +96,30 @@ class LinkExtractor(Extractor):
         if path.startswith('/'):    
             return urljoin(self.base_url, path)
         return path
+ 
+    def _analyze_links(self):
+        for link in self.validated_links:
+            if link.is_email:
+                yield link
+
+    def _analyze_text(self, tokens):
+        pattern = r'^(\w+\W?\w+\@\w+\W?\w+\.\w+)$'
+        regex = re.compile(pattern)
+        for token in tokens:
+            is_match = regex.search(token)
+            if is_match:
+                yield is_match.group(1)
+
+    def resolve_emails(self, soup):
+        self.resolve(soup)
+
+        text = soup.text
+        tokenizer = WordPunctTokenizer()
+        tokens = tokenizer.tokenize(text)
+
+        emails_from_text = list(self._analyze_text(tokens))
+        emails_from_links = list(self._analyze_links())
+        return emails_from_links + emails_from_text
 
     def resolve(self, soup):
         """
@@ -110,7 +136,7 @@ class LinkExtractor(Extractor):
 
             list: complete list of links
         """
-        from zineb.html.tags import Link
+        from zineb.dom.tags import Link
         if soup is None:
             return []
             

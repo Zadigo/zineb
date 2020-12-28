@@ -5,7 +5,7 @@ from bs4.element import Tag as beautiful_soup_tag
 from w3lib import html
 from w3lib.url import canonicalize_url
 from zineb.exceptions import ValidationError
-from zineb.html.tags import BaseTags
+from zineb.dom.tags import BaseTags
 from zineb.http.request import HTTPRequest
 from zineb.models import validators
 from zineb.utils.general import download_image
@@ -107,8 +107,6 @@ class Field:
         #     return str(value)
 
         if force_conversion:
-            # Raises a ValueError if the objects
-            # do not match
             value = object_to_check_against(value)
 
         result = isinstance(value, object_to_check_against)
@@ -238,6 +236,20 @@ class IntegerField(Field):
         )
 
 
+class DecimalField(Field):
+    name = 'float'
+    _dtype = pandas.Int64Dtype
+
+    def __init__(self, default=None, min_value=None, max_value=None):
+        super().__init__(default=default)
+
+    def resolve(self, value):
+        self._cached_result = super().resolve(value)
+        self._cached_result = self._check_or_convert_to_type(
+            self._cached_result, float, 'Value should be a float/decimial', force_conversion=True
+        )
+
+
 class DateField(Field):
     name = 'date'
     dtype = pandas.DatetimeTZDtype
@@ -267,10 +279,10 @@ class AgeField(DateField):
     dtype = pandas.Int64Dtype
 
     def __str__(self):
-        return str(self._substract())
+        return str(self._cached_result)
 
     def _substract(self):
-        current_date = datetime.datetime.now().date()
+        current_date = datetime.datetime.now()
         return current_date.year - self._cached_result.year
 
     def resolve(self, date):
@@ -302,8 +314,9 @@ class FunctionField(Field):
         self.filtered_methods = []
         self.output_field = output_field
 
-        if output_field is not None and not isinstance(output_field, Field):
-            raise TypeError('The output field should be one of zineb.models.fields types')
+        if output_field is not None:
+            if not isinstance(output_field, Field):
+                raise TypeError('The output field should be one of zineb.models.fields types')
 
         for method in methods:
             if not callable(method):

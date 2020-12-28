@@ -5,20 +5,36 @@ from zineb.utils.general import create_logger
 
 
 class Signal:
-    def __init__(self) -> None:
-        self.logger = create_logger(self.__class__.__name__)
-
-    @staticmethod
     def disconnect_all(self, sender, signal):
         for receiver in liveReceivers(getAllReceivers(sender, signal)):
-            disconnect(receiver, signal=signal, sender=sender) 
+            self.disconnect(receiver, signal=signal, sender=sender) 
 
-    def connect(self, receiver, signal, **kwargs):
-        sender = kwargs.get('sender', dispatcher.Any)
-        return dispatcher.connect(receiver, signal=signal, sender=sender, **kwargs)
+    def receivers(self, sender):
+        return getAllReceivers(sender=sender)
 
-    def disconnect(self, receiver, signal, **kwargs):
-        return dispatcher.disconnect(receiver, signal=signal, **kwargs)
+    def connect(self, receiver, signal=None, sender=None):
+        """
+        Connect a receiver to a sender
+
+        Parameters
+        ----------
+
+            receiver (func)
+                The function that is to receive the signal
+
+            signal ([type], optional): [description]. Defaults to None.
+            sender ([type], optional): [description]. Defaults to None.
+        """
+        if sender is None:
+            sender = dispatcher.Any
+
+        if signal is None:
+            signal = dispatcher.Any
+            
+        dispatcher.connect(receiver, signal=signal, sender=sender)
+
+    def disconnect(self, receiver, signal, sender):
+        dispatcher.disconnect(receiver, signal=signal, sender=sender)
 
     def send(self, signal, sender, **kwargs):
         return dispatcher.send(signal, sender=sender, **kwargs)
@@ -27,11 +43,11 @@ class Signal:
 signal = Signal()
 
 
-def register(sender, signal, name=None):
-    def _signal(func):
-        signal.connect(func, signal, name=name)
-        return dispatcher.send
-    return _signal
+# def register(sender, signal, name=None):
+#     def _signal(func):
+#         signal.connect(func, signal, name=name)
+#         return dispatcher.send
+#     return _signal
 
 
 pre_start = signal
@@ -39,11 +55,6 @@ post_start = signal
 
 pre_download = signal
 
-pre_save = signal
-post_save = signal
-
-pre_request = signal
-post_request = signal
 
 # class A:
 #     def create_order(self):

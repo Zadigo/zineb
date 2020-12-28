@@ -6,6 +6,7 @@ from urllib.parse import urljoin
 import pandas
 from bs4 import BeautifulSoup
 from PIL import Image
+from requests.models import Response
 from w3lib.html import strip_html5_whitespace
 from w3lib.url import is_url
 from zineb.extractors.images import ImageExtractor
@@ -13,7 +14,7 @@ from zineb.extractors.links import LinkExtractor
 
 
 class BaseResponse:
-    def __init__(self, response) -> None:
+    def __init__(self, response):
         self.cached_response = response
     
 
@@ -33,17 +34,15 @@ class HTMLResponse(BaseResponse):
     def __init__(self, response, **kwargs):
         super().__init__(response)
         if isinstance(response, str):
-            # Accept HTML documents as strings. Not
-            # particularly necessary but can be an
-            # interesting functonnality
             self.html_page = self._get_soup(response)
-        else:
-            try:
-                self.html_page = self._get_soup(response.text)
-            except:
-                raise ValueError("'response' should be either a string or a response object")
+        elif isinstance(response, Response):
+            self.html_page = self._get_soup(response.text)
 
         self.kwargs = kwargs.copy()
+        self.headers = kwargs.get('headers', {})
+        # Indicates whether the request was completed
+        # with a status code of 200
+        # self.completed = True
 
     def __repr__(self):
         return f"{self.__class__.__name__}(title={self.page_title})"
@@ -56,6 +55,14 @@ class HTMLResponse(BaseResponse):
 
     @cached_property
     def links(self):
+        """
+        Get all the links present on the HTML page
+
+        Returns
+        -------
+
+            list: list of valid and invalid links
+        """
         extractor = LinkExtractor()
         extractor.resolve(self.html_page)
         return extractor.validated_links
@@ -83,9 +90,7 @@ class HTMLResponse(BaseResponse):
 
     def urljoin(self, path):
         try:
-            return urljoin(
-                self.cached_response.url, path
-            )
+            return urljoin(self.cached_response.url, str(path))
         except:
             return None
 

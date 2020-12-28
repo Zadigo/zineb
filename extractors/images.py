@@ -1,4 +1,5 @@
 from zineb.extractors.base import Extractor
+from bs4.element import Tag
 
 class ImageExtractor(Extractor):
     def __init__(self, unique=False, as_type=None,
@@ -17,6 +18,11 @@ class ImageExtractor(Extractor):
         return self.images[index] if self.images else []
 
     def _document_images(self, soup):
+        from zineb.http.responses import HTMLResponse
+        if isinstance(soup, HTMLResponse):
+            soup = soup.html_page
+        elif isinstance(soup, Tag):
+            soup = soup
         return soup.find_all('img')
 
     def _image_iterator(self, soup):
@@ -24,7 +30,7 @@ class ImageExtractor(Extractor):
             yield image, image.attrs
 
     def resolve(self, soup):
-        from zineb.html.tags import ImageTag
+        from zineb.dom.tags import ImageTag
         images = self._image_iterator(soup)
         for i, image in enumerate(images):
             tag, attrs = image

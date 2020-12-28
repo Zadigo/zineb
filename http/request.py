@@ -1,83 +1,171 @@
 import inspect
+import random
 from collections import OrderedDict
 
 from requests.sessions import Request, Session
-from w3lib.url import urljoin
-from zineb.html.tags import ImageTag, Link
+from w3lib.url import safe_url_string, urljoin, urlparse
+from zineb.dom.tags import ImageTag, Link
 from zineb.http.responses import HTMLResponse, JsonResponse
-from zineb.signals import pre_request, post_request
+from zineb.http.user_agent import UserAgent
+from zineb.signals import Signal
 from zineb.utils.general import create_logger
+
+pre_request = Signal()
+post_request = Signal()
 
 
 class BaseRequest:
-    def __init__(self, url, **kwargs):
+    """
+    Base HTTP request for all requests
+
+    Parameters
+    ----------
+
+        url (str) url to which the request should be sent
+        method (str, Optional) Request method. Defaults to GET
+
+    Raises
+    ------
+
+        TypeError: [description]
+    """
+    only_secured_requests = False
+    only_domains = []
+    # Indicates whether the HTTPRequest can be sent
+    # if all the prechecks on the url turn out to
+    # be positive -; this is a non blocking procedure
+    # leaving the front end spider to deal with
+    # .. Also, assume that all created requests
+    # can be sent as is
+    can_be_sent = True
+    project_settings = {}
+
+    def __init__(self, url, method='GET', **kwargs):
         self.logger = create_logger(self.__class__.__name__)
 
-        # These are pre-check functions in case
-        # we receive a BaseTags instance such as
-        # Link or ImageTag
-        if type(url).__name__ == 'Link' or inspect.isclass(url):
-            if url.is_valid:
-                url = url.href
-            else:
-                raise TypeError(f'The url from {repr(url)} is not valid')
+        if isinstance(url, Link):
+            url = url.href
+        elif inspect.isclass(url):
+            url = url.href
         elif isinstance(url, ImageTag):
-            if url.is_valid:
-                url = url.src
-            else:
-                raise TypeError(f'The source from {repr(url)} is not valid')
+            url = url.src
+        else:
+            url = url
+
+        self.project_settings = kwargs.get('settings', {})
 
         session = Session()
-        self.headers = kwargs.get('headers', {})
-        self._request = self._set_headers(Request(method='GET', url=url))
-        prepared_request = session.prepare_request(self._request)
+        proxies = self.project_settings.get('proxies')
+        if proxies is not None:
+            http_proxies = list(filter(lambda x: 'http' in x, proxies))
+            https_proxies = list(filter(lambda x: 'https' in x, proxies))
+            proxy_map = {
+                'http': random.choice(http_proxies)
+            }
+            if http_proxies:
+                proxy_map.update({'https': random.choice(https_proxies)})
 
-        self.url = url
+        self.only_domains = self.project_settings.get('DOMAINS')
+        self.only_secured_requests = self.project_settings.get('ENSURE_HTTPS')
+        self.retries = {
+            'retry': self.project_settings.get('RETRY'),
+            'retry_times': self.project_settings.get('RETRY_TIMES'),
+            'retry_http_codes': self.project_settings.get('RETRY_HTTP_CODES')
+        }
+
+        self.url = self._precheck_url(url)
+        request = Request(method=method, url=self.url)
+        self._unprepared_request = self._set_headers(request, **kwargs.get('headers', {}))
+
         self.session = session
-        self.prepared_request = prepared_request
+        self.prepared_request = session.prepare_request(self._unprepared_request)
         self._http_response = None
+        # Whether the request was
+        # sent or not
         self.resolved = False
+
+        pre_request.connect(self, 'Request.Before')
+        post_request.connect(self, 'Request.After')
 
     def __repr__(self):
         return f"{self.__class__.__name__}(url={self.url}, resolved={self.resolved})"
 
-    def __call__(self, url, *args, **kwds):
-        self.__init__(url)
-        self._send()
-        post_request.send('SomeSignal', self)
+    def __call__(self, sender, **kwargs):
+        print(sender, kwargs)
 
     def _set_headers(self, request, **extra_headers):
-        user_agent = pre_request.send('UserAgent', self)
-        # headers = {'User-Agent': 'Zineb - v-0.0.1'}
-        # extra_headers.update(headers)
-        # request.headers = headers
+        user_agent = UserAgent()
+
+        headers = {
+            'Accept-Language': 'en-US,en-GB,fr-FR;q=0.9,q=0.8,q=0.7',
+            'Accept-Encoding': 'br,gzip,deflate,compress',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'User-Agent': user_agent.get_random_agent(),
+            'Referrer': 'https://google.com',
+            # 'Referer-Policy': 'strict-origin-when-cross-origin'
+        }
+        extra_headers.update(headers)
+        request.headers = headers
         return request
+
+    def _precheck_url(self, url):
+        parsed_url = urlparse(url)
+
+        scheme = parsed_url[0]
+        netloc = parsed_url[1]
+
+        if self.only_secured_requests:
+            if scheme != 'https' or scheme != 'ftps':
+                self.logger.critical(f'{url} is not secured')
+                self.can_be_sent = False
+
+        if self.only_domains:
+            if netloc in self.only_domains:
+                self.logger.critical(f'{url} is in restricted domains')
+                self.can_be_sent = False
+            
+        return safe_url_string(url)
 
     def _send(self):
         """Sends a new HTTP request to the web"""
-        # domain_validity = pre_request.send(
-        #     'ApplicationChecks', self, name='_check_domain_is_valid'
-        # )
-        return self.session.send(self.prepared_request)
+        pre_request.send('Request.Before', self)
+        response = self.session.send(self.prepared_request)
+
+        retry = self.retries.get('retry', False)
+        if retry:
+            retry_http_status_codes = self.retries.get('retry_http_status_codes', [])
+            if response.status_code in retry_http_status_codes:
+                response = self._retry()
+
+        if response.status_code == 200:
+            self.resolved = True
+
+        post_request.send('Request.After', self, url=response.url)
+        policy = response.headers.get('Referer-Policy', 'origin')
+        # post_request.send('Referer', self, url=response.url, policy=policy)
+        return response
+
+    def _retry(self):
+        retry_times = self.retries.get('retry_times')
+        for _ in range(0, retry_times + 2):
+            return self.session.send(self.prepared_request)
 
     @classmethod
     def follow(cls, url):
         instance = cls(url)
-        # headers = instance._request.headers
-        # headers.update({'referer': cls.referer})
         instance._send()
         return instance
 
     @classmethod
     def follow_all(cls, urls):
-        responses = []
         for url in urls:
-            instance = cls(url)
-            # headers = instance._request.headers
-            # headers.update({'referer': referer})
+            # Calling str() on the url
+            # allows Tags like Link to
+            # be passed directly to the
+            # request
+            instance = cls(str(url))
             instance._send()
-            responses.append(instance)
-        return responses
+            yield instance
 
 
 class HTTPRequest(BaseRequest):
@@ -96,16 +184,10 @@ class HTTPRequest(BaseRequest):
         super().__init__(url, **kwargs)
         self.html_response = None
         self.counter = kwargs.get('counter', 0)
-        self.middlewares = {}
+        # self.middlewares = {}
         # Use this to pass additional parameters 
         # into the HTTPRequest object
         self.options = OrderedDict()
-
-    # def _parse_response_headers(self, response):
-    #     headers = response.__dict__.get('headers')
-    #     for header, value in headers.items():
-    #         header = header.replace('-', '_')
-    #         setattr(self, header.lower(), value)
 
     def _send(self):
         """Sends a new HTTP request to the web"""
@@ -113,8 +195,7 @@ class HTTPRequest(BaseRequest):
         if response.ok:
             self.logger.info(f'Sent request for {self.url}')
             self._http_response = response
-            self.html_response = HTMLResponse(response, url=self.url)
-            self.resolved = True
+            self.html_response = HTMLResponse(response, url=self.url, headers=response.headers)
             self.session.close()
 
     def urljoin(self, path):
@@ -123,7 +204,7 @@ class HTTPRequest(BaseRequest):
         full ones, this joins the main url to the
         relative path 
         """
-        return urljoin(self._http_response.url, path)
+        return urljoin(self._http_response.url, str(path))
 
 
 class JsonRequest(BaseRequest):
@@ -142,4 +223,5 @@ class JsonRequest(BaseRequest):
             
 
 class FormRequest(BaseRequest):
-    pass
+    def __init__(self, url, **kwargs):
+        super().__init__(url, method='POST', **kwargs)

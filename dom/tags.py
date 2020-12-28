@@ -1,8 +1,9 @@
+import re
 from mimetypes import guess_extension, guess_type
 from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
-from w3lib.url import is_url
+from w3lib.url import is_url, safe_url_string, canonicalize_url
 
 
 class BaseTags:
@@ -46,14 +47,37 @@ class Link(HTMLTag):
         self.tag = tag
         self.text = tag.text
         self.attrs = kwargs.get('attrs', tag.attrs)
+        href = self.attrs.get('href', None)
         
-        base_url = kwargs.get('base_url', None)
-        if base_url is not None:
-            self.href = urljoin(base_url, self.href)
+        self.href = href
+        self.is_email = False
+        if href is not None:
+            base_url = kwargs.get('base_url', None)
+            if base_url is not None:
+                href = urljoin(base_url, href)
 
-        try:
-            self.is_valid = is_url(self.href)
-        except AttributeError:
+            if 'mailto:' in href:
+                self.is_email = True
+                is_match = re.search(r'^mailto:(.*)$', href)
+                if is_match:
+                    href = is_match.group(1)
+                else:
+                    href = href
+
+            href = safe_url_string(
+                canonicalize_url(href)
+            )
+
+            try:
+                self.is_valid = is_url(href)
+            except AttributeError:
+                self.is_valid = False
+            else:
+                self.href = href
+
+                if self.is_email:
+                    self.is_valid = True
+        else:
             self.is_valid = False
         super().__init__(tag, **kwargs)
 
@@ -63,9 +87,23 @@ class Link(HTMLTag):
     def __add__(self, path):
         return urljoin(self.href, path)
 
-    def __contains__(self, value):
+    def __contains__(self, value_to_test):
+        logic_to_test = []
+
         if self.href is not None:
-            return value in self.href
+            logic_to_test.extend([value_to_test in self.href])
+
+        if self.attrs:
+            element_class = self.attrs.get('class')
+            element_id = self.attrs.get('id')
+            if element_class is not None:
+                logic_to_test.extend([value_to_test in element_class])
+
+            if element_id is not None:
+                logic_to_test.extend([value_to_test in element_id])
+
+        if logic_to_test:
+            return any(logic_to_test)
         return False
 
     def __str__(self):
@@ -75,11 +113,9 @@ class Link(HTMLTag):
         return hash(self.href)
 
     def __repr__(self):
+        if self.is_email:
+            return f"{self.__class__.__name__}(email={self.href})"
         return f"{self.__class__.__name__}(url={self.href}, valid={self.is_valid})"
-
-    @property
-    def href(self):
-        return self.attrs.get('href')
 
     @property
     def decompose(self):

@@ -15,7 +15,6 @@ class Settings:
 
     def __init__(self) -> None:
         from zineb.utils.general import create_logger
-        logger = create_logger(self.__class__.__name__)
 
         settings = importlib.import_module('zineb.settings.base')
         modules_dict = settings.__dict__
@@ -23,6 +22,8 @@ class Settings:
         for key, value in modules_dict.items():
             if key.isupper():
                 self._settings.setdefault(key, value)
+
+        logger = create_logger(self.__class__.__name__)
         logger.info(f"Loaded project settings...")
     
     def __str__(self) -> str:
