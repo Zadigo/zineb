@@ -3,7 +3,7 @@ from functools import cached_property
 
 from nltk.tokenize import PunktSentenceTokenizer, WordPunctTokenizer
 from sklearn.feature_extraction.text import CountVectorizer
-from zineb.utils.html import deep_clean
+from zineb.utils._html import deep_clean
 
 
 class Extractor:

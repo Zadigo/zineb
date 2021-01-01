@@ -1,3 +1,4 @@
+import asyncio
 from threading import Thread
 
 from zineb.http.request import HTTPRequest
@@ -22,13 +23,13 @@ class Pipeline:
             Pipeline([http://example.com], download_image)
     """
 
-    def __init__(self, urls, *functions, **parameters):
+    def __init__(self, urls, *functions, parameters: dict={}, **options):
         self.responses = []
 
         requests_to_send = []
         for i, url in enumerate(urls):
-            request = HTTPRequest(url, index=i)
-            request.options.update(**parameters)
+            request = HTTPRequest(str(url), index=i)
+            request.options.update(**options)
             requests_to_send.append(request)
 
         types = []
@@ -36,33 +37,61 @@ class Pipeline:
             if type(function) == 'class':
                 types.append(function)
 
-        threads = []
-        for request in requests_to_send:
-            def wrapper():
-                result = None
-                request._send()
-                response = request.html_response.cached_response
-                self.responses.append(response)
-                for function in functions:
-                    # if type(function) == 'class':
-                    #     # There are certain cases where
-                    #     # the function that is passed turns
-                    #     # out being a class. In that specific
-                    #     # situation, maybe call the __call__
-                    #     # method on that classe
-                    #     instance = function(response)
-                    #     instance()
-                    # else:
-                    if result is not None:
-                        result = function(result)
-                    else:
-                        result = function(response)
-            threads.append(Thread(target=wrapper))
+        results = []
+        async def wrapper(request):
+            # for request in requests_to_send:
+            result = None
+            request._send()
+            response = request.html_response.cached_response
+            self.responses.append(response)
+            
+            if result is not None:
+                result = function(result)
+            else:
+                if parameters:
+                    result = function(result, **parameters)
+                else:
+                    result = function(response)
+            return result
 
-        for thread in threads:
-            thread.start()
-            if thread.is_alive():
-                thread.join()
+        async def main():
+            for request in requests_to_send:
+                # task = asyncio.create_task(wrapper(request))
+                # await task
+                await wrapper(request)
+
+        asyncio.run(main())
+
+        # threads = []
+        # for request in requests_to_send:
+        #     def wrapper():
+        #         result = None
+        #         request._send()
+        #         response = request.html_response.cached_response
+        #         self.responses.append(response)
+        #         for function in functions:
+        #             # if type(function) == 'class':
+        #             #     # There are certain cases where
+        #             #     # the function that is passed turns
+        #             #     # out being a class. In that specific
+        #             #     # situation, maybe call the __call__
+        #             #     # method on that classe
+        #             #     instance = function(response)
+        #             #     instance()
+        #             # else:
+        #             if result is not None:
+        #                 result = function(result)
+        #             else:
+        #                 if parameters:
+        #                     result = function(response, **parameters)
+        #                 else:
+        #                     result = function(response)
+        #     threads.append(Thread(target=wrapper))
+
+        # for thread in threads:
+        #     thread.start()
+        #     if thread.is_alive():
+        #         thread.join()
 
         self.requests_to_send = requests_to_send
 

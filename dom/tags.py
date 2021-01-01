@@ -155,8 +155,8 @@ class ImageTag(HTMLTag):
     def __hash__(self):
         return hash((self.src, self.image_type))
 
-    def __contains__(self, f):
-        return f in self.src
+    def __contains__(self, value_to_test):
+        return value_to_test in self.src
 
     def __eq__(self, src):
         return src == self.src

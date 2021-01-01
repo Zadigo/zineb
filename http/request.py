@@ -97,8 +97,8 @@ class BaseRequest:
         user_agent = UserAgent()
 
         headers = {
-            'Accept-Language': 'en-US,en-GB,fr-FR;q=0.9,q=0.8,q=0.7',
-            'Accept-Encoding': 'br,gzip,deflate,compress',
+            # 'Accept-Language': 'en-US,en-GB,fr-FR;q=0.9,q=0.8,q=0.7',
+            # 'Accept-Encoding': 'br,gzip,deflate,compress',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'User-Agent': user_agent.get_random_agent(),
             'Referrer': 'https://google.com',

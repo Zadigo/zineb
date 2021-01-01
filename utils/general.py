@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import secrets
 from io import BytesIO
 from typing import Tuple
@@ -65,3 +66,15 @@ def download_image(response, download_to=None, as_thumbnail=False) -> Tuple:
 
     image.save(download_to)
     return image.width, image.height, image_data
+
+
+def reconstruct_url(url, pattern=None, func=None):
+    if pattern is not None:
+        match = re.search(pattern, url)
+        if match:
+            return match.groups(default=None)
+    
+    if func is not None:
+        return func(url)
+
+    return None
