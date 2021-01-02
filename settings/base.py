@@ -92,3 +92,14 @@ RETRY = False
 RETRY_TIMES = 2
 
 RETRY_HTTP_CODES = [500, 502, 503, 504, 522, 524, 408, 429]
+
+
+# Database settings
+
+DATABASE = {
+    'db': 'zineb.database.connection.SQLite',
+    'name': 'some_name',
+    'path': os.path.join(PROJECT_PATH, 'db.sqlite'),
+    'username': None,
+    'password': None
+}
