@@ -1,4 +1,5 @@
 import re
+import pandas
 from functools import cached_property
 
 from nltk.tokenize import PunktSentenceTokenizer, WordPunctTokenizer
@@ -7,6 +8,9 @@ from zineb.utils._html import deep_clean
 
 
 class Extractor:
+    """
+    Base class for every extractor class
+    """
     def __enter__(self):
         raise NotImplementedError('Should be implemented by the subclasses')
     
@@ -18,18 +22,43 @@ class Extractor:
         'extracting items from the HTML page'))
 
 
-class RowExtractor(Extractor):
+class TableRows(Extractor):
     """
-    Quickly extract a table from an HTML page. By default,
-    this class retrieves the first table of the page
+    Quickly extract a table from an HTML page.
+    
+    By default this class retrieves the first table of the page
 
     Parameters
     ----------
 
-        class_name (str): the class name of the table
+        class_name (str, Optionnal): the class name of the table. Defaults to None
+        has_headrs (bool, Optionnal): indicates if the table has headers. Defaults to False
+        processors (func, Optionnal): list of functions to process the final result. Defaults to None
+
+    
+        Example
+        -------
+
+            extractor = RowExtractor()
+            extractor.resolve(BeautifulSoup Object)
+
+                -> [[a, b, c], [d, ...]]
+
+            By indicating if the table has a header, the heder values will be dropped
+            from the final result
+
+            Finally, you can also pass a set of processors that will modifiy the values
+            of each rows according to the logic of said processor:
+
+            def drop_empty_values(value):
+                if value != '':
+                    return value
+
+            extractor = RowExtractor(processors=[drop_empty_values])
+            extractor.resolve(BeautifulSoup Object)
     """
 
-    def __init__(self, class_name=None, has_headers=False):
+    def __init__(self, class_name=None, has_headers=False, processors:list=None):
         self.table = None
         self.rows = None
         self.headers = None
@@ -37,9 +66,13 @@ class RowExtractor(Extractor):
         self.class_name = class_name
         self.attrs = None
         self.has_headers = has_headers
+        self.processors = processors
 
     def __iter__(self):
         return iter(self.rows)
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__}>"
 
     @cached_property
     def _compose(self):
@@ -56,6 +89,18 @@ class RowExtractor(Extractor):
             return rows
         else:
             return self.rows
+
+    def _run_processors(self, rows):
+        if self.processors:
+            processed_rows = []
+            for row in rows:
+                for processor in self.processors:
+                    if not callable(processor):
+                        raise TypeError('Processor should be a callable')
+                    row = [processor(value, row=row) for value in row]
+                processed_rows.append(row)
+            return processed_rows
+        return rows
 
     @property
     def first(self):
@@ -101,7 +146,11 @@ class RowExtractor(Extractor):
                     self.rows = self._get_rows(self.table)
                 else:
                     self.rows = self._get_rows(tbody)
-            return self._compose
+            
+            return self._run_processors(self._compose)
+
+    def resolve_to_dataframe(self, columns=[]):
+        return pandas.DataFrame(data=self._compose, columns=columns)
 
 
 class Text(Extractor):

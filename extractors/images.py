@@ -2,8 +2,21 @@ from zineb.extractors.base import Extractor
 from bs4.element import Tag
 
 class ImageExtractor(Extractor):
+    """
+    Extracts all the images from a document
+
+    Parameters
+    ----------
+
+        unique (bool, Optional): if images should be unique. Defaults to False
+        as_type (str, Optional): get images only from a specific extension. Defaults to None
+        url_must_contain: (str, Optional): images with a specific url. Defaults to None
+        match_height: (int, Optional): images of a certain height
+        match_width: (int, Optional): images of a certain width
+    """
     def __init__(self, unique=False, as_type=None,
-                 url_must_contain=None, match_height=None, match_width=None):
+                 url_must_contain=None, match_height=None, 
+                 match_width=None):
         self.images = []
         self.unique = unique
         self.as_type = as_type
@@ -40,6 +53,8 @@ class ImageExtractor(Extractor):
         return self.images
 
     def filter_images(self, expression=None):
+        expression = expression or self.url_must_contain
+        
         filtered_images = []
         images = self.images.copy()
 

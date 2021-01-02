@@ -3,7 +3,8 @@ from mimetypes import guess_extension, guess_type
 from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
-from w3lib.url import is_url, safe_url_string, canonicalize_url
+from functools import lru_cache
+from w3lib.url import canonicalize_url, is_url, safe_url_string
 
 
 class BaseTags:
@@ -168,15 +169,10 @@ class ImageTag(HTMLTag):
 
 class TableTag(HTMLTag):
     def __init__(self, tag, html_page, index=None, **kwargs):
-        from zineb.extractors.base import RowExtractor
-
         self.tag = tag
         self.html_page = html_page
         self.index = index
         self.attrs = kwargs.get('attrs', tag.attrs)
-
-        self.extractor = RowExtractor()
-        self.extractor.resolve(tag)
         super().__init__(tag, html_page=html_page, **kwargs)
 
     def __repr__(self):
@@ -186,10 +182,10 @@ class TableTag(HTMLTag):
         return self.tag
 
     def __iter__(self):
-        return iter(self.data)
+        return iter(self.rows)
 
     def __len__(self):
-        return len(self._data)
+        return len(self.rows)
 
     def __contains__(self, a):
         result = False
@@ -208,5 +204,11 @@ class TableTag(HTMLTag):
         return self.rows.find_all('td')
 
     @property
+    def header(self):
+        return self.rows[:1]
+
+    @lru_cache(maxsize=2)
     def data(self):
-        return self.extractor.rows
+        from zineb.extractors.base import TableRows
+        extractor = TableRows()
+        return extractor, extractor.resolve(self.tag)

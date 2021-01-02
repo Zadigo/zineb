@@ -1,8 +1,10 @@
+import datetime
+import re
 import unittest
 
 from zineb.exceptions import ValidationError
 from zineb.models import fields
-import datetime
+from zineb.models.fields import CharField, DecimalField
 
 
 class TestBaseField(unittest.TestCase):
@@ -127,6 +129,14 @@ def method_one(value):
 def method_two(value):
     return value + ' Jenner'
 
+
+def method_three(price):
+    is_match = re.search(r'^\$(\d+\.?\d+)$', price)
+    if is_match:
+        return is_match.group(1)
+    return price
+
+
 class TestFunctionField(unittest.TestCase):
     def setUp(self):
         self.field = fields.FunctionField(
@@ -143,6 +153,13 @@ class TestFunctionField(unittest.TestCase):
         )
         field.resolve('I love')
         self.assertEqual(field._cached_result, 'I love Kendall Jenner')
+
+    def test_parsing_price(self):
+        field = fields.FunctionField(
+            method_three, output_field=DecimalField()
+        )
+        field.resolve('$456.7')
+        self.assertEqual(field._cached_result, 456.7)
 
 if __name__ == "__main__":
     unittest.main()
