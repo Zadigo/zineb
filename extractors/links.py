@@ -136,7 +136,7 @@ class LinkExtractor(Extractor):
 
             list: complete list of links
         """
-        from zineb.dom.tags import Link
+        from zineb.tags import Link
         if soup is None:
             return []
             

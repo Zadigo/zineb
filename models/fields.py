@@ -4,12 +4,12 @@ import pandas
 from bs4.element import Tag as beautiful_soup_tag
 from w3lib import html
 from w3lib.url import canonicalize_url
+from zineb.tags import BaseTags
 from zineb.exceptions import ValidationError
-from zineb.dom.tags import BaseTags
 from zineb.http.request import HTTPRequest
 from zineb.models import validators
 from zineb.utils.general import download_image
-from zineb.utils.html import deep_clean
+from zineb.utils._html import deep_clean
 
 
 class Field:
@@ -29,9 +29,6 @@ class Field:
             self._validators = self._validators + self._default_validators
 
         self.default = default
-
-    # def __str__(self) -> str:
-    #     return str(self._cached_result)
 
     def _run_validation(self, value):
         if self._validators:
@@ -261,11 +258,6 @@ class DateField(Field):
 
     def __str__(self):
         return str(self._cached_result.date())
-
-    # def __getattr__(self, name, value):
-    #     if name == '_cached_result':
-    #         return self.__str__()
-    #     return super().__getattr__(name, value)
     
     def resolve(self, date):
         super().resolve(date)

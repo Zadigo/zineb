@@ -45,10 +45,11 @@ install_requires = [
     'numpy==1.19.3',
     'requests>=2.25.1',
     'Pillow>=8.0.1',
-    'jupyter>',
+    'jupyter>=4.7.0',
     'pandas>=1.1.5',
     'PyDispatcher>=2.0.5',
-    'w3lib>=1.22.0'
+    'w3lib>=1.22.0',
+    'nltk>=3.4.4'
 ]
 
 

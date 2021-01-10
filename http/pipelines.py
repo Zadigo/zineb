@@ -23,7 +23,8 @@ class Pipeline:
             Pipeline([http://example.com], download_image)
     """
 
-    def __init__(self, urls, *functions, parameters: dict={}, **options):
+    def __init__(self, urls:list, functions:list, 
+                 parameters: dict={}, **options):
         self.responses = []
 
         requests_to_send = []
@@ -38,62 +39,42 @@ class Pipeline:
                 types.append(function)
 
         results = []
+        async def run_function(func, result, **parameters):
+            if not parameters:
+                return func(result)
+            return func(result, **parameters)
+
         async def wrapper(request):
-            # for request in requests_to_send:
             result = None
             request._send()
             response = request.html_response.cached_response
             self.responses.append(response)
             
-            if result is not None:
-                result = function(result)
-            else:
-                if parameters:
-                    result = function(result, **parameters)
+            for function in functions:
+                if result is not None:
+                    # result = function(result)
+                    result = await run_function(function, result)
                 else:
-                    result = function(response)
-            return result
+                    if parameters:
+                        # result = function(result, **parameters)
+                        result = await run_function(function, result)
+                    else:
+                        # result = function(response)
+                        result = await run_function(function, response)
+                return result
 
         async def main():
             for request in requests_to_send:
                 # task = asyncio.create_task(wrapper(request))
                 # await task
-                await wrapper(request)
-
+                await asyncio.sleep(1)
+                result = await wrapper(request)
+                if result and result is not None:
+                    results.append(result)
+    
         asyncio.run(main())
-
-        # threads = []
-        # for request in requests_to_send:
-        #     def wrapper():
-        #         result = None
-        #         request._send()
-        #         response = request.html_response.cached_response
-        #         self.responses.append(response)
-        #         for function in functions:
-        #             # if type(function) == 'class':
-        #             #     # There are certain cases where
-        #             #     # the function that is passed turns
-        #             #     # out being a class. In that specific
-        #             #     # situation, maybe call the __call__
-        #             #     # method on that classe
-        #             #     instance = function(response)
-        #             #     instance()
-        #             # else:
-        #             if result is not None:
-        #                 result = function(result)
-        #             else:
-        #                 if parameters:
-        #                     result = function(response, **parameters)
-        #                 else:
-        #                     result = function(response)
-        #     threads.append(Thread(target=wrapper))
-
-        # for thread in threads:
-        #     thread.start()
-        #     if thread.is_alive():
-        #         thread.join()
-
         self.requests_to_send = requests_to_send
+        self.results = results
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.requests_to_send})"
@@ -131,3 +112,25 @@ class Pipeline:
             return self.requests_to_send[index]
         except KeyError:
             return None
+
+
+class CallBack:
+    def __init__(self, request_or_url, func):
+        if not callable(func):
+            raise TypeError('Func should be a callable function')
+        self.func = func
+        request = request_or_url
+        if isinstance(request_or_url, str):
+            request = HTTPRequest(request_or_url)
+
+        request._send()
+        self.html = request.html_response
+        self.request = request
+
+    def __call__(self, request_or_url, func):
+        return self.__init__(request_or_url, func)
+
+    def _run_function(self):
+        result = self.func(self._response, request=self.request)
+        if result or result is not None:
+            pass
