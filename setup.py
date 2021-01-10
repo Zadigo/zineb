@@ -45,24 +45,25 @@ install_requires = [
     'numpy==1.19.3',
     'requests>=2.25.1',
     'Pillow>=8.0.1',
-    'jupyter>',
+    'jupyter>=4.7.0',
     'pandas>=1.1.5',
     'PyDispatcher>=2.0.5',
-    'w3lib>=1.22.0'
+    'w3lib>=1.22.0',
+    'nltk>=3.4.4'
 ]
 
 
 setuptools.setup(
     name='zineb',
     # packages: [],
-    version='1.0.0',
+    version='1.0.1',
     author='John Pendenque',
     author_email='pendenquejohn@gmail.com',
     description='Advanced web scrapper for machine learning and data science',
     license='MIT',
     long_description=read_files('README.md'),
     long_description_content_type='text/markdown',
-    url='https://github.com/Zadigo/zineb/releases/tag/1.0.0-pre-alpha',
+    url='https://github.com/Zadigo/zineb/releases/tag/1.0.1-pre-alpha',
     classifiers=classifiers,
     keywords=['python', 'web scrapping', 'scrapping'],
     python_requires='>=3.9'

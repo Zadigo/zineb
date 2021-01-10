@@ -1,31 +1,20 @@
-from pandas import DataFrame
-from collections import deque
+from typing import Type
+from zineb.http.request import HTTPRequest
 import pandas
 from zineb.models.datastructure import Model
 
 
-# class ResultContainer:
-#     """
-#     Allows the future combination of the results from multiple
-#     models and help thus save one combined DataFrame
-#     """
-#     def __init__(self, model, callback=None):
-#         self.model = model
-#         self.callback = None
-
-#     def __str__(self):
-#         return str(self.model)
-
-#     def __repr__(self):
-#         return self.model
-
-#     def __add__(self, model):
-#         if not isinstance(model, DataFrame):
-#             raise TypeError('Model should be a DataFrame object')
-#         return pandas.concat([self.model, model], ignore_index=True)
-
-
 class Pipe:
+    """
+    A class used to combine the results of multiple
+    models together
+
+    Parameters
+    ----------
+
+            models (list): list of models to to combine
+            callbacks (list, Optional): Defaults to []
+    """
     def __init__(self, models, callbacks:list=[]):
         pseudo_dataframes = []
         for model in models:

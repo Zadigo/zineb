@@ -4,10 +4,10 @@ from collections import OrderedDict
 
 from requests.sessions import Request, Session
 from w3lib.url import safe_url_string, urljoin, urlparse
-from zineb.dom.tags import ImageTag, Link
 from zineb.http.responses import HTMLResponse, JsonResponse
 from zineb.http.user_agent import UserAgent
 from zineb.signals import Signal
+from zineb.tags import ImageTag, Link
 from zineb.utils.general import create_logger
 
 pre_request = Signal()
