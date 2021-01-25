@@ -1,12 +1,74 @@
 import asyncio
-from threading import Thread
+from warnings import warn
 
+from zineb.exceptions import PipelineError
 from zineb.http.request import HTTPRequest
 
 
 class Pipeline:
+    def __init__(self):
+        self.errors = []
+
+    def _warn_user(self, using, message):
+        warn(message, UserWarning)
+
+class ResponsesPipeline(Pipeline):
     """
-    Create a set of requests that will be treated
+    Treats a set of HTTP Responses that will be
+    treated continuously through a set of functions
+    """
+    def __init__(self, responses:list, functions:list, 
+                 parameters:dict={}, **options):
+        super().__init__()
+        self.responses = responses
+
+        types = []
+        for function in functions:
+            if type(function) == 'class':
+                types.append(function)
+
+        results = []
+
+        async def coordinator(response):
+            for function in functions:
+                if isinstance(response, HTTPRequest):
+                    if response.resolved:
+                        response = response._http_response
+                    else:
+                        self.errors.append(f'{response} is not resolved')
+
+                try:
+                    if parameters:
+                        return await function(response, **parameters)
+                    else:
+                        return await function(response)
+                except:
+                    self.errors.append(
+                        PipelineError(function, response)
+                    )
+                finally:
+                    if self.errors:
+                        for error in self.errors:
+                            self._warn_user(error, f'{function}, {response}')
+        
+        async def main():
+            for response in responses:
+                result = await coordinator(response)
+                if result or result is not None:
+                    results.extend([result])
+
+        asyncio.run(main())
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.responses})"
+
+    def __str__(self):
+        return str(self.responses)
+        
+
+class HTTPPipeline:
+    """
+    Create and send a set of requests that will be treated
     continuously through a series of functions
 
     Note that once the HTTPRequest is created, it returns
@@ -20,7 +82,7 @@ class Pipeline:
             def download_image(response):
                 ...
 
-            Pipeline([http://example.com], download_image)
+            Pipeline([http://example.com], [download_image])
     """
 
     def __init__(self, urls:list, functions:list, 
@@ -29,6 +91,8 @@ class Pipeline:
 
         requests_to_send = []
         for i, url in enumerate(urls):
+            if isinstance(url, HTTPRequest):
+                url = url.url
             request = HTTPRequest(str(url), index=i)
             request.options.update(**options)
             requests_to_send.append(request)
@@ -57,7 +121,7 @@ class Pipeline:
                 else:
                     if parameters:
                         # result = function(result, **parameters)
-                        result = await run_function(function, result)
+                        result = await run_function(function, result, **parameters)
                     else:
                         # result = function(response)
                         result = await run_function(function, response)
@@ -93,26 +157,7 @@ class Pipeline:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         return False
-
-    def get(self, index):
-        """
-        Get an HTTPRequest object
-
-        Parameters
-        ----------
-
-                index (int): the index of the item to get
-
-        Returns
-        -------
-
-                type: resolved HTTPRequest object
-        """
-        try:
-            return self.requests_to_send[index]
-        except KeyError:
-            return None
-
+        
 
 class CallBack:
     def __init__(self, request_or_url, func):

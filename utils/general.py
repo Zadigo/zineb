@@ -1,13 +1,15 @@
+import hashlib
+import hmac
 import logging
 import os
 import re
 import secrets
 from io import BytesIO
+from mimetypes import guess_extension, guess_type
 from typing import Tuple
 
 from PIL import Image
 from requests.models import Response
-from zineb.http.responses import HTMLResponse
 
 
 def create_logger(name, debug_level=logging.DEBUG, to_file=False, **kwargs):
@@ -32,7 +34,7 @@ def create_new_name(length=5):
     return secrets.token_hex(nbytes=length)
 
 
-def download_image(response, download_to=None, as_thumbnail=False) -> Tuple:
+def download_image(response, download_to=None, as_thumbnail=False):
     """
     Helper for downloading images
 
@@ -40,8 +42,10 @@ def download_image(response, download_to=None, as_thumbnail=False) -> Tuple:
     ----------
     
         response (type): an HTTP response object
-        chunk (int, optional): [description]. Defaults to 1024.
+        download_to (str, Optiona): download to a specific path. Defaults to None
+        as_thumbnail (bool, Optional): download the image as a thumbnail. Defaults to True
     """
+    from zineb.http.responses import HTMLResponse
     from zineb.signals import pre_download
 
     if isinstance(response, HTMLResponse):
@@ -49,20 +53,23 @@ def download_image(response, download_to=None, as_thumbnail=False) -> Tuple:
     elif isinstance(response, Response):
         response = response.content
     else:
-        raise TypeError('The response argument requires an HTMLResponse or a Response object')
+        raise TypeError(f'The response argument requires an HTMLResponse or a Response object. Got: {response}')
+
     image_data = BytesIO(response)
     image = Image.open(image_data)
-
+    
     if download_to is None:
         download_to = f'{create_new_name()}.jpg'
+    else:
+        download_to = f'{download_to}/{create_new_name()}.jpg'
 
-    # pre_download.send('History', download_image, image_name=download_to)
+    # pre_download.send('History', dowSnload_image, image_name=download_to)
 
     if as_thumbnail:
         new_image = image.copy()
-        new_image.thumbnail(200)
+        new_image.thumbnail((200,))
         new_image.save(download_to)
-        return new_image.width, new_image.height, new_image.data
+        return new_image.width, new_image.height
 
     image.save(download_to)
     return image.width, image.height, image_data
@@ -78,3 +85,37 @@ def reconstruct_url(url, pattern=None, func=None):
         return func(url)
 
     return None
+
+
+def replace_urls_suffix(urls:list, suffix, replace_with):
+    """
+    Replace the end part of each url by a string
+    
+    Parameters
+    ----------
+
+        urls (list): lit of urls
+        suffix (str): the current suffix
+        replace_with (str): the suffix to implement
+
+    Returns:
+        [type]: [description]
+    """
+    replaced_urls = map(lambda url: str(url).removesuffix(suffix), urls)
+    return list(map(lambda url: url + replace_with, replaced_urls))
+    
+
+def create_secret_key(salt, encoding='utf-8', errors='strict'):
+    salt = str(salt).encode(encoding, errors)
+    result = str('something').encode(encoding, errors)
+    hash_value = hashlib.md5(salt + result).digest()
+    return hmac.new(hash_value, msg='Some message')
+
+
+ALLOWED_CHARACTERS = (
+    'abcdefghijklmnopqrstuvwxyz'
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+)
+
+def random_string(length=15):
+    return ''.join(secrets.choice(ALLOWED_CHARACTERS) for c in range(length))

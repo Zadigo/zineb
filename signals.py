@@ -1,8 +1,6 @@
 from pydispatch import dispatcher
 from pydispatch.dispatcher import disconnect, getAllReceivers, liveReceivers
 
-from zineb.utils.general import create_logger
-
 
 class Signal:
     def disconnect_all(self, sender, signal):
@@ -19,25 +17,25 @@ class Signal:
         Parameters
         ----------
 
-            receiver (func)
-                The function that is to receive the signal
+                receiver (func)
+                    The function that is to receive the signal
 
-            signal ([type], optional): [description]. Defaults to None.
-            sender ([type], optional): [description]. Defaults to None.
+                signal (Any, optional): [description]. Defaults to None.
+                sender (Any, optional): [description]. Defaults to None.
         """
+        if signal is None:
+            signal = dispatcher.Any
+
         if sender is None:
             sender = dispatcher.Any
 
-        if signal is None:
-            signal = dispatcher.Any
-            
         dispatcher.connect(receiver, signal=signal, sender=sender)
 
     def disconnect(self, receiver, signal, sender):
         dispatcher.disconnect(receiver, signal=signal, sender=sender)
 
-    def send(self, signal, sender, **kwargs):
-        return dispatcher.send(signal, sender=sender, **kwargs)
+    def send(self, signal, sender, *arguments, **named):
+        return dispatcher.send(signal=signal, sender=sender, *arguments, **named)
 
 
 signal = Signal()

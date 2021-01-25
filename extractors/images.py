@@ -43,7 +43,7 @@ class ImageExtractor(Extractor):
             yield image, image.attrs
 
     def resolve(self, soup):
-        from zineb.dom.tags import ImageTag
+        from zineb.tags import ImageTag
         images = self._image_iterator(soup)
         for i, image in enumerate(images):
             tag, attrs = image
@@ -55,26 +55,19 @@ class ImageExtractor(Extractor):
     def filter_images(self, expression=None):
         expression = expression or self.url_must_contain
         
-        filtered_images = []
         images = self.images.copy()
 
-        if expression is not None:
-            filtered_images = filter(
-                lambda x: expression in x, images
-            )
-
         if self.unique:
-            images = set(self.images)
+            images = list(set(images))
+
+        if expression is not None:
+            images = list(filter(lambda x: expression in x, images))
 
         if self.as_type is not None:
-            filtered_images = filter(
-                lambda x: x.endswith(self.as_type), images
-            )
+            images = list(filter(lambda x: x.endswith(self.as_type), images))
 
         if self.url_must_contain is not None:
-            filtered_images = filter(
-                lambda x: self.url_must_contain in x, images
-            )
+            images = list(filter(lambda x: self.url_must_contain in x, images))
 
         if self.match_height is not None:
             filtered_images = []
@@ -83,6 +76,7 @@ class ImageExtractor(Extractor):
                 if height is not None:
                     if height == self.match_height:
                         filtered_images.append(image)
+            images = filtered_images
 
         if self.match_width is not None:
             filtered_images = []
@@ -91,5 +85,5 @@ class ImageExtractor(Extractor):
                 if height is not None:
                     if height == self.match_width:
                         filtered_images.append(image)
-
-        return list(filtered_images)
+            images = filtered_images
+        return images

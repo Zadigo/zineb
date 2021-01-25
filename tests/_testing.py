@@ -1,26 +1,39 @@
-from zineb.app import Zineb
-from zineb.http.pipelines import Pipeline
-from zineb.utils.general import download_image
-from zineb.models.pipeline import Pipe
+import json
+import threading
+
+from bs4 import BeautifulSoup
+from zineb.extractors.links import LinkExtractor
+from zineb.http.request import JsonRequest
+
+def get():
+    with open('tests/html/matchstat.html') as f:
+        soup = BeautifulSoup(f, 'html.parser')
+
+        extractor = LinkExtractor(url_must_contain='match-stats/w/')
+        extractor.resolve(soup)
+
+        with extractor as links:
+            values = []
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0'
+            }
+            settings = {
+                'proxies': [
+                    ('http', '91.202.240.208'),
+                    ('https', '81.211.103.66'),
+                    ('https', '200.73.129.108')
+                ]
+            }
+            for i, link in enumerate(links):
+                request = JsonRequest(link, headers=headers, settings=settings)
+                request._send()
+                if request._http_response.ok:
+                    yield request.json_response.raw_data
+            #     values.append(match)
+            
+            # with open('bouchard.json', 'w') as b:
+            #     json.dump(values, b, indent=4)
 
 
-class SawFirst(Zineb):
-    start_urls = [
-        'https://www.sawfirst.com/kimberley-garner-booty-in-bikini-on-the-beach-in-barbados-2020-12-28.html'
-    ]
-
-    def start(self, response, **kwargs):
-        images = response.images
-
-        filtered_images = filter(lambda x: 'Kimbeley-Garner' in x, images)
-
-        def thumbnails(url):
-            if '-130x170.jpg' in url:
-                return str(url).replace('-130x170.jpg', '.jpg')
-
-        filtered_images = map(thumbnails, filtered_images)
-        filtered_images = filter(lambda x: x is not None, filtered_images)
-        Pipeline(filtered_images, download_image)
-        return Pipe()
-
-s = SawFirst()
+with open('bouchard1.json', 'w') as f:
+    json.dump(list(get()), f)

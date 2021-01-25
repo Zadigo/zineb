@@ -1,9 +1,9 @@
 import re
+from functools import lru_cache
 from mimetypes import guess_extension, guess_type
 from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
-from functools import lru_cache
 from w3lib.url import canonicalize_url, is_url, safe_url_string
 
 
@@ -65,9 +65,7 @@ class Link(HTMLTag):
                 else:
                     href = href
 
-            href = safe_url_string(
-                canonicalize_url(href)
-            )
+            href = safe_url_string(canonicalize_url(href))
 
             try:
                 self.is_valid = is_url(href)
@@ -157,7 +155,18 @@ class ImageTag(HTMLTag):
         return hash((self.src, self.image_type))
 
     def __contains__(self, value_to_test):
-        return value_to_test in self.src
+        # Checks that a value is present in of
+        # either the image url, class or id
+        truth_values = [
+            value_to_test in self.src
+        ]
+        class_attr = self.attrs.get('class')
+        if class_attr:
+            truth_values.append(value_to_test in class_attr)
+        id_attr = self.attrs.get('id')
+        if id_attr:
+            truth_values.append(value_to_test in id_attr)
+        return any(truth_values)
 
     def __eq__(self, src):
         return src == self.src

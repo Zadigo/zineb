@@ -103,3 +103,13 @@ DATABASE = {
     'username': None,
     'password': None
 }
+
+
+# Represents the default headers that will be
+# used for each request sent within your project
+
+DEFAULT_REQUEST_HEADERS = {
+    'Accept-Language': 'en',
+    'Accept': 'text/html,application/json,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Referrer': 'https://google.com',
+}

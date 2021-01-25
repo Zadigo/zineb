@@ -1,10 +1,12 @@
 from collections import ChainMap
 from functools import cached_property
 from io import BytesIO
+from mimetypes import guess_extension
 from urllib.parse import urljoin
 
 import pandas
 from bs4 import BeautifulSoup
+from zineb.utils.general import create_new_name
 from PIL import Image
 from requests.models import Response
 from w3lib.html import strip_html5_whitespace
@@ -96,30 +98,49 @@ class HTMLResponse(BaseResponse):
 
 
 class ImageResponse(BaseResponse):
+    """
+    Represents a response for an image 
+
+    Args:
+        BaseResponse ([type]): [description]
+    """
     def __init__(self, response):
         super().__init__(response)
         self.attrs = {}
-        image, buffer = self._fit_image()
+
+        content_type = response.headers.get('Content-Type')
+        extension = guess_extension(content_type)
+
+        images_extensions = ['.jpg', '.png']
+        if extension not in images_extensions:
+            raise ValueError('Response does not have an image Content-Type in the headers')
+        self.extension = extension
+        
+        image, buffer = self._fit_image(response)
         self.image = image
         self.buffer = buffer
 
     def __call__(self, path):
         self.save(path)
 
-    def _fit_image(self):
-        buffer = BytesIO(self.cached_response.content)
+    def _fit_image(self, response):
+        buffer = BytesIO(response.content)
         image = Image.open(buffer)
         height, width = image.size
         self.attrs.update({'height': height, 'width': width})
         return image, buffer
 
     def save(self, path=None):
-        if self.image is not None:
-            self.image.save(path)
+        if path is not None:
+            path = f'{path}/{create_new_name()}'
         else:
-            raise ValueError('Cannot save image with unset image parameter')
+            path = create_new_name()
+        self.image.save(f'{path}.{self.extension}')
+        # if self.image is not None:
+        # else:
+        #     raise ValueError('Cannot save image with unset image parameter')
 
-    def get_thumbnail(self, size):
+    def get_thumbnail(self, size:tuple):
         if self.image is not None:
             self.image.thumbnail(size, Image.ANTIALIAS)
         else:
@@ -128,13 +149,19 @@ class ImageResponse(BaseResponse):
 
 class JsonResponse(BaseResponse):
     def __init__(self, response, **kwargs):
+        content_type = response.headers.get('Content-Type')
+        if content_type != 'application/json':
+            raise ValueError('Response does not have a application/json in its headers')
         super().__init__(response)
+
         try:
             self.raw_data = response.json()
         except:
             raise TypeError('Response should be an HTTP request response')
-        else:
-            self.response_data = pandas.DataFrame(data=self.raw_data)
+        self.response_data = pandas.DataFrame(data=self.raw_data)
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.raw_data})'
 
     def __str__(self):
         return str(self.raw_data)
@@ -151,7 +178,7 @@ class JsonResponse(BaseResponse):
 
     def links(self, unique=False):
         """
-        Retrieve all the links with in the JSON element
+        Retrieve all the links within the JSON element
 
         Parameters
         ----------

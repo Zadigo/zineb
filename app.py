@@ -1,16 +1,17 @@
 import configparser
+import time
 import warnings
 from collections import deque
 from xml.etree import ElementTree
 
-import pandas
+from pydispatch import dispatcher
 
 from zineb.checks.core import checks_registry
 from zineb.exceptions import StartUrlsWarning
 from zineb.http.request import HTTPRequest
 from zineb.middleware import Middleware
 from zineb.settings import Settings
-from zineb.signals import post_start, pre_start, signal
+from zineb.signals import signal
 from zineb.utils.general import create_logger
 
 
@@ -43,16 +44,16 @@ class BaseSpider(type):
             if not 'logger' in attrs:
                 params = {
                     'name': name,
-                    'debug_level': cls.settings.get('LOG_LEVEL'),
-                    'log_format': cls.settings.get('LOG_FORMAT'),
-                    'to_file': cls.settings.get('LOG_TO_FILE')
+                    'debug_level': cls.settings.LOG_LEVEL,
+                    'log_format': cls.settings.LOG_FORMAT,
+                    'to_file': cls.settings.LOG_TO_FILE
                 }
                 attrs.update({'logger': create_logger(**params)})
         
         # checks = ApplicationChecks(default_settings=cls.settings)
         # checks.run()
 
-        if 'start_urls' in attrs:
+        if 'start_urls' in attrs:            
             new_class = create_new(cls, name, bases, attrs)
 
             start_urls = getattr(new_class, 'start_urls')
@@ -102,19 +103,22 @@ class Spider(metaclass=BaseSpider):
         self.logger.info(f'Loaded configuration file...')
         self.logger.info(f"{self.__class__.__name__} contains {self.__len__()} request(s)")
         
-        middlewares = Middleware()
-        middlewares.settings = self.settings
+        middlewares = Middleware(settings=self.settings)
         middlewares._load
         objs = middlewares.loaded_middlewares.values()
-        if objs:
-            for obj in objs:
-                # Each middleware class should provide a 
-                # __call__ function that will be called
-                # like a regular function by the dispatcher
-                receiver = obj()
-                # Initialize all the signals and the
-                # ones that were created for the project
-                signal.connect(receiver, signal=receiver.__class__.__name__, sender=self)
+        for obj in objs:
+            # Each middleware class should provide a 
+            # __call__ function that will be called
+            # like a regular function by the dispatcher
+            receiver = obj()
+            # Initialize all the signals and the
+            # ones that were created for the project and
+            # mark the sender as Anonymous so that triggers
+            # can be sent from anywhere within the project
+            signal_name = f'Zineb-{receiver.__class__.__name__}'
+            signal.connect(receiver, signal=signal_name)
+        print(dispatcher.connections)
+        self.middlewares = middlewares
 
         self._cached_aggregated_results = None
         self._cached_aggregated_results = self._resolve_requests(debug=kwargs.get('debug', False))
@@ -125,14 +129,14 @@ class Spider(metaclass=BaseSpider):
     def __repr__(self):
         return f"{self.__class__.__name__}(requests={self.__len__()})"
 
-    def _resolve_return_container(self, container):
+    def _resolve_return_containers(self, containers):
         from zineb.models.pipeline import Pipe
-        if not container or container is None:
+        if not containers or containers is None:
             return False
 
         # callbacks = {item.callback for item in container if item.callback is not None}
 
-        pipe = Pipe(container)
+        pipe = Pipe(containers)
         return pipe._resolve_dataframes()
 
     def _resolve_requests(self, debug=False):
@@ -145,13 +149,15 @@ class Spider(metaclass=BaseSpider):
                 return_values_container = deque()
                 for request in self._prepared_requests:
                     request._send()
+                    # Pass the request and response in
+                    # the .start() function of the class
                     return_value = self.start(request.html_response, request=request)
                     if return_value is not None:
                         return_values_container.append(return_value)
 
                 # post_start.send('History', self)
                 # post_start.send('GeneralStatistics', self)
-                return self._resolve_return_container(return_values_container)
+                return self._resolve_return_containers(return_values_container)
             else:
                 self.logger.warn(f'You are using {self.__class__.__name__} in DEBUG mode')
 
@@ -178,6 +184,7 @@ class Zineb(Spider):
     to create a scrapping project
     """
     start_urls = []
+    start_files = []
 
 
 class SitemapCrawler(Spider):
