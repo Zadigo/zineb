@@ -13,7 +13,7 @@ class Settings:
     """
     _settings = OrderedDict()
 
-    def __init__(self) -> None:
+    def __init__(self):
         from zineb.utils.general import create_logger
 
         settings = importlib.import_module('zineb.settings.base')
@@ -22,9 +22,18 @@ class Settings:
         for key, value in modules_dict.items():
             if key.isupper():
                 self._settings.setdefault(key, value)
+                # Also allow something like
+                # settings.MY_SETTING when using
+                # the Settings instance
+                self.__dict__[key] = value
 
         logger = create_logger(self.__class__.__name__)
         logger.info(f"Loaded project settings...")
+
+    def __call__(self, **kwargs):
+        self.__init__()
+        self._settings.update(kwargs)
+        return self._settings
     
     def __str__(self) -> str:
         return str(self._settings)
@@ -43,3 +52,5 @@ class Settings:
 
     def has_setting(self, key):
         return key in self._settings.keys()
+
+settings = Settings()

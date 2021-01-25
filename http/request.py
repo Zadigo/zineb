@@ -2,13 +2,16 @@ import inspect
 import random
 from collections import OrderedDict
 
+from pydispatch import dispatcher
 from requests.sessions import Request, Session
 from w3lib.url import safe_url_string, urljoin, urlparse
 from zineb.http.responses import HTMLResponse, JsonResponse
 from zineb.http.user_agent import UserAgent
-from zineb.signals import Signal
+from zineb.signals import Signal, signal
 from zineb.tags import ImageTag, Link
 from zineb.utils.general import create_logger
+
+logger = create_logger('BaseRequest')
 
 pre_request = Signal()
 post_request = Signal()
@@ -41,8 +44,6 @@ class BaseRequest:
     project_settings = {}
 
     def __init__(self, url, method='GET', **kwargs):
-        self.logger = create_logger(self.__class__.__name__)
-
         if isinstance(url, Link):
             url = url.href
         elif inspect.isclass(url):
@@ -63,14 +64,17 @@ class BaseRequest:
                 'http': random.choice(http_proxies)
             }
             if http_proxies:
+                proxy_map.update({'http': random.choice(http_proxies)})
+
+            if https_proxies:
                 proxy_map.update({'https': random.choice(https_proxies)})
 
         self.only_domains = self.project_settings.get('DOMAINS')
         self.only_secured_requests = self.project_settings.get('ENSURE_HTTPS')
         self.retries = {
-            'retry': self.project_settings.get('RETRY'),
-            'retry_times': self.project_settings.get('RETRY_TIMES'),
-            'retry_http_codes': self.project_settings.get('RETRY_HTTP_CODES')
+            'retry': self.project_settings.get('RETRY', False),
+            'retry_times': self.project_settings.get('RETRY_TIMES', 2),
+            'retry_http_codes': self.project_settings.get('RETRY_HTTP_CODES', [])
         }
 
         self.url = self._precheck_url(url)
@@ -84,14 +88,15 @@ class BaseRequest:
         # sent or not
         self.resolved = False
 
-        pre_request.connect(self, 'Request.Before')
-        post_request.connect(self, 'Request.After')
+        signal.connect(self, signal='Request-Before')
+        signal.connect(self, signal='Request-After')
 
     def __repr__(self):
         return f"{self.__class__.__name__}(url={self.url}, resolved={self.resolved})"
 
     def __call__(self, sender, **kwargs):
-        print(sender, kwargs)
+        # print(sender, kwargs)
+        pass
 
     def _set_headers(self, request, **extra_headers):
         user_agent = UserAgent()
@@ -99,7 +104,7 @@ class BaseRequest:
         headers = {
             # 'Accept-Language': 'en-US,en-GB,fr-FR;q=0.9,q=0.8,q=0.7',
             # 'Accept-Encoding': 'br,gzip,deflate,compress',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept': 'text/html,application/json,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'User-Agent': user_agent.get_random_agent(),
             'Referrer': 'https://google.com',
             # 'Referer-Policy': 'strict-origin-when-cross-origin'
@@ -109,6 +114,20 @@ class BaseRequest:
         return request
 
     def _precheck_url(self, url):
+        """
+        Check the url respects certain specifities from the project's
+        settings and other elements
+
+        Parameters
+        ----------
+
+                url (str): a valid url
+
+        Returns
+        -------
+
+                str: a safe url string
+        """
         parsed_url = urlparse(url)
 
         scheme = parsed_url[0]
@@ -116,19 +135,20 @@ class BaseRequest:
 
         if self.only_secured_requests:
             if scheme != 'https' or scheme != 'ftps':
-                self.logger.critical(f'{url} is not secured')
+                logger.critical(f'{url} is not secured. No HTTPS scheme is present')
                 self.can_be_sent = False
 
         if self.only_domains:
             if netloc in self.only_domains:
-                self.logger.critical(f'{url} is in restricted domains')
+                logger.critical(f'{url} is part of the restricted domains list and will not be able to be sent')
                 self.can_be_sent = False
             
         return safe_url_string(url)
 
     def _send(self):
         """Sends a new HTTP request to the web"""
-        pre_request.send('Request.Before', self)
+        class_name = self.__class__.__name__
+        # pre_request.send('Request.Before', self)
         response = self.session.send(self.prepared_request)
 
         retry = self.retries.get('retry', False)
@@ -140,9 +160,14 @@ class BaseRequest:
         if response.status_code == 200:
             self.resolved = True
 
-        post_request.send('Request.After', self, url=response.url)
-        policy = response.headers.get('Referer-Policy', 'origin')
-        # post_request.send('Referer', self, url=response.url, policy=policy)
+        result = signal.send(
+            'Zineb-History', 
+            class_name, 
+            url=response.url, 
+            http_response=response,
+            http_instance=self
+        )
+        # policy = response.headers.get('Referer-Policy', 'origin')
         return response
 
     def _retry(self):
@@ -193,7 +218,7 @@ class HTTPRequest(BaseRequest):
         """Sends a new HTTP request to the web"""
         response = super()._send()
         if response.ok:
-            self.logger.info(f'Sent request for {self.url}')
+            logger.info(f'Sent request for {self.url}')
             self._http_response = response
             self.html_response = HTMLResponse(response, url=self.url, headers=response.headers)
             self.session.close()
@@ -216,7 +241,7 @@ class JsonRequest(BaseRequest):
         response = super()._send()
         if response.ok:
             self._http_response = response
-            self.logger.info(f'Sent request for {self.url}')
+            logger.info(f'Sent request for {self.url}')
             self.json_response = JsonResponse(response, url=self.url)
             self.resolved = True
             self.session.close()

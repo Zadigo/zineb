@@ -23,3 +23,8 @@ class ValidationError(Exception):
 
 class FieldError(Exception):
     pass
+
+
+class PipelineError(Warning):
+    def __init__(self, obj, *args):
+        super().__init__(f'An error occured on {obj}')

@@ -8,6 +8,14 @@ Zineb gets your custom spider, creates a set of ``HTTPRequest`` objects for each
 
 Most of your interactions with the HTML page will be done through the ``HTMLResponse`` class.
 
+When the spider starts crawling the page, each response and request in past through the start function:
+
+```
+def start(self, response, **kwargs):
+     request = kwargs.get('request')
+     images = response.images
+```
+
 ## Creating a spider
 
 Creating a spider is extremely easy and requires a set of starting urls that can be used to scrap an HTML page.
@@ -20,12 +28,12 @@ class Celerities(Zineb):
 ### Adding meta options to the spider
 
 ```
-class Celerities(Zineb):
-    start_urls = ['http://example.com']
 
-    class Meta:
-        ordering = None
-        options = None
+ class Celerities(Zineb):
+    start_urls = ['http://example.com']
+  
+     class Meta:
+         optons: []
 ```
 
 ## Doing basic querying on the page
@@ -81,8 +89,6 @@ request.html_response.tables
 
 These three elements are generally the most common items retrieved when doing web scraping.
 
-
-
 Finally, most of times, when you retrieve links from a page, they are returned as relative paths. The ``urljoin`` method reconciles the url of the visited page with that path.
 
 ```
@@ -125,11 +131,10 @@ Once a value is added to the field, a series of checks and validations are run o
 
 __Checks__ make sure that the value that was passed respects the constraints that were passed as a keyword arguments:
 
-    - Max length
-    - Mininum/Maximum
-    - Not null or blank
-
-For instance, suppose you want only values that do not exceed a certain length:
+- Max length
+- Mininum/Maximum
+- Not null or blank
+  For instance, suppose you want only values that do not exceed a certain length:
 
 ```
 name = CharField(max_length=50)
@@ -184,7 +189,6 @@ Once the field tries to resolve the value, it will run __checks__ if any, will _
 
 It's important to understand that the result of the regex compiler is reinjected into your custom validator on which you can then do various other checks.
 
-
 method consits of passing a query expression that will then automatically resolve in getting the elements from the given page.
 
 What this `p__text` expression says, is __get me all the text elemnts from p tags in the document__ for structuring.
@@ -213,16 +217,15 @@ player.save()
 
 Fields are a very simple way to passing HTML data to your model in a very structured way. Zineb comes with number of preset fields that you can use out of the box:
 
-    - CharField
-    - UrlField
-    - ImageField
-    - TextField
-    - DateField
-    - AgeField
-    - Function
-    - SmartField
-
-You an also create a custom field by suclassing the `Field` class. When doing so, your custom field has to provide a `resolve` function in order to determine how the value coming to that field should be treated.
+- CharField
+- UrlField
+- ImageField
+- TextField
+- DateField
+- AgeField
+- Function
+- SmartField
+  You an also create a custom field by suclassing the `Field` class. When doing so, your custom field has to provide a `resolve` function in order to determine how the value coming to that field should be treated.
 
 ### Expressions
 
@@ -230,25 +233,25 @@ Remember that Zineb is built around BeautifulSoup. In that regards, all the expr
 
 Ultimately, the only thing that changes __is the attribute__ at the end of the expression.
 
-Expression | Description
---- | ---
-a__text | Get the text of all a tags
---- | ---
-a___text__contains:Kendall | Get all tag elements whose a tag contains kendall
---- | ---
-a___text__eq:Kendall | Get all tag elements whose a tag text is exactly Kendall
 
+| Expression | Description |
+| - | - |
+| a__text | Get the text of all a tags |
+| --- | --- |
+| a___text__contains:Kendall | Get all tag elements whose a tag contains kendall |
+| --- | --- |
+| a___text__eq:Kendall | Get all tag elements whose a tag text is exactly Kendall |
 
-__NOTE:__ Remember that these expessions are only exclusive to models and and models are tools for you to use if your sole purpose is to intelligently structure your data from a scrapped page. 
+__NOTE:__ Remember that these expessions are only exclusive to models and and models are tools for you to use if your sole purpose is to intelligently structure your data from a scrapped page.
 
 ## Signals
 
 Signals are a very simple yet efficient way for you to run functions during the lifecycle of your project. You can run many types of signals:
 
-    - Before the spider starts
-    - After the spider has started
-    - Before the spider downloads anything
-    - while the spider generates data
+- Before the spider starts
+- After the spider has started
+- Before the spider downloads anything
+- while the spider generates data
 
 ### Creating a signal
 
@@ -265,7 +268,6 @@ The signals function has to be able to accept an instance object and additional 
 This instance element represents the spider object on which you will be able to run a set of options.
 
 You custom signals do not have to return anything.
-
 
 # Extractors
 
@@ -311,7 +313,36 @@ for link in links:
     ...
 ```
 
-
 ## Configuring your spider
 
 Your spiders get configured on initialization through your ``settings.conf`` file.
+
+## Pipelines
+
+Pipelines are a great way to send chained requests to the internet or treat a set of responses by processing them afterwards through a set of functions of your choice.
+
+Pipelines are perfect for downloading images for example.
+
+### HTTPPipeline
+
+This pipeline takes a set of urls, creates HTTPResquests for each of them and then sends them to the internet.
+
+````
+from zineb.http.pipelines import Pipeline
+from zineb.utils.general import download_image
+
+def some_function(response):
+pass
+
+HTTPPipeline([https://example.com], [download_image])
+````
+
+Each function should be able to accept an HTTP Response object.
+
+You can also pass additional parameters to your functions by doing the following:
+
+```
+HTTPPipeline([https://example.com], [download_image], parameters={'extra': False})
+```
+
+In this specific case, your function should accept an `extra` parameter which result would be False.

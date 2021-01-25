@@ -138,7 +138,7 @@ class LinkExtractor(Extractor):
         """
         from zineb.tags import Link
         if soup is None:
-            return []
+            return None
             
         tags = self._link_iterator(soup)
         for tag in tags:

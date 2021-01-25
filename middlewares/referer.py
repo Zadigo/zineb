@@ -1,11 +1,19 @@
 POLICY_NO_REFERRER = 'no-referrer'
+
 POLICY_NO_REFERRER_WHEN_DOWNGRADE = 'no-referrer-when-downgrade'
+
 POLICY_SAME_ORIGIN = 'same-origin'
+
 POLICY_ORIGIN = 'origin'
+
 POLICY_STRICT_ORIGIN = 'strict-origin'
+
 POLICY_ORIGIN_WHEN_CROSS_ORIGIN = 'origin-when-cross-origin'
+
 POLICY_STRICT_ORIGIN_WHEN_CROSS_ORIGIN = 'strict-origin-when-cross-origin'
+
 POLICY_UNSAFE_URL = 'unsafe-url'
+
 POLICY_ZINEB_DEFAULT = 'zineb-default'
 
 POLICY_REFERRERS = {
