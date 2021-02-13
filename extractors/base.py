@@ -170,7 +170,8 @@ class Text(Extractor):
 
     @cached_property
     def _stop_words(self):
-        with open('extractors/stop_words', mode='r') as f:
+        stop_words_path = os.path.join(settings.PROJECT_PATH, 'extractors', 'stop_words')
+        with open(stop_words_path, mode='r') as f:
             data = f.readlines()
             words = data.copy()
         new_words = []
