@@ -1,9 +1,11 @@
 import re
+import os
 from functools import cached_property
 
 import pandas
 from nltk.tokenize import PunktSentenceTokenizer, WordPunctTokenizer
 from sklearn.feature_extraction.text import CountVectorizer
+from zineb.settings import settings
 from zineb.utils._html import deep_clean
 
 
@@ -74,7 +76,7 @@ class TableRows(Extractor):
     def __repr__(self):
         return f"<{self.__class__.__name__}>"
 
-    @cached_property
+    # @cached_property
     def _compose(self):
         if self.rows is not None:
             rows = []
