@@ -147,10 +147,12 @@ class TableRows(Extractor):
                 else:
                     self.rows = self._get_rows(tbody)
             
-            return self._run_processors(self._compose)
+            return self._run_processors(self._compose())
 
     def resolve_to_dataframe(self, columns: list=[]):
-        return pandas.DataFrame(data=self._compose, columns=columns)
+        if columns:
+            return pandas.DataFrame(data=self.compose(), columns=columns)
+        return pandas.DataFrame(data=self._compose(), ignore_index=True)
 
 
 class Text(Extractor):
