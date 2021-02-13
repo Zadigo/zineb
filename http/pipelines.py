@@ -12,6 +12,7 @@ class Pipeline:
     def _warn_user(self, using, message):
         warn(message, UserWarning)
 
+
 class ResponsesPipeline(Pipeline):
     """
     Treats a set of HTTP Responses that will be
@@ -160,7 +161,7 @@ class HTTPPipeline:
         
 
 class CallBack:
-    def __init__(self, request_or_url, func):
+    def __init__(self, request_or_url, func, model=None):
         if not callable(func):
             raise TypeError('Func should be a callable function')
         self.func = func

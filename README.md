@@ -125,15 +125,110 @@ Once a value is added to the field, a series of checks and validations are run o
 
 Fields are a very simple way to passing HTML data to your model in a very structured way. Zineb comes with number of preset fields that you can use out of the box:
 
-- CharField
-- UrlField
-- ImageField
-- TextField
-- DateField
-- AgeField
-- Function
-- SmartField
-  You an also create a custom field by suclassing the `Field` class. When doing so, your custom field has to provide a `resolve` function in order to determine how the value coming to that field should be treated.
+    - CharField
+    - TextField
+    - NameField
+    - EmailField
+    - UrlField
+    - ImageField
+    - IntegerField
+    - DecimalField
+    - DateField
+    - AgeField
+    - FunctionField
+    - ArrayField
+    - CommaSeparatedField
+
+#### How fields work
+
+Once the field is called by the model, the `resolve` function is called on each field which in turns calls the `super().resolve` function of the Field super class.
+
+By default, the resolve function will do the following things.
+
+First, it will run all checks on the value that was passed then it will strip any "<" or ">" tags in the value if present using the `w3lib.html.remove_tags`.
+
+Second, the `deep_clean` method will be called on the value which takes out any spaces using `w3lib.html.strip_html5_whitespace` and also remove escape characters with the `w3lib.html.replace_escape_chars` function.
+
+A filtering function is run at last to ensure that no white space is included in the new returned value something which can happen when the strip_html5_whitespace cannot detect these edge cases.
+
+Finally, all validators (default and custom) are called on the value. The final value is then returned.
+
+#### CharField
+
+The CharField represents the normal character element on an HTML page. You constrain the length.
+
+#### TextField
+
+The text field is longer allows you to add paragraphs of text.
+
+#### NameField
+
+The name field allows to implement names in your model. The `title` method is called on the string in order to represent the value correctly e.g. Kendall Jenner.
+
+#### EmailField
+
+The email field represents emails. The default validator, `validators.validate_email`, is automatically called on the resolve function fo the class in order to ensure that that the value is indeed an email.
+
+#### UrlField
+
+The url field is specific for urls. Just like the email field, the default validator, `validators.validate_url` is called in order to validate the url.
+
+#### ImageField
+
+The image field holds the url of an image exactly like the UrlField with the sole difference that you can download the image directly when the field is evaluated.
+
+```
+class MyModel(Model):
+    avatar = ImageField(download=True, download_to="/this/path")
+```
+
+#### IntegerField
+
+#### DecimalField
+
+#### DateField
+
+The date field allows you to pass dates to your model. In order to use this field, you have to pass a date format so that the field can know how to resolve the value.
+
+```
+class MyModel(Model):
+    date = DateField("%d-%m-%Y")
+```
+
+### AgeField
+
+The age field works likes the DateField but instead of returning the date, it will return the difference between the date and the current date which is an age.
+
+
+#### FunctionField
+
+The function field is a special field that you can use when you have a set of functions to run on the value before returning the final result. For example, let's say you have this value `Kendall J. Jenner` and you want to run a specific function that takes out the middle letter on every incoming values:
+
+```
+def strip_middle_letter(value):
+    return
+
+class MyModel(Model):
+    name = FunctionField(strip_middle_letter, output_field=CharField(), )
+```
+
+Every time the resolve function will be called on this field, the methods provided will be passed on the value.
+
+An output field is not compulsory but if not provided, each value will be returned as a character.
+
+#### ArrayField
+
+#### CommaSeperatedField
+
+#### Creating your own field
+
+You an also create a custom field by suclassing the `Field` class. When doing so, your custom field has to provide a `resolve` function in order to determine how the value should be treated. For example:
+
+```
+class MyCustomField(Field):
+    def resolve(self, value):
+        initial_result = super().resolve(value)
+```
 
 #### Checks
 
@@ -311,22 +406,33 @@ for link in links:
 
 Your spiders get configured on initialization through your ``settings.conf`` file.
 
-## Pipelines
+# Pipelines
 
 Pipelines are a great way to send chained requests to the internet or treat a set of responses by processing them afterwards through a set of functions of your choice.
 
 Pipelines are perfect for downloading images for example.
 
-### HTTPPipeline
+## ResponsesPipeline
+
+The response pipepline allows to chain a group of responses and treat all of them at once:
+
+```
+from zineb.http.pipelines import ResponsesPipeline
+
+pipeline = ResponsesPipeline([response1, response2], [function1, function2])
+pipeline.results
+    -> list
+```
+
+## HTTPPipeline
 
 This pipeline takes a set of urls, creates HTTPResquests for each of them and then sends them to the internet.
 
-````
-from zineb.http.pipelines import Pipeline
-from zineb.utils.general import download_image
+If you provided a set of functions, it will pass each request through them.
 
-def some_function(response):
-pass
+````
+from zineb.http.pipelines import HTTPPipeline
+from zineb.utils.general import download_image
 
 HTTPPipeline([https://example.com], [download_image])
 ````
@@ -340,6 +446,27 @@ HTTPPipeline([https://example.com], [download_image], parameters={'extra': False
 ```
 
 In this specific case, your function should accept an `extra` parameter which result would be False.
+
+
+## CallBack
+
+The CallBack allows you to implement callbacks after each url is processed through the start function. The `__call__` method is called on the instance in order to resolve the function to use.
+
+```
+class Spider(Zineb):
+    start_urls = ["https://example.com"]
+
+    def start(self, response, **kwargs):
+        request = kwargs.get("request")
+        model = MyModel()
+        return Callback(request.follow(""), self.another_function, model=model)
+
+    def another_function(self, response, **kwargs):
+        model = kwargs.get("model")
+        model.add_value("name", "Kendall Jenner")
+        model.save()
+```
+
 
 
 # Utilities
