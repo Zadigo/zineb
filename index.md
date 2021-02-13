@@ -1,8 +1,7 @@
-## Welcome to GitHub Pages
+## Welcome Zineb homepage
 
-You can use the [editor on GitHub](https://github.com/Zadigo/zineb/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+Zineb is a lightweight tool solution for simple and efficient web scrapping and crawling built around BeautifulSoup and Pandas. It's main purpose is to help __quickly structure your data in order to be used as fast as possible in data science or machine learning projects.__
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
 
 ### Markdown
 
