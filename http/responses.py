@@ -1,29 +1,32 @@
 from collections import ChainMap
 from functools import cached_property
 from io import BytesIO
+from itertools import chain
 from mimetypes import guess_extension
 from urllib.parse import urljoin
 
 import pandas
 from bs4 import BeautifulSoup
-from zineb.utils.general import create_new_name
 from PIL import Image
 from requests.models import Response
 from w3lib.html import strip_html5_whitespace
 from w3lib.url import is_url
 from zineb.extractors.images import ImageExtractor
 from zineb.extractors.links import LinkExtractor
+from zineb.http.headers import ResponseHeaders
+from zineb.utils.general import create_new_name
 
 
 class BaseResponse:
     def __init__(self, response):
         self.cached_response = response
+        self.headers = ResponseHeaders(response.headers)
     
 
 class HTMLResponse(BaseResponse):
     """
     Represents a response transformed in a BeautifulSoup
-    object for parsing.
+    object for parsing
 
     This class wraps not only the HTTPRequest response
     but also the transformed version of that request
@@ -31,17 +34,31 @@ class HTMLResponse(BaseResponse):
     Parameters
     ----------
 
-        response (type): a HTTP response object
+            response (type): an HTTP response object
+
+    Example
+    -------
+            
+            wrapped_response = HTMLResponse(response)
+            wrapped_response.html_page -> BeautifulSoup object
     """
     def __init__(self, response, **kwargs):
         super().__init__(response)
+
         if isinstance(response, str):
             self.html_page = self._get_soup(response)
         elif isinstance(response, Response):
             self.html_page = self._get_soup(response.text)
+        elif isinstance(response, HTMLResponse):
+            # There perhaps be an occurence where someone passes
+            # an instance of HTMLResponse as resposne here and
+            # perhaps this functionality can be kept (?)
+            self.html_page = self._get_soup(response.cached_response.text)
+            self.cached_response = response.cached_response
+        else:
+            raise ValueError("Response should be either an html string, an HTTP requests.Response object or a zineb.HTMLResponse instance")
 
         self.kwargs = kwargs.copy()
-        self.headers = kwargs.get('headers', {})
         # Indicates whether the request was completed
         # with a status code of 200
         # self.completed = True
@@ -49,7 +66,7 @@ class HTMLResponse(BaseResponse):
     def __repr__(self):
         return f"{self.__class__.__name__}(title={self.page_title})"
 
-    @cached_property    
+    @property
     def page_title(self):
         return strip_html5_whitespace(
             self.html_page.find('title').text
@@ -124,6 +141,20 @@ class ImageResponse(BaseResponse):
         self.save(path)
 
     def _fit_image(self, response):
+        """
+        Passes the content of the response to a buffer and
+        Pythonizes the content as PIL Image Python object
+
+        Parameters
+        ----------
+
+            response (Response): an HTTP response
+
+        Returns
+        -------
+
+            tuple: (PIL, buffer)
+        """
         buffer = BytesIO(response.content)
         image = Image.open(buffer)
         height, width = image.size
@@ -149,10 +180,11 @@ class ImageResponse(BaseResponse):
 
 class JsonResponse(BaseResponse):
     def __init__(self, response, **kwargs):
-        content_type = response.headers.get('Content-Type')
-        if content_type != 'application/json':
-            raise ValueError('Response does not have a application/json in its headers')
         super().__init__(response)
+        # content_type = response.headers.get('Content-Type')
+        content_type = self.headers.get('content-type')
+        if 'application/json' not in content_type:
+            raise ValueError('Response does not have a application/json in its headers')
 
         try:
             self.raw_data = response.json()
@@ -191,13 +223,41 @@ class JsonResponse(BaseResponse):
             list: list of all the links
         """
         link_mappings = []
+
+        def check_if_url(value):
+            if isinstance(value, str):
+                return is_url(value)
+            return False
+
         for item in self.raw_data:
-            values = filter(lambda x: is_url(x), item.values())
+            values = filter(lambda x: check_if_url(x), item.values())
             link_mappings.append(list(values))
         flattened_links = ChainMap(*link_mappings)
         if unique:
             return {link for link in flattened_links}
-        return flattened_links
+        return list(flattened_links)
+
+    def emails(self):
+        """
+        Return every email within the JSON response
+
+        Returns
+        -------
+
+            (set): a set of emails from the response
+        """
+        email_mappings = []
+
+        def check_if_email(value):
+            if isinstance(value, str):
+                return all(['@' in value])
+            return False
+
+        for item in self.raw_data:
+            values = filter(lambda x: check_if_email(x), item.values())
+            email_mappings.append(values)
+        flattened_emails = chain(*email_mappings)
+        return {email for email in flattened_emails}
 
     def get_response_from_key(self, key):
         """

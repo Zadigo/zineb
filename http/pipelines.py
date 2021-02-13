@@ -176,6 +176,4 @@ class CallBack:
         return self.__init__(request_or_url, func)
 
     def _run_function(self):
-        result = self.func(self._response, request=self.request)
-        if result or result is not None:
-            pass
+        self.func(self._response, request=self.request)

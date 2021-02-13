@@ -1,10 +1,10 @@
-from models.fields import AgeField, CharField, DateField, Function, IntegerField, SmartField, UrlField
 import unittest
 
 import pandas
+from models.fields import (AgeField, CharField, DateField, FunctionField, ImageField,
+                           IntegerField, NameField, UrlField)
 from zineb.http.request import HTTPRequest
 from zineb.models.datastructure import Model
-from zineb.models.fields import NameField
 
 request = HTTPRequest('http://example.com')
 request._send()
@@ -23,19 +23,17 @@ class Celebrity(Model):
     birthdate = DateField('%d/%m/%Y')
     age = AgeField('%d/%m/%Y')
     url = UrlField()
-    height = SmartField()
+    height = IntegerField()
     weight = IntegerField()
-    spike = Function(
-        IntegerField(), 
-        custom_function
-    )
-    block = Function(
-        IntegerField(),
+    spike = FunctionField(
         custom_function,
-        output_field=CharField()
+        output_field=IntegerField(),
+    )
+    block = FunctionField(
+        custom_function,
+        output_field=IntegerField()
     )
     
-
 
 class TestModel(unittest.TestCase):
     def setUp(self):
@@ -44,13 +42,13 @@ class TestModel(unittest.TestCase):
     def test_adding_value(self):
         self.player.add_value('name', 'Kendall Jenner')
 
-    def test_adding_expression(self):
-        self.player.add_expression('name', 'h1')
-        # self.assertIsInstance(self.player._cached_result, dict)
-        # self.assertIsInstance(self.player._cached_result[-1], dict)
-        # Testing the data itself
-        # self.assertEqual(self.player._cached_result[0]['name'], 'Example Domain')
-        # self.assertListEqual(self.player._cached_result, [{'name': 'Example Domain'}])
+    # def test_adding_expression(self):
+    #     self.player.add_expression('name', 'h1')
+    #     # self.assertIsInstance(self.player._cached_result, dict)
+    #     # self.assertIsInstance(self.player._cached_result[-1], dict)
+    #     # Testing the data itself
+    #     # self.assertEqual(self.player._cached_result[0]['name'], 'Example Domain')
+    #     # self.assertListEqual(self.player._cached_result, [{'name': 'Example Domain'}])
 
     @unittest.expectedFailure
     def test_cannot_add_non_existing_field(self):
@@ -63,7 +61,7 @@ class TestModel(unittest.TestCase):
             self.player.add_value('age', 'h1')
 
     @unittest.expectedFailure
-    def test_cannotadd_different_value(self):
+    def test_cannot_add_different_value(self):
         self.player.add_value('name', 1)
 
 

@@ -5,7 +5,7 @@ from collections import deque
 from xml.etree import ElementTree
 
 from pydispatch import dispatcher
-
+from zineb.http.pipelines import CallBack
 from zineb.checks.core import checks_registry
 from zineb.exceptions import StartUrlsWarning
 from zineb.http.request import HTTPRequest
@@ -134,10 +134,12 @@ class Spider(metaclass=BaseSpider):
         if not containers or containers is None:
             return False
 
-        # callbacks = {item.callback for item in container if item.callback is not None}
+        callbacks = filter(lambda k: isinstance(k, CallBack), containers)
+        pipes = list(filter(lambda p: isinstance(p, Pipe), containers))
 
-        pipe = Pipe(containers)
-        return pipe._resolve_dataframes()
+        if pipes:
+            pipe = Pipe(pipes)
+            return pipe._resolve_dataframes()
 
     def _resolve_requests(self, debug=False):
         """

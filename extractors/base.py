@@ -149,7 +149,7 @@ class TableRows(Extractor):
             
             return self._run_processors(self._compose)
 
-    def resolve_to_dataframe(self, columns=[]):
+    def resolve_to_dataframe(self, columns: list=[]):
         return pandas.DataFrame(data=self._compose, columns=columns)
 
 

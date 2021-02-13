@@ -2,7 +2,6 @@ import os
 import logging
 
 
-
 PROJECT_PATH = os.path.dirname(os.path.dirname(__file__))
 
 SETTINGS_FILE = os.path.join(PROJECT_PATH, 'settings', 'base.py')
@@ -92,3 +91,13 @@ RETRY = False
 RETRY_TIMES = 2
 
 RETRY_HTTP_CODES = [500, 502, 503, 504, 522, 524, 408, 429]
+
+
+# Represents the default headers that will be
+# used for each request sent within your project
+
+DEFAULT_REQUEST_HEADERS = {
+    'Accept-Language': 'en',
+    'Accept': 'text/html,application/json,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Referrer': 'https://google.com',
+}

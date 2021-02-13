@@ -4,13 +4,19 @@ from collections import OrderedDict
 
 import pandas
 from zineb.http.responses import HTMLResponse
+from zineb.models.fields import Field
 
 
 class FieldDescripor:
-    cached_fields = OrderedDict()
+    cached_fields = OrderedDict
     
-    def __getitem__(self, key):
+    def __getitem__(self, key) -> Field:
         return self.cached_fields[key]
+
+
+class ModelOptions:
+    def __init__(self, options:dict = {}):
+        pass
 
 
 class Base(type):
@@ -21,30 +27,50 @@ class Base(type):
         if not parents:
             return super_new(cls, name, bases, attrs)
 
-        fields = []
+        # fields = []
         if name != 'Model':
-            new_attrs = {}
-            class_module = attrs.pop('__module__')
-            class_qualname = attrs.pop('__qualname__')
+            # new_attrs = {}
+            # class_module = attrs.pop('__module__')
+            # class_qualname = attrs.pop('__qualname__')
 
-            fields = list(attrs.keys())
+            # fields = list(attrs.keys())
             # Normally, we should have all the fields
             # anad/or remaining methods of the class
+            declared_fields = []
+            for key, value in attrs.items():
+                if isinstance(value, Field):
+                    declared_fields.append((key, value))
+
             descriptor = FieldDescripor()
-            descriptor.cached_fields.update(**attrs)
-            new_attrs.update(
-                {
-                    '_meta': descriptor, 
-                    '__module__': class_module, 
-                    '__qualname__': class_qualname
-                }
-            )
-            new_class = super_new(cls, name, bases, new_attrs)
-            setattr(new_class, '_fields', fields)
+            descriptor.cached_fields = OrderedDict(declared_fields)
+            # descriptor.cached_fields.update(**attrs)
+            # new_attrs.update(
+            #     {
+            #         '_meta': descriptor, 
+            #         '__module__': class_module, 
+            #         '__qualname__': class_qualname
+            #     }
+            # )
+            # new_class = super_new(cls, name, bases, new_attrs)
+            # setattr(new_class, '_fields', fields)
+
+            meta = None
+            if 'Meta' in attrs:
+                meta_dict = attrs.pop('Meta').__dict__
+                authorize_options = []
+
+                def check_option(key, value):
+                    return key, value
+
+                options = [check_option(key, value) for key, value in meta_dict.items()]
+                meta = ModelOptions(options=options)
+
+            new_class = super_new(cls, name, bases, attrs)
+            setattr(new_class, '_fields', descriptor)
+            setattr(new_class, '_meta', meta)
             return new_class
 
-        new_class = super_new(cls, name, bases, attrs)
-        return new_class
+        return super_new(cls, name, bases, attrs)
 
 
 class Registry:
@@ -55,7 +81,8 @@ class Registry:
         return base
 
 
-class DataStructure(Registry, metaclass=Base):
+class DataStructure(metaclass=Base):
+# class DataStructure(Registry, metaclass=Base):
     def __init__(self, html_document=None, html_tag=None, response=None):
         self._cached_result = {}
         self.html_document = html_document
@@ -136,46 +163,46 @@ class DataStructure(Registry, metaclass=Base):
                 new_base.update({field_name: field_obj.resolve(tag.text)})
             # self._cached_result.append(new_base)
 
-    def add_expression(self, name, expression):
-        """
-        Adds a value to your Model object using an expression
+    # def add_expression(self, name, expression):
+    #     """
+    #     Adds a value to your Model object using an expression
 
-        Parameters
-        ----------
+    #     Parameters
+    #     ----------
 
-                field_name (str): the name of field on which to add a given value
-                expression (str): an expression used to query or parse tags in the document
-        """
-        obj = self._resolve(name)
+    #             field_name (str): the name of field on which to add a given value
+    #             expression (str): an expression used to query or parse tags in the document
+    #     """
+    #     obj = self._resolve(name)
 
-        allow_pseudos = ['text', 'href', 'src']
-        tag, attrs, pseudo = self._expression_resolver(expression)
-        if pseudo not in allow_pseudos:
-            raise TypeError(f"Pseudo should be one of {', '.join(allow_pseudos)}")
+    #     allow_pseudos = ['text', 'href', 'src']
+    #     tag, attrs, pseudo = self._expression_resolver(expression)
+    #     if pseudo not in allow_pseudos:
+    #         raise TypeError(f"Pseudo should be one of {', '.join(allow_pseudos)}")
         
-        # In this specific case, only find the first
-        # occurrence of a given tag on the page or
-        # within the HTML soup object
-        tag = self.parser.find(tag, attrs=attrs)
+    #     # In this specific case, only find the first
+    #     # occurrence of a given tag on the page or
+    #     # within the HTML soup object
+    #     tag = self.parser.find(tag, attrs=attrs)
 
-        element_text = None
-        if tag or tag is not None:
-            element_text = None
-            if pseudo == 'text':
-                element_text = tag.text
-            else:
-                element_attrs = tag.attrs
-                if tag.has_attr(pseudo):
-                    element_text = element_attrs.get(pseudo)
+    #     element_text = None
+    #     if tag or tag is not None:
+    #         element_text = None
+    #         if pseudo == 'text':
+    #             element_text = tag.text
+    #         else:
+    #             element_attrs = tag.attrs
+    #             if tag.has_attr(pseudo):
+    #                 element_text = element_attrs.get(pseudo)
 
-            resolved_value = obj.resolve(element_text)
+    #         resolved_value = obj.resolve(element_text)
 
-            cached_field = self._cached_result.get(name, None)
-            if cached_field is None:
-                self._cached_result.setdefault(name, [])
-                cached_field = self._cached_result.get(name)
-            cached_field.append(resolved_value)
-            self._cached_result.update({name: cached_field})
+    #         cached_field = self._cached_result.get(name, None)
+    #         if cached_field is None:
+    #             self._cached_result.setdefault(name, [])
+    #             cached_field = self._cached_result.get(name)
+    #         cached_field.append(resolved_value)
+    #         self._cached_result.update({name: cached_field})
 
     def add_value(self, name, value):
         """
@@ -273,4 +300,4 @@ class Model(DataStructure):
                 if not filename.endswith('json'):
                     filename = f'{filename}.json'
             return df.to_json(filename, orient='records')
-        return df.copy()
+        return df.copy()    

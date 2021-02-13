@@ -48,7 +48,7 @@ class ImageExtractor(Extractor):
         for i, image in enumerate(images):
             tag, attrs = image
             self.images.append(
-                ImageTag(tag, attrs=attrs, src=attrs.get('src', None), index=i)
+                ImageTag(tag, attrs=attrs, index=i, html_page=soup)
             )
         return self.images
 

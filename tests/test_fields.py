@@ -119,8 +119,8 @@ class TestDateField(unittest.TestCase):
 
         age = self.agefield.resolve(d)
         self.assertEqual(str(self.field._cached_result.date()), '2002-06-15')
-        self.assertEqual(str(self.agefield), '18')
-        self.assertEqual(age, 18)
+        self.assertEqual(str(self.agefield), '19')
+        self.assertEqual(age, 19)
 
 
 def method_one(value):

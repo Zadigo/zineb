@@ -1,12 +1,11 @@
 import unittest
 
+import pandas
 from bs4 import BeautifulSoup
-from zineb.extractors.images import ImageExtractor
 from zineb.extractors.base import TableRows
+from zineb.extractors.images import ImageExtractor
 from zineb.extractors.links import LinkExtractor
-from zineb.dom.tags import ImageTag
-
-
+from zineb.tags import ImageTag
 
 with open('tests/html/images.html', 'r') as f:
     soup = BeautifulSoup(f, 'html.parser')
@@ -24,33 +23,33 @@ with open('tests/html/tables2.html', 'r') as f:
     
 
 class TestImagesExtractor(unittest.TestCase):
+    extractor_class = ImageExtractor
+
     def test_image_extraction(self):
-        extractor = ImageExtractor()
+        extractor = self.extractor_class()
         images = extractor.resolve(soup)
         self.assertGreater(len(images), 0)
         image = images[0]
         self.assertIsInstance(image, ImageTag)
 
     def test_filtering(self):
-        extractor = ImageExtractor(url_must_contain='Ambrosio')
+        extractor = self.extractor_class(url_must_contain='Ambrosio')
         images = extractor.resolve(soup)
 
         filtered_images = extractor.filter_images()
         self.assertNotEqual(len(images), len(filtered_images))
 
         filtered_images = extractor.filter_images('901')
-        # self.assertIn(filtered_images, 'Alessandra-Ambrosio-Booty-in-Bikini-901.jpg')
-
-    def test_image_downloading(self):
-        pass
+        self.assertIn('Alessandra-Ambrosio-Booty-in-Bikini-901.jpg', filtered_images[0])
 
 
 class TestRowsExtractor(unittest.TestCase):
     def setUp(self):
         self.extractor = TableRows(has_headers=True)
 
-    def test_using_soup(self):
-        self.extractor.resolve(soup)
+    def test_resolution(self):
+        result = self.extractor.resolve(soup2)
+        self.assertIsInstance(result, list)
 
     def test_using_specific_table(self):
         rows = self.extractor.resolve(tables[10])
@@ -59,22 +58,24 @@ class TestRowsExtractor(unittest.TestCase):
         self.assertIn('Erika', rows[2])
 
     def test_processors(self):
-        def drop_empty_values(value):
-            if value is not None or value != '':
+        def replace_empty_values(value, row=None):
+            if value is None or value == '':
+                return None
+            else:
                 return value
 
-        extractor = TableRows(has_headers=True, processors=[drop_empty_values])
-        rows = extractor.resolve(soup)
+        extractor = TableRows(has_headers=True, processors=[replace_empty_values])
+        rows = extractor.resolve(player_table)
         self.assertNotIn('', rows[2])
 
+    def test_pandas_resolution(self):
+        extractor = TableRows(has_headers=True)
+        df = extractor.resolve_to_dataframe()
+        self.assertIsInstance(df, pandas.DataFrame)
+        print(extractor._compose)
 
-def clean_values(value, **kwargs):
-    if value != '' or value is not None:
-        return value
-
-
-# if __name__ == "__main__":
-#     unittest.main()
+if __name__ == "__main__":
+    unittest.main()
     
     # runner = unittest.TextTestRunner()
     # suite = unittest.TestSuite()
