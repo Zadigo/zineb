@@ -154,8 +154,8 @@ class TableRows(Extractor):
     def resolve_to_dataframe(self, columns: list=[]):
         if columns:
             return pandas.DataFrame(data=self.compose(), columns=columns)
-        return pandas.DataFrame(data=self._compose(), ignore_index=True)
-
+            return df.rename(columns=columns)
+        return df
 
 class Text(Extractor):
     """
