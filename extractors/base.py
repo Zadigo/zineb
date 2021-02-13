@@ -151,11 +151,12 @@ class TableRows(Extractor):
             
             return self._run_processors(self._compose())
 
-    def resolve_to_dataframe(self, columns: list=[]):
+    def resolve_to_dataframe(self, columns: dict={}):
+        df = pandas.DataFrame(data=self._compose())
         if columns:
-            return pandas.DataFrame(data=self.compose(), columns=columns)
             return df.rename(columns=columns)
         return df
+
 
 class Text(Extractor):
     """
