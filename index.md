@@ -2,6 +2,14 @@
 
 Zineb is a lightweight tool solution for simple and efficient web scrapping and crawling built around BeautifulSoup and Pandas. It's main purpose is to help __quickly structure your data in order to be used as fast as possible in data science or machine learning projects.__
 
+# Understanding how Zineb works
+
+Zineb gets your custom spider, creates a set of ``HTTPRequest`` objects for each url, sends the requests and caches a BeautifulSoup object of the page within an ``HTMLResponse`` class of that request.
+
+```
+class Celerities(Zineb):
+    start_urls = ['http://example.com']
+```
 
 ### Markdown
 
