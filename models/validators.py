@@ -5,7 +5,7 @@ from zineb.exceptions import ValidationError
 
 def regex_compiler(pattern):
     def compiler(func):
-        def wrapper(value):
+        def wrapper(value, **kwargs):
             compiled_pattern = re.compile(pattern)
             result = compiled_pattern.match(str(value))
             if not result or result is None:
@@ -84,6 +84,12 @@ class LengthValidator:
     def __init__(self, constraint):
         self.constraint = constraint
 
+    def __call__(self, value_to_test):
+        value_length = value_to_test
+        if isinstance(value_to_test, str):
+            value_length = self._get_string_length(value_length)
+        return value_length
+
     def _get_string_length(self, value):
         return len(value)
 
@@ -95,9 +101,7 @@ class LengthValidator:
 
 class MinLengthValidator(LengthValidator):
     def __call__(self, value_to_test):
-        value_length = value_to_test
-        if isinstance(value_to_test, str):
-            value_length = super()._get_string_length(value_to_test)
+        value_length = super().__call__(value_to_test)
         result = min_length_validator(value_length, self.constraint)
         super().should_return_result(value_length, result, True)
         return value_to_test
@@ -105,9 +109,7 @@ class MinLengthValidator(LengthValidator):
 
 class MaxLengthValidator(LengthValidator):
     def __call__(self, value_to_test):
-        value_length = value_to_test
-        if isinstance(value_to_test, str):
-            value_length = super()._get_string_length(value_to_test)
+        value_length = super().__call__(value_to_test)
         result = max_length_validator(value_length, self.constraint)
         super().should_return_result(value_length, result, False)
         return value_to_test
