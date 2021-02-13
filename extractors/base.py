@@ -1,7 +1,7 @@
 import re
-import pandas
 from functools import cached_property
 
+import pandas
 from nltk.tokenize import PunktSentenceTokenizer, WordPunctTokenizer
 from sklearn.feature_extraction.text import CountVectorizer
 from zineb.utils._html import deep_clean
