@@ -9,8 +9,8 @@ class Pipeline:
     def __init__(self):
         self.errors = []
 
-    def _warn_user(self, using, message):
-        warn(message, UserWarning)
+    def _warn_user(self, message, using):
+        warnings.warn(message, UserWarning, stacklevel=6)
 
 
 class ResponsesPipeline(Pipeline):
@@ -36,21 +36,26 @@ class ResponsesPipeline(Pipeline):
                     if response.resolved:
                         response = response._http_response
                     else:
-                        self.errors.append(f'{response} is not resolved')
+                        self.errors.append(f"{response} is not resolved")
 
                 try:
-                    if parameters:
-                        return await function(response, **parameters)
-                    else:
-                        return await function(response)
-                except:
-                    self.errors.append(
-                        warnings.warn("An error occured within the Pipe", UserWarning, stacklevel=6)
+                    result = function(
+                        response,
+                        soup=response.html_page,
+                        **parameters
                     )
+                    # if parameters:
+                    # else:
+                    #     return await function(response)
+                except Exception as e:
+                    self.errors.append(f"An error occured within the Pipe. {e.args}")
+                else:
+                    if result is not None:
+                        return await result
                 finally:
                     if self.errors:
                         for error in self.errors:
-                            self._warn_user(error, f'{function}, {response}')
+                            self._warn_user(error, UserWarning)
         
         async def main():
             for response in responses:

@@ -5,12 +5,13 @@ from collections import OrderedDict
 from pydispatch import dispatcher
 from requests.sessions import Request, Session
 from w3lib.url import safe_download_url, safe_url_string, urljoin, urlparse
+from zineb.extractors.base import Extractor
+from zineb.http.headers import ResponseHeaders
 from zineb.http.responses import HTMLResponse, JsonResponse
 from zineb.http.user_agent import UserAgent
 # from zineb.signals import Signal, signal
 from zineb.tags import ImageTag, Link
 from zineb.utils.general import create_logger
-from zineb.http.headers import ResponseHeaders
 
 logger = create_logger('BaseRequest')
 
