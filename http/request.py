@@ -253,6 +253,7 @@ class HTTPRequest(BaseRequest):
     def follow_all(cls, *urls):
         for url in urls:
             instance = cls(url)
+            instance._send()
             yield instance.html_response
 
     def urljoin(self, path):
