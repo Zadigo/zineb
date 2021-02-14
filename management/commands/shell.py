@@ -1,8 +1,9 @@
-from zineb.management.base import BaseCommand
 import code
 
-from zineb.extractors import base, images, links
+from zineb.extractors import base, links, images
 from zineb.http.request import HTTPRequest
+from zineb.management.base import BaseCommand
+from zineb.settings import settings
 
 
 def start_ipython_shell():
@@ -13,7 +14,7 @@ def start_ipython_shell():
     else:
         configuration = ipapp.load_default_config()
 
-        def shell_wrapper(namespace: dict = {}, banner=''):
+        def shell_wrapper(namespace: dict={}, banner=''):
             embed.InteractiveShellEmbed.clear_instance()
             shell = embed.InteractiveShellEmbed.instance(
                 banner=banner, user_ns=namespace, config=configuration
@@ -23,7 +24,7 @@ def start_ipython_shell():
 
 
 def start_standard_console():
-    def shell_wrapper(namespace: dict = {}, banner=''):
+    def shell_wrapper(namespace: dict={}, banner=''):
         code.interact(banner=banner, local=namespace)
     return shell_wrapper
 
@@ -45,20 +46,23 @@ class Shell:
             try:
                 if func:
                     # Starts each console passing the options
-                    # and banner into the console
+                    # and banner
                     func()(namespace=self.shell_variables, banner=self.banner)
             except SystemError:
                 pass
 
     def start(self, url):
         request = HTTPRequest(url)
+        request.project_settings = settings
         request._send()
+
         self.shell_variables.setdefault('request', request)
         self.shell_variables.setdefault('response', request.html_response)
         self.shell_variables.setdefault(
-            'html_page', request.html_response.html_page)
+            'html_page', request.html_response.html_page
+        )
 
-        # Extractors
+        # Pass the extractors in the shell
         self.shell_variables.setdefault('base', base)
         self.shell_variables.setdefault('images', images)
         self.shell_variables.setdefault('links', links)
@@ -67,9 +71,7 @@ class Shell:
 
 class Command(BaseCommand):
     def add_arguments(self, parser):
-        parser.add_argument(
-            '-f', '--file', type=str, required=False
-        )
+        pass
 
     def execute(self, *args, **kwargs):
         pass
