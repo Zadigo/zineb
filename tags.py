@@ -8,7 +8,7 @@ from w3lib.url import canonicalize_url, is_url, safe_url_string
 
 
 class BaseTags:
-    def __init__(self, html_page, **kwargs):
+    def __init__(self, html_page):
         self.html_page = None
         if isinstance(html_page, str):
             self.html_page = BeautifulSoup(html_page, 'html.parser')
@@ -20,8 +20,9 @@ class HTMLTag(BaseTags):
     tag_name = None
 
     def __init__(self, tag, html_page=None, **kwargs):
-        super().__init__(html_page, **kwargs)
+        super().__init__(html_page)
         self.tag = tag
+        self.attrs = kwargs.get('attrs', tag.attrs)
 
         try:
             self.tag_name = self.tag.name.strip()
@@ -136,14 +137,12 @@ class ImageTag(HTMLTag):
         index (int):
     """
     def __init__(self, tag, index=None, **kwargs):
-        self.tag = tag
+        super().__init__(tag, **kwargs)
         self.index = index
-        self.attrs = kwargs.get('attrs', tag.attrs)
         self.src = self.attrs.get('src', None)
         self.is_valid = is_url(self.src)
         self.image_type = guess_type(self.src)
         self.extension = guess_extension(self.image_type[0])
-        # super().__init__(tag, **kwargs)
 
     def __repr__(self):
         return f"{self.__class__.__name__}(src={self.src})"

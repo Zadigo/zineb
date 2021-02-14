@@ -1,18 +1,19 @@
 import configparser
-import time
 import warnings
+# import time
 from collections import deque
-from xml.etree import ElementTree
 
-from pydispatch import dispatcher
-
-from zineb.checks.core import checks_registry
-from zineb.exceptions import StartUrlsWarning
+# from pydispatch import dispatcher
+from zineb.http.pipelines import CallBack
+# from zineb.checks.core import checks_registry
 from zineb.http.request import HTTPRequest
-from zineb.middleware import Middleware
+# from zineb.middleware import Middleware
 from zineb.settings import Settings
-from zineb.signals import signal
+# from zineb.signals import signal
 from zineb.utils.general import create_logger
+
+# from xml.etree import ElementTree
+
 
 
 class BaseSpider(type):
@@ -57,6 +58,9 @@ class BaseSpider(type):
             new_class = create_new(cls, name, bases, attrs)
 
             start_urls = getattr(new_class, 'start_urls')
+            if not start_urls:
+                warnings.warn("No start urls were provided for the project", Warning, stacklevel=6)
+
             prepared_requests = attrs.get('_prepared_requests', [])
             if start_urls:
                 if len(start_urls) > 0:
@@ -103,22 +107,23 @@ class Spider(metaclass=BaseSpider):
         self.logger.info(f'Loaded configuration file...')
         self.logger.info(f"{self.__class__.__name__} contains {self.__len__()} request(s)")
         
-        middlewares = Middleware(settings=self.settings)
-        middlewares._load
-        objs = middlewares.loaded_middlewares.values()
-        for obj in objs:
-            # Each middleware class should provide a 
-            # __call__ function that will be called
-            # like a regular function by the dispatcher
-            receiver = obj()
-            # Initialize all the signals and the
-            # ones that were created for the project and
-            # mark the sender as Anonymous so that triggers
-            # can be sent from anywhere within the project
-            signal_name = f'Zineb-{receiver.__class__.__name__}'
-            signal.connect(receiver, signal=signal_name)
-        print(dispatcher.connections)
-        self.middlewares = middlewares
+        # TODO: Resolve problems related to the signals
+        # and the middlewares
+        # middlewares = Middleware(settings=self.settings)
+        # middlewares._load
+        # objs = middlewares.loaded_middlewares.values()
+        # for obj in objs:
+        #     # Each middleware class should provide a 
+        #     # __call__ function that will be called
+        #     # like a regular function by the dispatcher
+        #     receiver = obj()
+        #     # Initialize all the signals and the
+        #     # ones that were created for the project and
+        #     # mark the sender as Anonymous so that triggers
+        #     # can be sent from anywhere within the project
+        #     signal_name = f'Zineb-{receiver.__class__.__name__}'
+        #     signal.connect(receiver, signal=signal_name)
+        # self.middlewares = middlewares
 
         self._cached_aggregated_results = None
         self._cached_aggregated_results = self._resolve_requests(debug=kwargs.get('debug', False))
@@ -134,10 +139,12 @@ class Spider(metaclass=BaseSpider):
         if not containers or containers is None:
             return False
 
-        # callbacks = {item.callback for item in container if item.callback is not None}
+        callbacks = filter(lambda k: isinstance(k, CallBack), containers)
+        pipes = list(filter(lambda p: isinstance(p, Pipe), containers))
 
-        pipe = Pipe(containers)
-        return pipe._resolve_dataframes()
+        if pipes:
+            pipe = Pipe(pipes)
+            return pipe._resolve_dataframes()
 
     def _resolve_requests(self, debug=False):
         """

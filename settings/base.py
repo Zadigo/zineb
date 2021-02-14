@@ -2,7 +2,6 @@ import os
 import logging
 
 
-
 PROJECT_PATH = os.path.dirname(os.path.dirname(__file__))
 
 SETTINGS_FILE = os.path.join(PROJECT_PATH, 'settings', 'base.py')
@@ -49,10 +48,12 @@ LOG_LEVEL = logging.DEBUG
 # certain specific actions within the application
 
 MIDDLEWARES = [
-    'zineb.middlewares.handlers.Handler',
     # 'zineb.middlewares.referer.Referer',
+    'zineb.middlewares.handlers.Handler',
+    # 'zineb.middlewares.automation.Automation',
     'zineb.middlewares.history.History',
     'zineb.middlewares.statistics.GeneralStatistics'
+    # 'zineb.middlewares.wireframe.WireFrame',
 ]
 
 

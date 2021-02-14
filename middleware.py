@@ -8,8 +8,8 @@ logger = create_logger('Middleware')
 
 class Middleware:
     """
-    Loads the middlewares registered in the
-    settings.py file
+    Loads every middleware present in the project's
+    settings file
     """
     settings = None
     module_registry = OrderedDict()

@@ -1,10 +1,11 @@
 import re
+from w3lib.url import is_url
 from functools import wraps
 from zineb.exceptions import ValidationError
 
 def regex_compiler(pattern):
     def compiler(func):
-        def wrapper(value):
+        def wrapper(value, **kwargs):
             compiled_pattern = re.compile(pattern)
             result = compiled_pattern.match(str(value))
             if not result or result is None:
@@ -40,7 +41,7 @@ def validate_length(value, max_length):
     result = max_length_validator(len(value), max_length)
     if result:
         raise ValidationError('Ensure value is no more than', max_length)
-    # return value
+    return value
 
 
 @regex_compiler(r'(?<=\.)(\w+)\Z')
@@ -52,11 +53,11 @@ def validate_extension(clean_value, extensions:list=[]):
     return clean_value
 
 
-def max_length_validator(a, b):
+def max_length_validator(a, b) -> bool:
     return a > b
 
 
-def min_length_validator(a, b):
+def min_length_validator(a, b) -> bool:
     return a < b
 
 
@@ -66,4 +67,49 @@ def validate_percentage(number):
 
 
 def validate_url(url):
+    if url.startswith('/'):
+        return url
+
+    url_is_valid = is_url(url)
+    if not url_is_valid:
+        raise ValueError(f'Url is not valid. Got: {url}')
     return url
+
+
+class LengthValidator:
+    error_message = {
+        'length_error': "%(value)s does not respect the %(validator)s constraint"
+    }
+
+    def __init__(self, constraint):
+        self.constraint = constraint
+
+    def __call__(self, value_to_test):
+        value_length = value_to_test
+        if isinstance(value_to_test, str):
+            value_length = self._get_string_length(value_length)
+        return value_length
+
+    def _get_string_length(self, value):
+        return len(value)
+
+    def should_return_result(self, value, state, expected):
+        if state != expected:
+            message = self.error_message['length_error']
+            raise ValueError(message %  {'value': value, 'validator': self.__class__.__name__})
+
+
+class MinLengthValidator(LengthValidator):
+    def __call__(self, value_to_test):
+        value_length = super().__call__(value_to_test)
+        result = min_length_validator(value_length, self.constraint)
+        super().should_return_result(value_length, result, True)
+        return value_to_test
+
+
+class MaxLengthValidator(LengthValidator):
+    def __call__(self, value_to_test):
+        value_length = super().__call__(value_to_test)
+        result = max_length_validator(value_length, self.constraint)
+        super().should_return_result(value_length, result, False)
+        return value_to_test

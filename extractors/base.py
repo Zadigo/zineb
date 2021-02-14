@@ -1,9 +1,11 @@
 import re
-import pandas
+import os
 from functools import cached_property
 
+import pandas
 from nltk.tokenize import PunktSentenceTokenizer, WordPunctTokenizer
 from sklearn.feature_extraction.text import CountVectorizer
+from zineb.settings import settings
 from zineb.utils._html import deep_clean
 
 
@@ -74,7 +76,7 @@ class TableRows(Extractor):
     def __repr__(self):
         return f"<{self.__class__.__name__}>"
 
-    @cached_property
+    # @cached_property
     def _compose(self):
         if self.rows is not None:
             rows = []
@@ -147,10 +149,13 @@ class TableRows(Extractor):
                 else:
                     self.rows = self._get_rows(tbody)
             
-            return self._run_processors(self._compose)
+            return self._run_processors(self._compose())
 
-    def resolve_to_dataframe(self, columns=[]):
-        return pandas.DataFrame(data=self._compose, columns=columns)
+    def resolve_to_dataframe(self, columns: dict={}):
+        df = pandas.DataFrame(data=self._compose())
+        if columns:
+            return df.rename(columns=columns)
+        return df
 
 
 class Text(Extractor):
@@ -168,7 +173,8 @@ class Text(Extractor):
 
     @cached_property
     def _stop_words(self):
-        with open('extractors/stop_words', mode='r') as f:
+        stop_words_path = os.path.join(settings.PROJECT_PATH, 'extractors', 'stop_words')
+        with open(stop_words_path, mode='r') as f:
             data = f.readlines()
             words = data.copy()
         new_words = []

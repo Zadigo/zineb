@@ -1,30 +1,18 @@
-import warnings
-
-
-class NoRequestWarning(UserWarning):
-    pass
-
-
-class StartUrlsWarning(SyntaxWarning):
-    def __init__(self):
-        super().__init__('No starting urls were specified')
-
-
-class DomainOutOfBounds(UserWarning):
-    def __init__(self, url, *args):
-        message = 'The url does not'
-        super().__init__(message)
-
-
 class ValidationError(Exception):
     def __init__(self, message, *args):
         super().__init__(message, *args)
 
 
 class FieldError(Exception):
-    pass
+    def __init__(self, field_name, available_fields):
+        msg = (f"The field ({field_name}) is not present on your model. "
+        f"Available fields are: {', '.join(available_fields)}")
+        super().__init__(msg)
 
 
-class PipelineError(Warning):
-    def __init__(self, obj, *args):
-        super().__init__(f'An error occured on {obj}')
+class ParserError(Exception):
+    def __init__(self):
+        msg = (f"You should provide one of html_document, html_tag or HTMLResponse "
+            "object to the model in order to resolve fields with a "
+            "value from the HTML document")
+        super().__init__(msg)

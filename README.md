@@ -1,10 +1,10 @@
-## Introduction
+# Introduction
 
-Zineb is a lightweight tool solution for simple and efficient web scrapping built around BeautifulSoup -; and whose main purpose is to help __quickly structure your data in order for you to use it at fast as possible for data science or machine learning projects.__
+Zineb is a lightweight tool solution for simple and efficient web scrapping and crawling built around BeautifulSoup and Pandas. It's main purpose is to help __quickly structure your data in order to be used as fast as possible in data science or machine learning projects.__
 
-## Understanding how Zineb works
+# Understanding how Zineb works
 
-Zineb gets your custom spider, creates a set of ``HTTPRequest`` objects for each url, sends the requests and caches a BeautifulSoup object of the page within an ``HTMLResponse`` class.
+Zineb gets your custom spider, creates a set of ``HTTPRequest`` objects for each url, sends the requests and caches a BeautifulSoup object of the page within an ``HTMLResponse`` class of that request.
 
 Most of your interactions with the HTML page will be done through the ``HTMLResponse`` class.
 
@@ -33,16 +33,16 @@ class Celerities(Zineb):
     start_urls = ['http://example.com']
   
      class Meta:
-         optons: []
+         options: []
 ```
 
-## Doing basic querying on the page
+# Doing queries
 
 Like said previously, the majority of your interactions with the HTML page will be done through the ``HTMLResponse`` object.
 
 This class implements some basic functionnalities that you can use through the course of your project.
 
-To explain, these, let's create a basic HTTP response:
+Let's create a basic HTTP response:
 
 ```
 from zineb.http.requests import HTTPRequest
@@ -50,7 +50,7 @@ from zineb.http.requests import HTTPRequest
 request = HTTPRequest('http://example.co' resolved=False)
 ```
 
-Requests, when created a not sent automatically until you call the `_send` function. Unsent requests are marked as unresolved.
+Requests, when created a not sent [or resolved] automatically the `_send` function is called. In that case, they are marked as being unresolved.
 
 ```
 request._send()
@@ -59,9 +59,15 @@ request.html_response.html_page
     -> BeautifulSoup object
 ```
 
-### Basic implementations
+By using the `html_page` attribute, you can do all the classic querying that you would do with BeautifulSoup e.g. find, findall...
 
-The `request.http_response.html_response` provides some very basic functionalities such as __getting all the links__ from a page:
+## Basic implementations
+
+The `request.html_response` attribute provides some very basic functionalities that we will be reviewing below.
+
+These three elements are generally the most common items retrieved when doing web scraping.
+
+### Getting all the links
 
 ```
 request.html_response.links
@@ -69,9 +75,9 @@ request.html_response.links
     -> [Link(url='http://example.com')]
 ```
 
-In order to understand what the ``Link`` object represents, please read the following section of this page.
+In order to understand what the ``Link`` object represents, please read the [following section]() of this page.
 
-You can also get all the images:
+### Getting all the images
 
 ```
 request.html_response.images
@@ -79,7 +85,7 @@ request.html_response.images
     -> [Image(url='https://example.com/1.jpg')]
 ```
 
-Or, all the tables:
+### Getting all the tables
 
 ```
 request.html_response.tables
@@ -87,37 +93,23 @@ request.html_response.tables
     -> [Table(url='https://example.com/1')]
 ```
 
-These three elements are generally the most common items retrieved when doing web scraping.
+# Models
 
-Finally, most of times, when you retrieve links from a page, they are returned as relative paths. The ``urljoin`` method reconciles the url of the visited page with that path.
+Models are a simple way to structure your scrapped data before saving them to a file. The Model class is built around Panda's excellent DataFrame class.
 
-```
-<a href="/kendall-jenner">Kendall Jenner</a>
+## Creating a custom Model
 
-# Now we want to reconcile the relative path from this link to
-# the main url that we are visiting e.g. https://example.com
-
-request.urljoin("/kendall-jenner")
-
--> https://example.com/kendall-jenner
-```
-
-## Models
-
-Models are a simple way that you can use to structure your scrapped data properly before saving them to a file.
-
-### Creating and using a model
-
-In order to create a model, you just need to subclass the Model object from `zineb.models.Model` and then add fields to it using `zineb.models.fields`.
+In order to create a model, subclass the Model object from `zineb.models.Model` and then add fields to it. For example:
 
 ```
 from zineb.models.datastructure import Model
-from models.fields import CharField
+from zineb.models.fields import CharField
 
 class Player(Model):
     name = CharField()
-
 ```
+
+### Using the custom model
 
 On its own, a model does nothing. In order to make it work, you have to add values to it and then resolve the fields.
 
@@ -129,12 +121,134 @@ player.add_value('name', 'Kendall Jenner')
 
 Once a value is added to the field, a series of checks and validations are run on the value.
 
-__Checks__ make sure that the value that was passed respects the constraints that were passed as a keyword arguments:
+### Fields
 
-- Max length
-- Mininum/Maximum
-- Not null or blank
-  For instance, suppose you want only values that do not exceed a certain length:
+Fields are a very simple way to passing HTML data to your model in a very structured way. Zineb comes with number of preset fields that you can use out of the box:
+
+    - CharField
+    - TextField
+    - NameField
+    - EmailField
+    - UrlField
+    - ImageField
+    - IntegerField
+    - DecimalField
+    - DateField
+    - AgeField
+    - FunctionField
+    - ArrayField
+    - CommaSeparatedField
+
+#### How fields work
+
+Once the field is called by the model, the `resolve` function is called on each field which in turns calls the `super().resolve` function of the Field super class.
+
+By default, the resolve function will do the following things.
+
+First, it will run all checks on the value that was passed then it will strip any "<" or ">" tags in the value if present using the `w3lib.html.remove_tags`.
+
+Second, the `deep_clean` method will be called on the value which takes out any spaces using `w3lib.html.strip_html5_whitespace` and also remove escape characters with the `w3lib.html.replace_escape_chars` function.
+
+A filtering function is run at last to ensure that no white space is included in the new returned value something which can happen when the strip_html5_whitespace cannot detect these edge cases.
+
+Finally, all validators (default and custom) are called on the value. The final value is then returned.
+
+#### CharField
+
+The CharField represents the normal character element on an HTML page. You constrain the length.
+
+#### TextField
+
+The text field is longer allows you to add paragraphs of text.
+
+#### NameField
+
+The name field allows to implement names in your model. The `title` method is called on the string in order to represent the value correctly e.g. Kendall Jenner.
+
+#### EmailField
+
+The email field represents emails. The default validator, `validators.validate_email`, is automatically called on the resolve function fo the class in order to ensure that that the value is indeed an email.
+
+#### UrlField
+
+The url field is specific for urls. Just like the email field, the default validator, `validators.validate_url` is called in order to validate the url.
+
+#### ImageField
+
+The image field holds the url of an image exactly like the UrlField with the sole difference that you can download the image directly when the field is evaluated.
+
+```
+class MyModel(Model):
+    avatar = ImageField(download=True, download_to="/this/path")
+```
+
+#### IntegerField
+
+#### DecimalField
+
+#### DateField
+
+The date field allows you to pass dates to your model. In order to use this field, you have to pass a date format so that the field can know how to resolve the value.
+
+```
+class MyModel(Model):
+    date = DateField("%d-%m-%Y")
+```
+
+### AgeField
+
+The age field works likes the DateField but instead of returning the date, it will return the difference between the date and the current date which is an age.
+
+
+#### FunctionField
+
+The function field is a special field that you can use when you have a set of functions to run on the value before returning the final result. For example, let's say you have this value `Kendall J. Jenner` and you want to run a specific function that takes out the middle letter on every incoming values:
+
+```
+def strip_middle_letter(value):
+    return
+
+class MyModel(Model):
+    name = FunctionField(strip_middle_letter, output_field=CharField(), )
+```
+
+Every time the resolve function will be called on this field, the methods provided will be passed on the value.
+
+An output field is not compulsory but if not provided, each value will be returned as a character.
+
+#### ArrayField
+
+#### CommaSeperatedField
+
+#### Creating your own field
+
+You an also create a custom field by suclassing the `Field` class. When doing so, your custom field has to provide a `resolve` function in order to determine how the value should be treated. For example:
+
+```
+class MyCustomField(Field):
+    def resolve(self, value):
+        initial_result = super().resolve(value)
+```
+
+#### Checks
+
+Checks make sure that the value that was passed respects the constraints that were implemented as a keyword arguments on the field class. There are five basic checks:
+
+- Maximum length
+- Uniqueness
+- Nullity
+- Defaultness
+- Validity (validators)
+
+The maximum length check ensures that the value does not exceed a certain length.
+
+The nullity check makes sure that the value is not null and that if a default is provided, that null value be replaced by the latter.
+
+The defaultness provides a default value for null or none existing ones.
+
+And, finally, the validity checks are a set of extra validation checks that can be passed to ensure value correctness.
+
+For instance, suppose you want only values that do not exceed a certain length:
 
 ```
 name = CharField(max_length=50)
@@ -146,11 +260,23 @@ Or suppose you want a default value for fields that are empty or blank:
 name = CharField(default='Kylie Jenner')
 ```
 
-Validators and checks have two different purposes.
+#### Validators
 
 __Validators__ validate the value itself. For instance, making sure that an URL is indeed an url or that an email follows the expected pattern that you would expect from an email.
 
-Zineb comes with a default set of validators (`zineb.validators`). But you can also create your own validator and pass it to your field:
+Suppose you want only values that would be `Kendall Jenner`:
+
+```
+def check_name(value):
+    if value == "Kylie Jenner":
+        return None
+    return value
+
+name = CharField(validators=[check_name])
+```
+
+
+Zineb comes with a default set of validators. But you can also create yours and pass it to the field:
 
 ```
 from zineb.models.datastructure import Model
@@ -165,7 +291,7 @@ class Player(Model):
     name = CharField(validators=[custom_validator])
 ```
 
-You can also create validators that match a specific regex pattern:
+You can also create validators that match a specific regex pattern using the `regex_compiler` decorator:
 
 ```
 from zineb.models.datastructure import Model
@@ -180,69 +306,32 @@ def custom_validator(value):
 
 class Player(Model):
     age = IntegerField(validators=[custom_validator])
-
-player = Player()
-player.add_value('age', 14)
 ```
 
-Once the field tries to resolve the value, it will run __checks__ if any, will __validate__ the value using the validators and custom validators if any.
+It is important to understand that the result of the regex compiler is reinjected into your custom validator on which you can then do various other checks.
 
-It's important to understand that the result of the regex compiler is reinjected into your custom validator on which you can then do various other checks.
+#### Field resolution
 
-method consits of passing a query expression that will then automatically resolve in getting the elements from the given page.
-
-What this `p__text` expression says, is __get me all the text elemnts from p tags in the document__ for structuring.
-
-At this stage, the field, expressions have been resolved and each respective field contains the result of what the expression has parsed.
+Once the field tries to resolve the value, it will run __checks__ if any and will __validate__ the value before storing it.
 
 In order to get the complete structured data, you need to call `resolve_values`:
 
 ```
+player.add_value("name", "Kendall Jenner")
 player.resolve_values()
 
--> pandas.DataFrame
+    -> pandas.DataFrame
 ```
 
-As you can see, this returns a DataFrame object on which you do additional things.
+This returns a DataFrame object.
 
 You can also call the `save` method to create a JSON file:
 
 ```
-player.save()
+player.save(commit=True)
 
--> JSON File
+    -> JSON File
 ```
-
-### Fields
-
-Fields are a very simple way to passing HTML data to your model in a very structured way. Zineb comes with number of preset fields that you can use out of the box:
-
-- CharField
-- UrlField
-- ImageField
-- TextField
-- DateField
-- AgeField
-- Function
-- SmartField
-  You an also create a custom field by suclassing the `Field` class. When doing so, your custom field has to provide a `resolve` function in order to determine how the value coming to that field should be treated.
-
-### Expressions
-
-Remember that Zineb is built around BeautifulSoup. In that regards, all the expressions that work with BeatifulSoup are also valid with within your spider.
-
-Ultimately, the only thing that changes __is the attribute__ at the end of the expression.
-
-
-| Expression | Description |
-| - | - |
-| a__text | Get the text of all a tags |
-| --- | --- |
-| a___text__contains:Kendall | Get all tag elements whose a tag contains kendall |
-| --- | --- |
-| a___text__eq:Kendall | Get all tag elements whose a tag text is exactly Kendall |
-
-__NOTE:__ Remember that these expessions are only exclusive to models and and models are tools for you to use if your sole purpose is to intelligently structure your data from a scrapped page.
 
 ## Signals
 
@@ -317,22 +406,33 @@ for link in links:
 
 Your spiders get configured on initialization through your ``settings.conf`` file.
 
-## Pipelines
+# Pipelines
 
 Pipelines are a great way to send chained requests to the internet or treat a set of responses by processing them afterwards through a set of functions of your choice.
 
 Pipelines are perfect for downloading images for example.
 
-### HTTPPipeline
+## ResponsesPipeline
+
+The response pipepline allows to chain a group of responses and treat all of them at once:
+
+```
+from zineb.http.pipelines import ResponsesPipeline
+
+pipeline = ResponsesPipeline([response1, response2], [function1, function2])
+pipeline.results
+    -> list
+```
+
+## HTTPPipeline
 
 This pipeline takes a set of urls, creates HTTPResquests for each of them and then sends them to the internet.
 
-````
-from zineb.http.pipelines import Pipeline
-from zineb.utils.general import download_image
+If you provided a set of functions, it will pass each request through them.
 
-def some_function(response):
-pass
+````
+from zineb.http.pipelines import HTTPPipeline
+from zineb.utils.general import download_image
 
 HTTPPipeline([https://example.com], [download_image])
 ````
@@ -346,3 +446,42 @@ HTTPPipeline([https://example.com], [download_image], parameters={'extra': False
 ```
 
 In this specific case, your function should accept an `extra` parameter which result would be False.
+
+
+## CallBack
+
+The CallBack allows you to implement callbacks after each url is processed through the start function. The `__call__` method is called on the instance in order to resolve the function to use.
+
+```
+class Spider(Zineb):
+    start_urls = ["https://example.com"]
+
+    def start(self, response, **kwargs):
+        request = kwargs.get("request")
+        model = MyModel()
+        return Callback(request.follow(""), self.another_function, model=model)
+
+    def another_function(self, response, **kwargs):
+        model = kwargs.get("model")
+        model.add_value("name", "Kendall Jenner")
+        model.save()
+```
+
+
+
+# Utilities
+
+## Link reconciliation
+
+Most of times, when you retrieve links from a page, they are returned as relative paths. The ``urljoin`` method reconciles the url of the visited page with that path.
+
+```
+<a href="/kendall-jenner">Kendall Jenner</a>
+
+# Now we want to reconcile the relative path from this link to
+# the main url that we are visiting e.g. https://example.com
+
+request.urljoin("/kendall-jenner")
+
+-> https://example.com/kendall-jenner
+```

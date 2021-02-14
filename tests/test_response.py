@@ -1,7 +1,7 @@
-from http.request import JsonRequest
 import unittest
+
+from zineb.http.request import HTTPRequest, JsonRequest
 from zineb.http.responses import HTMLResponse, ImageResponse
-from zineb.http.request import HTTPRequest
 
 request = HTTPRequest('http://example.com')
 request._send()
@@ -22,11 +22,12 @@ class TestImageResponse(unittest.TestCase):
         self.image_response = ImageResponse(image_request._http_response)
 
     def test_result(self):
-        self.image_response.save()
+        self.image_response.save('tests/media')
 
 
 if __name__ == "__main__":
-    runner = unittest.TextTestRunner()
-    suite = unittest.TestSuite()
-    suite.addTest(TestImageResponse('test_result'))
-    runner.run(suite)
+    # runner = unittest.TextTestRunner()
+    # suite = unittest.TestSuite()
+    # suite.addTest(TestImageResponse('test_result'))
+    # runner.run(suite)
+    unittest.main()

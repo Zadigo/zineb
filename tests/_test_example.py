@@ -1,11 +1,14 @@
-from zineb.app import Zineb
+from bs4 import BeautifulSoup
+from zineb.models.datastructure import Model
+from zineb.models.fields import UrlField
 
+with open('tests/html/simpggle.html') as f:
+    soup = BeautifulSoup(f, 'html.parser')
 
-class Example(Zineb):
-    start_urls = ['http://example.com']
+class Player(Model):
+    name = UrlField()
 
-    def start(self, response, **kwargs):
-        # print(response, kwargs)
-        pass
+player = Player(html_document=soup)
+player.add_expression('name', 'a#jenner__href')
+print(player)
 
-example = Example()

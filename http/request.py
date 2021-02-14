@@ -4,17 +4,18 @@ from collections import OrderedDict
 
 from pydispatch import dispatcher
 from requests.sessions import Request, Session
-from w3lib.url import safe_url_string, urljoin, urlparse
+from w3lib.url import safe_download_url, safe_url_string, urljoin, urlparse
 from zineb.http.responses import HTMLResponse, JsonResponse
 from zineb.http.user_agent import UserAgent
-from zineb.signals import Signal, signal
+# from zineb.signals import Signal, signal
 from zineb.tags import ImageTag, Link
 from zineb.utils.general import create_logger
+from zineb.http.headers import ResponseHeaders
 
 logger = create_logger('BaseRequest')
 
-pre_request = Signal()
-post_request = Signal()
+# pre_request = Signal()
+# post_request = Signal()
 
 
 class BaseRequest:
@@ -88,8 +89,8 @@ class BaseRequest:
         # sent or not
         self.resolved = False
 
-        signal.connect(self, signal='Request-Before')
-        signal.connect(self, signal='Request-After')
+        # signal.connect(self, signal='Request-Before')
+        # signal.connect(self, signal='Request-After')
 
     def __repr__(self):
         return f"{self.__class__.__name__}(url={self.url}, resolved={self.resolved})"
@@ -100,17 +101,15 @@ class BaseRequest:
 
     def _set_headers(self, request, **extra_headers):
         user_agent = UserAgent()
-
-        # headers = {
-        #     'Accept-Language': 'en',
-        #     'Accept': 'text/html,application/json,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        #     # 'Referrer': 'https://google.com',
-        # }
-        try:
+        # This is a specific technique that allows
+        # to call the HTTPRequest class without
+        # having to pass or use the full project
+        # settings
+        if self.project_settings:
             headers = self.project_settings.DEFAULT_REQUEST_HEADERS
-        except:
+        else:
             from zineb.settings import settings
-            headers = settings.get('DEFAULT_REQUEST_HEADERS')
+            headers = settings.get('DEFAULT_PROJECT_SETTINGS', {})
         headers.update({'User-Agent': user_agent.get_random_agent()})
         extra_headers.update(headers)
         request.headers = headers
@@ -149,8 +148,15 @@ class BaseRequest:
         return safe_url_string(url)
 
     def _send(self):
-        """Sends a new HTTP request to the web"""
-        class_name = self.__class__.__name__
+        """
+        Sends a new HTTP request to the web
+        
+        Returns
+        -------
+
+                Request (obj): an HTTP request object
+        """
+        # class_name = self.__class__.__name__
         # pre_request.send('Request.Before', self)
         response = self.session.send(self.prepared_request)
 
@@ -163,13 +169,13 @@ class BaseRequest:
         if response.status_code == 200:
             self.resolved = True
 
-        result = signal.send(
-            'Zineb-History', 
-            class_name, 
-            url=response.url, 
-            http_response=response,
-            http_instance=self
-        )
+        # result = signal.send(
+        #     'Zineb-History', 
+        #     class_name, 
+        #     url=response.url, 
+        #     http_response=response,
+        #     http_instance=self
+        # )
         # policy = response.headers.get('Referer-Policy', 'origin')
         return response
 
@@ -181,8 +187,7 @@ class BaseRequest:
     @classmethod
     def follow(cls, url):
         instance = cls(url)
-        instance._send()
-        return instance
+        return instance._send()
 
     @classmethod
     def follow_all(cls, urls):
@@ -192,8 +197,7 @@ class BaseRequest:
             # be passed directly to the
             # request
             instance = cls(str(url))
-            instance._send()
-            yield instance
+            yield instance._send()
 
 
 class HTTPRequest(BaseRequest):
@@ -212,19 +216,45 @@ class HTTPRequest(BaseRequest):
         super().__init__(url, **kwargs)
         self.html_response = None
         self.counter = kwargs.get('counter', 0)
-        # self.middlewares = {}
+
+        is_download_url = kwargs.get('is_download_url', False)
+        if is_download_url:
+            url = safe_download_url(url)
+            
         # Use this to pass additional parameters 
         # into the HTTPRequest object
         self.options = OrderedDict()
 
+    # def __getattr__(self, key):
+    #     if key == 'html_response':
+    #         value = getattr(self, key)
+    #         if value is None:
+    #             raise ValueError("You should call _send on the request before accessing the html_response")
+    #     return super().__getattr__(key)
+
     def _send(self):
         """Sends a new HTTP request to the web"""
-        response = super()._send()
-        if response.ok:
+        http_response = super()._send()
+        if http_response.ok:
             logger.info(f'Sent request for {self.url}')
-            self._http_response = response
-            self.html_response = HTMLResponse(response, url=self.url, headers=response.headers)
+            self._http_response = http_response
+            self.html_response = HTMLResponse(
+                http_response, url=self.url, headers=http_response.headers
+            )
             self.session.close()
+
+    @classmethod
+    def follow(cls, url):
+        instance = cls(url)
+        instance._send()
+        return instance.html_response
+
+    @classmethod
+    def follow_all(cls, *urls):
+        for url in urls:
+            instance = cls(url)
+            instance._send()
+            yield instance.html_response
 
     def urljoin(self, path):
         """

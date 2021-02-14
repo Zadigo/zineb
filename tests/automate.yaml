@@ -1,0 +1,8 @@
+version: 1
+
+spider:
+  start: "html"
+  tasks:
+    - a#kendall__text
+  middlewares:
+    - zineb.a.b
