@@ -1,17 +1,22 @@
+from exceptions import FieldError
 import re
 import secrets
 from collections import OrderedDict
 
+from zineb.exceptions import ParserError
 import pandas
 from zineb.http.responses import HTMLResponse
 from zineb.models.fields import Field
 
 
 class FieldDescripor:
-    cached_fields = OrderedDict
+    cached_fields = OrderedDict()
     
     def __getitem__(self, key) -> Field:
         return self.cached_fields[key]
+
+    def field_names(self):
+        return self.cached_fields.keys()
 
 
 class ModelOptions:
@@ -82,7 +87,6 @@ class Registry:
 
 
 class DataStructure(metaclass=Base):
-# class DataStructure(Registry, metaclass=Base):
     def __init__(self, html_document=None, html_tag=None, response=None):
         self._cached_result = {}
         self.html_document = html_document
@@ -91,23 +95,41 @@ class DataStructure(metaclass=Base):
         self.parser = self._choose_parser()
 
     @staticmethod
-    def _expression_resolver(expression: str):
-        attr = None
-        if '__' in expression:
-            expression, attr = expression.split('__', 1)
-        tag_id = tag_class = {}
-        tag = re.search(r'^(\w+)(?=\.|\#)', expression)
-        if tag:
-            tag = tag.group()[-1]
-        a = re.search(r'(?<=\.)(?P<class>\w+\-?\w+)', expression)
-        b = re.search(r'(?<=\#)(?P<id>\w+\-?\w+)', expression)
-        if a:
-            tag_id = a.groupdict()
-        if b:
-            tag_class = b.groupdict()
-        return tag, tag_id | tag_class, attr
+    def _expression_resolver(expression):
+        try:
+            tag_name, pseudo = expression.split('__', 1)
+        except:
+            # If no pseudo is passed, just use the default
+            # text one by appending it to the expression
+            expression = expression + '__text'
+            tag_name, pseudo = expression.split('__', 1)
 
-    def _get_field_by_name(self, name):
+        matched_elements = re.search(r'(?P<tag>\w+)(?P<marker>\.|\#)?(?P<attr>\w+)?', tag_name)
+        named_elements = matched_elements.groupdict()
+
+        attrs = {}
+        markers = {'.': 'class', '#': 'id'}
+        marker = named_elements.get('marker', None)
+        if marker is not None:
+            try:
+                named_marker = markers[marker]
+            except:
+                raise KeyError('Marker is not a recognized marker')
+            else:
+                attrs.update({named_marker: named_elements.get('attr')})
+        return named_elements.get('tag'), pseudo, attrs
+
+    def _resolve_pseudo(self, pseudo, tag):
+        allowed_pseudos = ['text', 'href', 'src']
+        if pseudo not in allowed_pseudos:
+            raise ValueError('Pseudo is not an authorized pseudo')
+
+        if pseudo == 'text':
+            return getattr(tag, 'text')
+        else:
+            return tag.attrs.get(pseudo)
+
+    def _get_field_by_name(self, name) -> Field:
         """
         Gets the cached field object that was registered
         on the model
@@ -128,15 +150,14 @@ class DataStructure(metaclass=Base):
             type: returns zineb.fields.Field object
         """
         try:
-            return self._meta.cached_fields[name]
+            return self._fields.cached_fields[name]
         except:
-            raise KeyError(f"The field is not present on your model. Available fields are: {', '.join(self._meta.cached_fields)}")
+            raise FieldError(name, self._fields.field_names())
 
     def _choose_parser(self):
         # In case we get both the HTML document
         # and a tag, use the most global element
-        # in order to have a better change to get
-        # something from it
+        # in order to have better results
         if self.html_document and self.html_tag:
             return self.html_document
 
@@ -151,58 +172,46 @@ class DataStructure(metaclass=Base):
                 raise TypeError('The request object should be a zineb.response.HTMLResponse object')
             return self.response.html_page
 
-    def _parse_tags(self, tags, field_name, field_obj, base, attributes=None):
-        for index, tag in enumerate(tags):
-            new_base = base.copy()
-            if attributes is not None:
-                lhs, rhs = attributes
-                if lhs == 'id':
-                    if index == rhs:
-                        new_base.update({field_name: field_obj.resolve(tag.text)})
-            else:
-                new_base.update({field_name: field_obj.resolve(tag.text)})
-            # self._cached_result.append(new_base)
+    def add_expression(self, name, expression, many=False):
+        """
+        Adds a value to your Model object using an expression
 
-    # def add_expression(self, name, expression):
-    #     """
-    #     Adds a value to your Model object using an expression
+        Parameters
+        ----------
 
-    #     Parameters
-    #     ----------
+                field_name (str): the name of field on which to add a given value
+                expression (str): an expression used to query or parse tags in the document
+        """
+        obj = self._get_field_by_name(name)
 
-    #             field_name (str): the name of field on which to add a given value
-    #             expression (str): an expression used to query or parse tags in the document
-    #     """
-    #     obj = self._resolve(name)
+        tag_name, pseudo, attrs = self._expression_resolver(expression)
 
-    #     allow_pseudos = ['text', 'href', 'src']
-    #     tag, attrs, pseudo = self._expression_resolver(expression)
-    #     if pseudo not in allow_pseudos:
-    #         raise TypeError(f"Pseudo should be one of {', '.join(allow_pseudos)}")
+        if self.parser is None:
+            raise ParserError()
+
+        if many:
+            tags = self.parser.find_all(tag_name, attrs=attrs)
+            results = [self._resolve_pseudo(pseudo, tag) for tag in tags]
+        else:
+            tag = self.parser.find(tag_name, attrs=attrs)
+            results = [self._resolve_pseudo(pseudo, tag)]
+
+        cached_field = self._cached_result.get(name, None)
+        if cached_field is None:
+            self._cached_result.setdefault(name, [])
+            cached_field = self._cached_result.get(name)
         
-    #     # In this specific case, only find the first
-    #     # occurrence of a given tag on the page or
-    #     # within the HTML soup object
-    #     tag = self.parser.find(tag, attrs=attrs)
+        def _field_resolution(x):
+            obj.resolve(x)
+            return obj._cached_result
 
-    #     element_text = None
-    #     if tag or tag is not None:
-    #         element_text = None
-    #         if pseudo == 'text':
-    #             element_text = tag.text
-    #         else:
-    #             element_attrs = tag.attrs
-    #             if tag.has_attr(pseudo):
-    #                 element_text = element_attrs.get(pseudo)
-
-    #         resolved_value = obj.resolve(element_text)
-
-    #         cached_field = self._cached_result.get(name, None)
-    #         if cached_field is None:
-    #             self._cached_result.setdefault(name, [])
-    #             cached_field = self._cached_result.get(name)
-    #         cached_field.append(resolved_value)
-    #         self._cached_result.update({name: cached_field})
+        if len(results) > 1:
+            results = map(lambda x: _field_resolution(x), results)
+        else:
+            obj.resolve(results[0])
+            results = [obj._cached_result]
+        cached_field.extend(results)
+        self._cached_result.update({name: cached_field})
 
     def add_value(self, name, value):
         """
@@ -235,8 +244,7 @@ class DataStructure(metaclass=Base):
 
             return pandas.DataFrame(
                 self._cached_result, 
-                columns=self._meta.cached_fields,
-                # dtype=[]
+                columns=self._fields.field_names(),
             )
         return self._cached_result
 

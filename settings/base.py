@@ -48,10 +48,12 @@ LOG_LEVEL = logging.DEBUG
 # certain specific actions within the application
 
 MIDDLEWARES = [
-    'zineb.middlewares.handlers.Handler',
     # 'zineb.middlewares.referer.Referer',
+    'zineb.middlewares.handlers.Handler',
+    # 'zineb.middlewares.automation.Automation',
     'zineb.middlewares.history.History',
     'zineb.middlewares.statistics.GeneralStatistics'
+    # 'zineb.middlewares.wireframe.WireFrame',
 ]
 
 

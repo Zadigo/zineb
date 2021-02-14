@@ -1,8 +1,8 @@
 import unittest
 
 import pandas
-from models.fields import (AgeField, CharField, DateField, FunctionField, ImageField,
-                           IntegerField, NameField, UrlField)
+from models.fields import (AgeField, CharField, DateField, FunctionField,
+                           ImageField, IntegerField, NameField, UrlField)
 from zineb.http.request import HTTPRequest
 from zineb.models.datastructure import Model
 

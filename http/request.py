@@ -7,15 +7,15 @@ from requests.sessions import Request, Session
 from w3lib.url import safe_download_url, safe_url_string, urljoin, urlparse
 from zineb.http.responses import HTMLResponse, JsonResponse
 from zineb.http.user_agent import UserAgent
-from zineb.signals import Signal, signal
+# from zineb.signals import Signal, signal
 from zineb.tags import ImageTag, Link
 from zineb.utils.general import create_logger
 from zineb.http.headers import ResponseHeaders
 
 logger = create_logger('BaseRequest')
 
-pre_request = Signal()
-post_request = Signal()
+# pre_request = Signal()
+# post_request = Signal()
 
 
 class BaseRequest:
@@ -89,8 +89,8 @@ class BaseRequest:
         # sent or not
         self.resolved = False
 
-        signal.connect(self, signal='Request-Before')
-        signal.connect(self, signal='Request-After')
+        # signal.connect(self, signal='Request-Before')
+        # signal.connect(self, signal='Request-After')
 
     def __repr__(self):
         return f"{self.__class__.__name__}(url={self.url}, resolved={self.resolved})"

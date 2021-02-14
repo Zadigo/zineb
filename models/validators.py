@@ -72,7 +72,7 @@ def validate_url(url):
 
     url_is_valid = is_url(url)
     if not url_is_valid:
-        raise ValueError(f'Url is not valid: {url}')
+        raise ValueError(f'Url is not valid. Got: {url}')
     return url
 
 

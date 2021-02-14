@@ -1,5 +1,5 @@
-from collections import deque
 import datetime
+from collections import deque
 
 
 class History:
@@ -7,10 +7,6 @@ class History:
 
     def __call__(self, sender, **kwargs):
         print('History', sender, kwargs)
-        # name = kwargs.get('name')
-        # if name == 'request':
-        #     url = kwargs.get('url')
-        #     self.create_request_record(url)
 
     @property
     def timestamp(self):

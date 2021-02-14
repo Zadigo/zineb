@@ -49,7 +49,8 @@ install_requires = [
     'pandas',
     'PyDispatcher',
     'w3lib',
-    'nltk'
+    'nltk',
+    'pyyaml'
 ]
 
 

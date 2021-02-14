@@ -46,7 +46,7 @@ def download_image(response, download_to=None, as_thumbnail=False):
         as_thumbnail (bool, Optional): download the image as a thumbnail. Defaults to True
     """
     from zineb.http.responses import HTMLResponse
-    from zineb.signals import pre_download
+    # from zineb.signals import pre_download
 
     if isinstance(response, HTMLResponse):
         response = response.cached_response
