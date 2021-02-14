@@ -1,3 +1,4 @@
+
 # from zineb.app import Zineb
 # from zineb.models.datastructure import Model
 # from zineb.models import fields
@@ -22,17 +23,3 @@
 #         pass
 
 # example = Example()
-
-
-
-from models.fields import CommaSeperatedField
-from zineb.models.fields import IntegerField
-from zineb.models.datastructure import Model
-from zineb.models.fields import CharField, ArrayField
-
-# class Kendall(Model):
-#     name = CharField(max_length=150)
-#     age = IntegerField(min_value=15, max_value=50)
-
-#     class Meta:
-#         other_options = None

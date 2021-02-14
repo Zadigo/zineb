@@ -60,5 +60,6 @@ class Utility:
         return command_instance
 
 
-def execute_command_inline():
+def execute_command_inline(arg):
     utility = Utility()
+    utility.call_command(arg)

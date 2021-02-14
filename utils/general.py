@@ -109,7 +109,8 @@ def create_secret_key(salt, encoding='utf-8', errors='strict'):
     salt = str(salt).encode(encoding, errors)
     result = str('something').encode(encoding, errors)
     hash_value = hashlib.md5(salt + result).digest()
-    return hmac.new(hash_value, msg='Some message')
+    hmac_result = hmac.new(hash_value, 'Some message'.encode(encoding, errors), hashlib.sha256)
+    return hmac_result.hexdigest()
 
 
 ALLOWED_CHARACTERS = (
@@ -118,4 +119,4 @@ ALLOWED_CHARACTERS = (
 )
 
 def random_string(length=15):
-    return ''.join(secrets.choice(ALLOWED_CHARACTERS) for c in range(length))
+    return ''.join(secrets.choice(ALLOWED_CHARACTERS) for _ in range(length))

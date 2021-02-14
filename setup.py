@@ -56,14 +56,14 @@ install_requires = [
 setuptools.setup(
     name='zineb',
     # packages: [],
-    version='1.0.2',
+    version='1.0.3',
     author='John Pendenque',
     author_email='pendenquejohn@gmail.com',
     description='Advanced web scrapper for machine learning and data science',
     license='MIT',
     long_description=read_files('README.md'),
     long_description_content_type='text/markdown',
-    url='https://github.com/Zadigo/zineb/releases/tag/1.0.2-pre-alpha',
+    url='https://github.com/Zadigo/zineb/releases/tag/1.0.3-pre-alpha',
     classifiers=classifiers,
     keywords=['python', 'web scrapping', 'scrapping'],
     python_requires='>=3.9'
