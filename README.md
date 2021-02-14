@@ -421,7 +421,9 @@ You custom signals do not have to return anything.
 
 # Extractors
 
-Extractors a utilities that facilitates extracting certain specific pieces of data from a web page e.g. links, images [...] They are very handly when you need to quickly get these objects for further processing.
+Extractors a utilities that facilitates extracting certain specific pieces of data from a web page such as links, images [...] They are very handly when you need to quickly get these objects for further processing.
+
+## LinkExtractor
 
 ```
 extractor = LinkExtractor()
@@ -454,16 +456,23 @@ for link in extractor:
     ...
 ```
 
-Or, you an also use the result used by finalize:
+## TableRows
 
-```
-links = extractor.finalize(response.html_response)
+Extract all the rows from the first table that is matched on the HTML page.
 
-for link in links:
-    ...
-```
+## ImageExtractor
 
-## Configuring your spider
+Extract all the images on the HTML page.
+
+You can filter down the images that you get by using a specific set of parameters:
+
+* `unique` - return only a unique et set of urls
+* `as_type` - only return images having a specific extension
+* `url_must_contain` - only return images which contains a specific string
+* `match_height` - only return images that match as specific height
+* `match_width` - only return images that match a specific width
+
+# Configuring your spider
 
 Your spiders get configured on initialization through your ``settings.conf`` file.
 
@@ -471,11 +480,11 @@ Your spiders get configured on initialization through your ``settings.conf`` fil
 
 Pipelines are a great way to send chained requests to the internet or treat a set of responses by processing them afterwards through a set of functions of your choice.
 
-Pipelines are perfect for downloading images for example.
+Some Pipeplines are also perfect for donwloading images.
 
 ## ResponsesPipeline
 
-The response pipepline allows to chain a group of responses and treat all of them at once:
+The response pipepline allows you to chain a group of responses and treat all of them at once through a function:
 
 ```
 from zineb.http.pipelines import ResponsesPipeline
@@ -484,6 +493,32 @@ pipeline = ResponsesPipeline([response1, response2], [function1, function2])
 pipeline.results
     -> list
 ```
+
+It comes with three main parameters:
+
+* `responses` - which corresponds to a list of HTMLResponses
+* `functions` - a list of functions to pass each individual response and additional parameters
+* `paramaters` - a set of additional parameters to pass to the functions
+
+The best way to use the ResponsesPipeline is within the functions of your custom spider:
+
+```
+
+class MySpider(Zineb):
+   start_urls = ["https://example.com"]
+
+   def start(self, response, soup=None, **kwargs):
+       extractor = LinksExtractor()
+       extractor.resolve(soup)
+       responses = request.follow_all(*list(extractor))
+       ResponsesPipeline(responses, [self.do_something_here])
+
+   def do_something_here(self, response, soup=None, **kwargs):
+       # Continue parsing data here
+
+```
+
+**N.B.** Each function is executed sequentially. So, the final result will come from the final function of the list
 
 ## HTTPPipeline
 

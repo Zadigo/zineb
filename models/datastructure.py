@@ -1,10 +1,9 @@
-from exceptions import FieldError
 import re
 import secrets
 from collections import OrderedDict
 
-from zineb.exceptions import ParserError
 import pandas
+from zineb.exceptions import FieldError, ParserError
 from zineb.http.responses import HTMLResponse
 from zineb.models.fields import Field
 

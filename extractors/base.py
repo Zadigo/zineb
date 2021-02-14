@@ -165,11 +165,18 @@ class Text(Extractor):
     tokenizer = WordPunctTokenizer()
 
     def __init__(self):
-        self.text = None
+        self.raw_text = None
         self.tokens = None
+
+    def __iter__(self):
+        return iter(self.tokens)
 
     def __enter__(self):
         return self.tokens
+
+    @property
+    def unique_words(self):
+        return set(self.tokens)
 
     @cached_property
     def _stop_words(self):
@@ -185,12 +192,12 @@ class Text(Extractor):
     def resolve(self, soup):
         text = soup.text
         self.tokens = self.tokenizer.tokenize(text)
-        self.text = text
+        self.raw_text = text
 
     def vectorize(self, min_df=1, max_df=1, return_matrix=False):
-        if self.text is not None:
+        if self.raw_text is not None:
             tokenizer = PunktSentenceTokenizer()
-            sentences = tokenizer.sentences_from_text(self.text)
+            sentences = tokenizer.sentences_from_text(self.raw_text)
 
             vectorizer = CountVectorizer(
                 min_df=min_df, max_df=max_df, stop_words=self._stop_words
