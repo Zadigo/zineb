@@ -1,7 +1,7 @@
 import asyncio
 from warnings import warn
+import warnings
 
-from zineb.exceptions import PipelineError
 from zineb.http.request import HTTPRequest
 
 
@@ -45,7 +45,7 @@ class ResponsesPipeline(Pipeline):
                         return await function(response)
                 except:
                     self.errors.append(
-                        PipelineError(function, response)
+                        warnings.warn("An error occured within the Pipe", UserWarning, stacklevel=6)
                     )
                 finally:
                     if self.errors:

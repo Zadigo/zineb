@@ -156,9 +156,14 @@ class Spider(metaclass=BaseSpider):
                 return_values_container = deque()
                 for request in self._prepared_requests:
                     request._send()
-                    # Pass the request and response in
-                    # the .start() function of the class
-                    return_value = self.start(request.html_response, request=request)
+                    # Pass the following parameters in the
+                    # start function fo the class: HTMLResponse,
+                    # HTTPRequest and the BeautifulSoup Tag
+                    return_value = self.start(
+                        request.html_response,
+                        request=request,
+                        soup=request.html_response.html_page
+                    )
                     if return_value is not None:
                         return_values_container.append(return_value)
 

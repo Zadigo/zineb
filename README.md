@@ -21,11 +21,29 @@ def start(self, response, **kwargs):
 Creating a spider is extremely easy and requires a set of starting urls that can be used to scrap an HTML page.
 
 ```
-class Celerities(Zineb):
+class Celebrities(Zineb):
     start_urls = ['http://example.com']
+
+    def start(self, response, request=None, soup=None, **kwargs):
+        # Do something here
+
+
+```
+
+Once the Celibrities class is called, each request is passed through the `start` method using the `zineb.response.HTTPResponse`, the `zineb.request.HTTPRequest` and the `BeautifulSoup` HTML page object.
+
+You are not required to use all these parameters at once. They're just for convinience.
+
+In which case, you can also write the start method as so:
+
+```
+def start(self, response, **kwargs):
+  # Do something here
 ```
 
 ### Adding meta options to the spider
+
+Meta options allows you to customize certain behaviours related to the spider.
 
 ```
 
@@ -33,8 +51,12 @@ class Celerities(Zineb):
     start_urls = ['http://example.com']
   
      class Meta:
-         options: []
+         domains = []
 ```
+
+#### Domains
+
+You can limit the spider to very specific domains.
 
 # Doing queries
 
@@ -42,7 +64,7 @@ Like said previously, the majority of your interactions with the HTML page will 
 
 This class implements some basic functionnalities that you can use through the course of your project.
 
-Let's create a basic HTTP response:
+To illustrate this, let's create a basic HTTP response:
 
 ```
 from zineb.http.requests import HTTPRequest
@@ -60,6 +82,8 @@ request.html_response.html_page
 ```
 
 By using the `html_page` attribute, you can do all the classic querying that you would do with BeautifulSoup e.g. find, findall...
+
+To find out what you can do with BeautifulSoup please read [the documentation here](https://www.crummy.com/software/BeautifulSoup/bs4/doc/).
 
 ## Basic implementations
 
@@ -93,6 +117,12 @@ request.html_response.tables
     -> [Table(url='https://example.com/1')]
 ```
 
+### Getting the page text
+
+Finally you can retrieve all the text of the web page at once.
+
+First, the text is retrieved as a raw value then tokenized and vectorized.
+
 # Models
 
 Models are a simple way to structure your scrapped data before saving them to a file. The Model class is built around Panda's excellent DataFrame class.
@@ -113,33 +143,66 @@ class Player(Model):
 
 On its own, a model does nothing. In order to make it work, you have to add values to it and then resolve the fields.
 
-You can add values in multiple ways. The first, and easiest way to add values is through the `add_value` method:
+You can add values to your model in two main ways that we will be developping below.
+
+#### Adding a free custom value
+
+The first method consists of adding values through the `add_value` method. This method does not rely on the BeautifulSoup HTML page object which means that values can be added freely.
 
 ```
 player.add_value('name', 'Kendall Jenner')
 ```
 
-Once a value is added to the field, a series of checks and validations are run on the value.
+#### Adding an expression based value
 
-### Fields
+Addind expression based values requires a BeautifulSoup HTML page object. You can add one value at a time or multiple values.
+
+````
+player.add_expression("name", "a#kendall__text", many=True)
+````
+
+By using the `many` parameter, you can add the all the tags with a specific name and/or attributes to your model at once.
+
+Here is a list of expressions that you can use for this field:
+
+
+| expression | interpretation | tag |
+| - | - | - |
+| a.kendall | Link with class kendall | <a class="kendall"> |
+| a#kendall | Lind with ID Kendall | <a id="kendall"> |
+
+By default, if a pseudo is not provided, `__text` pseudo is appended in order to always retrive the inner text element of the tag.
+
+## Model meta
+
+By adding a Meta to your model, you can pass custom behaviours to your model.
+
+* Ordering
+* Indexing
+
+### Indexes
+
+### Ordering
+
+## Fields
 
 Fields are a very simple way to passing HTML data to your model in a very structured way. Zineb comes with number of preset fields that you can use out of the box:
 
-    - CharField
-    - TextField
-    - NameField
-    - EmailField
-    - UrlField
-    - ImageField
-    - IntegerField
-    - DecimalField
-    - DateField
-    - AgeField
-    - FunctionField
-    - ArrayField
-    - CommaSeparatedField
+- CharField
+- TextField
+- NameField
+- EmailField
+- UrlField
+- ImageField
+- IntegerField
+- DecimalField
+- DateField
+- AgeField
+- FunctionField
+- ArrayField
+- CommaSeparatedField
 
-#### How fields work
+### How fields work
 
 Once the field is called by the model, the `resolve` function is called on each field which in turns calls the `super().resolve` function of the Field super class.
 
@@ -153,27 +216,27 @@ A filtering function is run at last to ensure that no white space is included in
 
 Finally, all validators (default and custom) are called on the value. The final value is then returned.
 
-#### CharField
+### CharField
 
 The CharField represents the normal character element on an HTML page. You constrain the length.
 
-#### TextField
+### TextField
 
 The text field is longer allows you to add paragraphs of text.
 
-#### NameField
+### NameField
 
 The name field allows to implement names in your model. The `title` method is called on the string in order to represent the value correctly e.g. Kendall Jenner.
 
-#### EmailField
+### EmailField
 
 The email field represents emails. The default validator, `validators.validate_email`, is automatically called on the resolve function fo the class in order to ensure that that the value is indeed an email.
 
-#### UrlField
+### UrlField
 
 The url field is specific for urls. Just like the email field, the default validator, `validators.validate_url` is called in order to validate the url.
 
-#### ImageField
+### ImageField
 
 The image field holds the url of an image exactly like the UrlField with the sole difference that you can download the image directly when the field is evaluated.
 
@@ -182,11 +245,11 @@ class MyModel(Model):
     avatar = ImageField(download=True, download_to="/this/path")
 ```
 
-#### IntegerField
+### IntegerField
 
-#### DecimalField
+### DecimalField
 
-#### DateField
+### DateField
 
 The date field allows you to pass dates to your model. In order to use this field, you have to pass a date format so that the field can know how to resolve the value.
 
@@ -199,8 +262,7 @@ class MyModel(Model):
 
 The age field works likes the DateField but instead of returning the date, it will return the difference between the date and the current date which is an age.
 
-
-#### FunctionField
+### FunctionField
 
 The function field is a special field that you can use when you have a set of functions to run on the value before returning the final result. For example, let's say you have this value `Kendall J. Jenner` and you want to run a specific function that takes out the middle letter on every incoming values:
 
@@ -216,11 +278,11 @@ Every time the resolve function will be called on this field, the methods provid
 
 An output field is not compulsory but if not provided, each value will be returned as a character.
 
-#### ArrayField
+### ArrayField
 
-#### CommaSeperatedField
+### CommaSeperatedField
 
-#### Creating your own field
+### Creating your own field
 
 You an also create a custom field by suclassing the `Field` class. When doing so, your custom field has to provide a `resolve` function in order to determine how the value should be treated. For example:
 
@@ -274,7 +336,6 @@ def check_name(value):
 
 name = CharField(validators=[check_name])
 ```
-
 
 Zineb comes with a default set of validators. But you can also create yours and pass it to the field:
 
@@ -447,7 +508,6 @@ HTTPPipeline([https://example.com], [download_image], parameters={'extra': False
 
 In this specific case, your function should accept an `extra` parameter which result would be False.
 
-
 ## CallBack
 
 The CallBack allows you to implement callbacks after each url is processed through the start function. The `__call__` method is called on the instance in order to resolve the function to use.
@@ -466,8 +526,6 @@ class Spider(Zineb):
         model.add_value("name", "Kendall Jenner")
         model.save()
 ```
-
-
 
 # Utilities
 
