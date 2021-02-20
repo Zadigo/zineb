@@ -175,18 +175,22 @@ class BaseRequest:
 
                 Request (obj): an HTTP request object
         """
+        response = None
         # class_name = self.__class__.__name__
         # pre_request.send('Request.Before', self)
-        response = self.session.send(self.prepared_request)
+        try:
+            response = self.session.send(self.prepared_request)
+        except Exception as e:
+            self.errors.extend([e.args])
+        else:
+            retry = self.retries.get('retry', False)
+            if retry:
+                retry_http_status_codes = self.retries.get('retry_http_status_codes', [])
+                if response.status_code in retry_http_status_codes:
+                    response = self._retry()
 
-        retry = self.retries.get('retry', False)
-        if retry:
-            retry_http_status_codes = self.retries.get('retry_http_status_codes', [])
-            if response.status_code in retry_http_status_codes:
-                response = self._retry()
-
-        if response.status_code == 200:
-            self.resolved = True
+            if response.status_code == 200:
+                self.resolved = True
 
         # result = signal.send(
         #     'Zineb-History', 
