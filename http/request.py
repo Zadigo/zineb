@@ -106,6 +106,7 @@ class BaseRequest:
         # Whether the request was
         # sent or not
         self.resolved = False
+        self._http_response = None
 
         # signal.connect(self, signal='Request-Before')
         # signal.connect(self, signal='Request-After')
