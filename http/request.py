@@ -2,6 +2,7 @@ import inspect
 import random
 from collections import OrderedDict
 
+import requests
 from pydispatch import dispatcher
 from requests.sessions import Request, Session
 from w3lib.url import safe_download_url, safe_url_string, urljoin, urlparse
