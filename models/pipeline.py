@@ -4,7 +4,7 @@ import pandas
 from zineb.models.datastructure import Model
 
 
-class Pipe:
+class ModelsPipeline:
     """
     A class used to combine the results of multiple
     models together
