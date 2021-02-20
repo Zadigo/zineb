@@ -3,11 +3,11 @@ import unittest
 from zineb.http.request import HTTPRequest, JsonRequest
 from zineb.http.responses import HTMLResponse, ImageResponse
 
-request = HTTPRequest('http://example.com')
-request._send()
+# request = HTTPRequest('http://example.com')
+# request._send()
 
-image_request = HTTPRequest('https://www.hawtcelebs.com/wp-content/uploads/2021/01/kimberley-garner-in-a-colorful-bikini-at-a-beach-in-miami-01-07-2021-8.jpg')
-image_request._send()
+# image_request = HTTPRequest('https://www.hawtcelebs.com/wp-content/uploads/2021/01/kimberley-garner-in-a-colorful-bikini-at-a-beach-in-miami-01-07-2021-8.jpg')
+# image_request._send()
 
 class TestHTMLResponse(unittest.TestCase):
     def setUp(self):
