@@ -84,9 +84,25 @@ class BaseRequest:
         request = Request(method=method, url=self.url)
         self._unprepared_request = self._set_headers(request, **kwargs.get('headers', {}))
 
+        # Use this error class to add any errors that
+        # would have occured during the HTTP request
+        # session
+        self.errors = []
+
         self.session = session
-        self.prepared_request = session.prepare_request(self._unprepared_request)
-        self._http_response = None
+        try:
+            # Sometimes malformed urls are passed by accident
+            # in this section which breaks the application completely
+            # with a MissingSchema error and maybe instead of breaking the
+            # whole process for just one badly formed url, just pass that
+            # given url and use the self.resolved flag to determine if
+            # a request should indeed be sent with the given class
+            self.prepared_request = session.prepare_request(self._unprepared_request)
+        except requests.exceptions.MissingSchema as e:
+            self.errors.extend([e.args])
+        except Exception as e:
+            self.errors.extend([e.args])
+
         # Whether the request was
         # sent or not
         self.resolved = False
