@@ -1,12 +1,14 @@
-import re
 import os
+import re
 from functools import cached_property
 
 import pandas
 from nltk.tokenize import PunktSentenceTokenizer, WordPunctTokenizer
 from sklearn.feature_extraction.text import CountVectorizer
+from w3lib.html import safe_url_string
+from w3lib.url import is_url
 from zineb.settings import settings
-from zineb.utils._html import deep_clean
+from zineb.utils._html import deep_clean, is_path
 
 
 class Extractor:
@@ -76,8 +78,11 @@ class TableRows(Extractor):
     def __repr__(self):
         return f"<{self.__class__.__name__}>"
 
+    def __add__(self, b):
+        return 
+
     # @cached_property
-    def _compose(self):
+    def _compose(self, include_links=False):
         if self.rows is not None:
             rows = []
             for row in self.rows:
@@ -85,6 +90,26 @@ class TableRows(Extractor):
                 for column in row:
                     if column != '\n':
                         new_row.append(deep_clean(column.text))
+
+                        # Find the first link in the column
+                        # so that it can be included in the
+                        # row -- This is useful in certain
+                        # cases where the first row of a table
+                        # sometimes has a link to go to a next
+                        # page and it can be interesting to catch
+                        # these kinds of links e.g. go to profile...
+                        if include_links:
+                            link = column.find('a')
+                            if link or link is not None:
+                                href = link.attrs.get('href')
+                                # This is a problematic section especially when used
+                                # in a Pipeline. When the link is not a link e.g. -1,
+                                # this creates an error that is very difficult to resolve
+                                # because the Pipe does not give the full stracktrace.
+                                # Also, only append a link if something is detected.
+                                if is_url(str(href)) or is_path(str(href)):
+                                    link = safe_url_string(href)
+                                    new_row.extend([href])
                 rows.append(new_row)
             if self.has_headers:
                 self.headers = rows.pop(0)
@@ -117,9 +142,18 @@ class TableRows(Extractor):
         except IndexError:
             return None
 
-    def resolve(self, soup):
+    def resolve(self, soup, include_links=False, limit_to_columns :list=[]):
         if self.attrs is None:
-            self.table = soup.find('table')
+            # There might be a case where the user
+            # does not pass the whole HTML page but just
+            # the section that was parsed beforehand (e.g. the table HTML object)
+            # directly and doing a find on that soup object
+            # return None. In that case, we should just test
+            # if the name equals "table" and continue from there
+            if soup.name == 'table':
+                self.table = soup
+            else:
+                self.table = soup.find('table')
 
             if self.table is None:
                 # In case the user passes the table itself
@@ -149,7 +183,7 @@ class TableRows(Extractor):
                 else:
                     self.rows = self._get_rows(tbody)
             
-            return self._run_processors(self._compose())
+            return self._run_processors(self._compose(include_links=include_links))
 
     def resolve_to_dataframe(self, columns: dict={}):
         df = pandas.DataFrame(data=self._compose())
