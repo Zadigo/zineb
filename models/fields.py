@@ -1,4 +1,7 @@
+import ast
 import datetime
+import json
+from typing import Type
 
 import numpy
 import pandas
@@ -6,11 +9,9 @@ import pytz
 from bs4.element import Tag as beautiful_soup_tag
 from w3lib import html
 from w3lib.url import canonicalize_url, safe_download_url
-from zineb.exceptions import ValidationError
 from zineb.http.request import HTTPRequest
 from zineb.models import validators
 from zineb.models.validators import MaxLengthValidator, MinLengthValidator
-from zineb.tags import BaseTags
 from zineb.utils._html import deep_clean
 from zineb.utils.general import download_image
 
@@ -31,10 +32,9 @@ class Field:
     _default_validators = []
     _dtype = numpy.str
 
-    def __init__(self, max_length=None, unique=False,
-                 null=True, default=None, validators:list = []):
+    def __init__(self, max_length=None, null=True, 
+                 default=None, validators:list = []):
         self.max_length = max_length
-        self.unique = unique
         self.null = null
         self._validators = validators
 
@@ -43,13 +43,20 @@ class Field:
 
         self.default = default
 
+    def _true_value_or_default(self, value):
+        return str(value) if value is not None else str(self.default)
+
     def _run_validation(self, value):
-        # if self._validators:
+        # Default values should be validated
+        # too ? Otherwise the use might enter
+        # anykind of none validated value ??
+
+
         if self.max_length:
             self._validators.append(MaxLengthValidator(self.max_length))
 
-        # if self.null:
-        #     self._validators.append(validators.validate_is_not_null)
+        if self.null:
+            self._validators.append(validators.validate_is_not_null)
 
         validators_result = None
         for validator in self._validators:
@@ -60,53 +67,6 @@ class Field:
             else:
                 validators_result = validator(validators_result)
         return validators_result or value
-    # return value
-
-    def _checks(self):
-        """
-        Checks are specific tests operated on
-        the given value and related to the field
-        keyword arguments
-
-        Example
-        -------
-
-                CharField(max_length=15)
-
-                Will trigger a the _check_max_length function
-                for constraining the max length of the field
-
-        Returns
-        -------
-        
-                list: list of checks to run in order
-        """
-        return [
-            # self._check_max_length,
-            self._check_is_not_null,
-            # self._value_or_default
-        ]
-
-    # def _check_max_length(self, value):
-    #     if self.max_length is not None:
-    #         result = validators.max_length_validator(
-    #             len(value), self.max_length
-    #         )
-    #         if result:
-    #             raise ValidationError('Ensure value is not longer than ')
-
-    def _check_is_not_null(self, value):
-        if not self.null and self.default is None:
-            validators.validate_is_not_null(value)
-
-    def _value_or_default(self, value):
-        if value is None or value == '':
-            return self.default
-        return value
-
-    # def _run_checks(self, value):
-    #     for check in self._checks():
-    #         check(value)
 
     def _check_or_convert_to_type(self, value, object_to_check_against,
                                   message, enforce=True, force_conversion=False):
@@ -138,9 +98,6 @@ class Field:
 
                 Any: int, str
         """
-        # if isinstance(value, BaseTags):
-        #     return str(value)
-
         if force_conversion:
             value = object_to_check_against(value)
 
@@ -157,6 +114,11 @@ class Field:
         a series of default validators and checks before
         returning the normalized item
 
+        Subclasses should implement their own resolve function
+        with it's own custom logic because this resolve definition
+        is more to implement some standardized resolution more than
+        anything else
+
         Parameters
         ----------
 
@@ -172,9 +134,10 @@ class Field:
             true_value = value.text
 
         # There might be a case where a None
-        # value slides in - deal with that here
+        # value slides in and breaks the
+        # rest of the process -;
+        # deal with that here
         if value is None:
-            self._run_checks(value)
             if self.default is not None:
                 return self.default
             return value
@@ -183,6 +146,7 @@ class Field:
         # make sure we are dealing with 
         # a string even though it's an
         # integer, float etc.
+        # true_value = self._true_value_or_default(str(value))
         true_value = str(value)
 
         # Ensure the value to work with
@@ -192,20 +156,23 @@ class Field:
 
         clean_value = deep_clean(true_value)
 
-        if self._dtype == numpy.int:
-            clean_value = int(clean_value)
+        # Here, try to convert the value to it's
+        # true self (instead of returning) string but
+        # the problem is when a subclass that has a _dtype
+        # of int invoks this superclass e.g. AgeField
+        # through another subclass e.g. AgeField(DateField),
+        # this creates an error because the value
+        # that is passed (a data string) is obviously
+        # not an integer. This then creates and error.
+        if clean_value.isnumeric():
+            if self._dtype == numpy.int:
+                clean_value = int(clean_value)
 
-        if self._dtype == numpy.float:
-            clean_value = float(clean_value)
+            if self._dtype == numpy.float:
+                clean_value = float(clean_value)
             
         true_value = self._run_validation(clean_value)
-        # self._run_checks(true_value)
-
-        # Finally, the true value is None or '' and
-        # a default value is provided, then replace
-        # the true_value by the default
-        # if true_value is None or true_value == '':
-        #     true_value = self.default
+        self._cached_result = true_value
         return true_value
 
 
@@ -216,10 +183,13 @@ class CharField(Field):
         super().__init__(**kwargs)
 
     def resolve(self, value):
-        result = super().resolve(value)
-        self._cached_result = self._check_or_convert_to_type(
-            result, str, 'Value should be of type string'
+        result = self._check_or_convert_to_type(
+            value,
+            str,
+            'Value should be a string',
+            force_conversion=True
         )
+        self._cached_result = super().resolve(result)
 
 
 class TextField(CharField):
@@ -237,27 +207,33 @@ class NameField(CharField):
 
     def resolve(self, value):
         super().resolve(value)
-        self._cached_result = self._check_or_convert_to_type(
-            self._cached_result.title(), str, 'Value should be of type string'
-        )
+        self._cached_result = self._cached_result.lower().title()
 
 
 class EmailField(Field):
     _default_validators = [validators.validate_email]
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, limit_to_domains: list = [], **kwargs):
+        null = kwargs.get('null')
+        default = kwargs.get('default')
+        validators = kwargs.get('validators', [])
+        super().__init__(null=null, default=default, validators=validators)
+        self.limit_to_domains = limit_to_domains
 
-    def resolve(self, email):
-        self._cached_result = super().resolve(email)
+    def _check_domain(self, domain):
+        if self.limit_to_domains:
+            if domain not in self.limit_to_domains:
+                self._cached_result = self.default
+
+    def resolve(self, value):
+        value = super().resolve(value)
+        _, domain = value.split('@')
+        self._check_domain(domain)
 
 
 class UrlField(Field):
     name = 'url'
     _default_validators = [validators.validate_url]
-
-    def __init__(self):
-        super().__init__()
 
     def resolve(self, url):
         # TODO: This can be simplified into a single
@@ -312,6 +288,7 @@ class IntegerField(Field):
         super().__init__(default=default)
         if min_value is not None:
             self._validators.append(MinLengthValidator(min_value))
+
         if max_value is not None:
             self._validators.append(MaxLengthValidator(max_value))
 
@@ -362,7 +339,7 @@ class DateField(Field):
         )
 
 
-class AgeField(DateField):      
+class AgeField(DateField):
     name = 'age'
     _dtype = numpy.int
 
@@ -376,7 +353,6 @@ class AgeField(DateField):
     def resolve(self, date):
         super().resolve(date)
         self._cached_result = self._substract()
-        return self._cached_result
 
 
 class FunctionField(Field):
@@ -404,15 +380,25 @@ class FunctionField(Field):
 
         if output_field is not None:
             if not isinstance(output_field, Field):
-                raise TypeError('The output field should be one of zineb.models.fields types')
-
+                raise TypeError(("The output field should be one of "
+                        "zineb.models.fields types e.g. CharField and should be "
+                        "instanciated e.g. FunctionField(output_field=CharField())"))
+        else:
+            self.output_field = CharField()
+        
+        incorrect_elements = []
         for method in methods:
             if not callable(method):
-                raise TypeError('You should provide a list of functions')
+                incorrect_elements.append(method)
             self.filtered_methods.append(method)
+
+        if incorrect_elements:
+            raise TypeError((f"You should provide a list of a callables. "
+                f"Instead got: {incorrect_elements}"))
 
     def resolve(self, value):
         self._cached_result = super().resolve(value)
+
         new_cached_result = None
         if self.filtered_methods:
             for method in self.filtered_methods:
@@ -422,34 +408,49 @@ class FunctionField(Field):
                     new_cached_result = method(new_cached_result)
             self._cached_result = new_cached_result
         
-        if self.output_field is not None:
             self.output_field.resolve(self._cached_result)
             self._cached_result = self.output_field._cached_result
 
 
-class ArrayField(Field):
+class ObjectFieldMixins:
+    @staticmethod
+    def _detect_object_in_string(value):
+        return ast.literal_eval(value)
+
+
+class ArrayField(ObjectFieldMixins, Field):
     name = 'list'
     _dytpe = numpy.object
 
     def __init__(self, output_field, default=None, validators=[]):
         super().__init__(default=default, validators=validators)
         self.output_field = output_field
-
+        
         if output_field is not None and not isinstance(output_field, Field):
             raise TypeError("The output field should be one of zineb.models.fields. Did you forget to instantiate the field?")
 
-    def resolve(self, values:list) -> numpy.array:
-        values = self._check_or_convert_to_type(
-            values, list, 'Value should be of type list'
+    def resolve(self, value) -> numpy.array:
+        if isinstance(value, str):
+            value = self._detect_object_in_string(value)
+
+        result = self._check_or_convert_to_type(
+            value, list, 'Value should be of type list'
         )
 
         def get_output_resolution(value):
             self.output_field.resolve(value)
             return self.output_field._cached_result
-        resolved_values = map(get_output_resolution, values)
+        resolved_values = map(get_output_resolution, result)
 
         self._cached_result = numpy.array(list(resolved_values))
         return self._cached_result
+
+
+class JsonField(ObjectFieldMixins, Field):
+    def resolve(self, value):
+        if isinstance(value, str):
+            value = self._detect_object_in_string(value)
+        self._cached_result = super().resolve(value)
 
 
 class CommaSeperatedField(Field):
@@ -471,3 +472,15 @@ class CommaSeperatedField(Field):
             resolved_values.append(output_values_as._cached_result)
 
         self._cached_result = ','.join(resolved_values)
+
+
+class Value:
+    def __init__(self, result, field_name=None):
+        self.result = result
+        self.field_name = field_name
+
+    def __str__(self):
+        return self.result
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.result})"
