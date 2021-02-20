@@ -226,6 +226,15 @@ class DataStructure(metaclass=Base):
         obj = self._get_field_by_name(name)
         obj.resolve(value)
         resolved_value = obj._cached_result
+
+        if obj.name == 'date':
+            # Some fields such as the DateField does not
+            # store a string but a function. For example,
+            # in this case, a datetime.datetime object is
+            # stored. In that case, we have to resolve to
+            # the true value of the field. Otherwise the
+            # user might get something unexpected
+            resolved_value = str(obj._cached_result.date())
         
         cached_field = self._cached_result.get(name, None)            
         if cached_field is None:
@@ -235,17 +244,10 @@ class DataStructure(metaclass=Base):
         self._cached_result.update({name: cached_field})
 
     def resolve_fields(self):
-        if self._cached_result:
-            # Check that the arrays are
-            # of equal length before running
-            # the DataFrame otherwise it will
-            # raise an error
-
-            return pandas.DataFrame(
-                self._cached_result, 
-                columns=self._fields.field_names(),
-            )
-        return self._cached_result
+        return pandas.DataFrame(
+            self._cached_result, 
+            columns=self._fields.field_names(),
+        )
 
 
 class Model(DataStructure):
