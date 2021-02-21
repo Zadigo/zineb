@@ -135,15 +135,15 @@ class Spider(metaclass=BaseSpider):
         return f"{self.__class__.__name__}(requests={self.__len__()})"
 
     def _resolve_return_containers(self, containers):
-        from zineb.models.pipeline import Pipe
+        from zineb.models.pipeline import ModelsPipeline
         if not containers or containers is None:
             return False
 
         callbacks = filter(lambda k: isinstance(k, CallBack), containers)
-        pipes = list(filter(lambda p: isinstance(p, Pipe), containers))
+        pipes = list(filter(lambda p: isinstance(p, ModelsPipeline), containers))
 
         if pipes:
-            pipe = Pipe(pipes)
+            pipe = ModelsPipeline(pipes)
             return pipe._resolve_dataframes()
 
     def _resolve_requests(self, debug=False):
@@ -196,7 +196,6 @@ class Zineb(Spider):
     to create a scrapping project
     """
     start_urls = []
-    start_files = []
 
 
 class SitemapCrawler(Spider):
