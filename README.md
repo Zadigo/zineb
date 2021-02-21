@@ -171,7 +171,7 @@ Here is a list of expressions that you can use for this field:
 | a.kendall | Link with class kendall | <a class="kendall"> |
 | a#kendall | Lind with ID Kendall | <a id="kendall"> |
 
-By default, if a pseudo is not provided, `__text` pseudo is appended in order to always retrive the inner text element of the tag.
+By default, if a pseudo is not provided, `__text` pseudo is appended in order to always retrieve the inner text element of the tag.
 
 ## Model meta
 
@@ -578,3 +578,61 @@ request.urljoin("/kendall-jenner")
 
 -> https://example.com/kendall-jenner
 ```
+
+# Settings
+
+This section will talk about all the available settings that are available for your project and how to use them for web scrapping.
+
+**DOMAINS**
+
+You can restrict your project to use only to a specific set of domains.
+
+```
+DOMAINS = [
+    "example.com"
+]
+```
+
+**ENSURE_HTTPS**
+
+Enforce that every link in your project is a secured HTTPS link.
+
+**MIDDLEWARES**
+
+Middlewares are functions/classes that are executed before the main the main logic of your spider is executed. Middlewares implement extra functionnalities to a given project.
+
+```
+MIDDLEWARES = [
+    "zineb.middlewares.handlers.Handler",
+    "project.middlewares.MyMiddleware"
+]
+```
+
+**PROJECT_PATH**
+
+This variable stores the absolute path for your project
+
+**PROXIES**
+
+Use a set of proxies within your project. When a request in sent, a random proxy is selected and implemented with the request.
+
+```
+PROXIES = [
+    ("http", "127.0.0.1"),
+    ("https", "127.0.0.1")
+]
+```
+
+**SPIDERS**
+
+In order to run your spiders, every created spider should be registered here. The name of the class should serve as the name of the spider to be used.
+
+```
+SPIDERS = [
+    "MySpider"
+]
+```
+
+**USER_AGENTS**
+
+A user agent is a characteristic string that lets servers and network peers identify the application, operating system, vendor, and/or version of the requesting [MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent). You can add a list of user agents to use within your project with this constant.
