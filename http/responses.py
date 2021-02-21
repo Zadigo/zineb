@@ -11,8 +11,7 @@ from PIL import Image
 from requests.models import Response
 from w3lib.html import strip_html5_whitespace
 from w3lib.url import is_url
-from zineb.extractors.images import ImageExtractor
-from zineb.extractors.links import LinkExtractor
+from zineb.extractors.base import ImageExtractor, LinkExtractor
 from zineb.http.headers import ResponseHeaders
 from zineb.utils.general import create_new_name
 
