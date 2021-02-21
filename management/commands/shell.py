@@ -1,6 +1,6 @@
 import code
 
-from zineb.extractors import base, links, images
+from zineb.extractors import base
 from zineb.http.request import HTTPRequest
 from zineb.management.base import BaseCommand
 from zineb.settings import settings
@@ -51,27 +51,34 @@ class Shell:
             except SystemError:
                 pass
 
-    def start(self, url):
+    def start(self, url, use_settings=None):
         request = HTTPRequest(url)
-        request.project_settings = settings
+        request.project_settings = use_settings or settings
         request._send()
 
         self.shell_variables.setdefault('request', request)
         self.shell_variables.setdefault('response', request.html_response)
-        self.shell_variables.setdefault(
-            'html_page', request.html_response.html_page
-        )
+        self.shell_variables.setdefault('html_page', request.html_response.html_page)
 
         # Pass the extractors in the shell
         self.shell_variables.setdefault('base', base)
-        self.shell_variables.setdefault('images', images)
-        self.shell_variables.setdefault('links', links)
+        self.shell_variables.setdefault('images', base.ImageExtractor)
+        self.shell_variables.setdefault('links', base.LinkExtractor)
+        self.shell_variables.setdefault('multilinks', base.MultiLinkExtractor)
+        self.shell_variables.setdefault('table', base.TableRows)
+
+        # Pass the project setttings
+        self.shell_variables.setdefault('settings', settings)
         self._start_consoles()
 
 
 class Command(BaseCommand):
     def add_arguments(self, parser):
-        pass
+        parser.add_argument('url', type=str, help='Url to use for testing')
 
-    def execute(self, *args, **kwargs):
-        pass
+    def execute(self, **kwargs):
+        print(kwargs)
+        command_value = kwargs.get('url')
+        _, url = command_value.split('=')
+        shell = Shell()
+        shell.start(url=url, use_settings=super()._load_project_settings())
