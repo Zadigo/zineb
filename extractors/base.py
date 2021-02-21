@@ -1,12 +1,14 @@
 import os
 import re
+from collections import deque
 from functools import cached_property
 
 import pandas
+from bs4.element import Tag
 from nltk.tokenize import PunktSentenceTokenizer, WordPunctTokenizer
 from sklearn.feature_extraction.text import CountVectorizer
 from w3lib.html import safe_url_string
-from w3lib.url import is_url
+from w3lib.url import is_url, urljoin
 from zineb.settings import settings
 from zineb.utils._html import deep_clean, is_path
 
@@ -62,30 +64,32 @@ class TableRows(Extractor):
             extractor.resolve(BeautifulSoup Object)
     """
 
-    def __init__(self, class_name=None, has_headers=False, processors:list=None):
-        self.table = None
-        self.rows = None
+    def __init__(self, class_name=None, has_headers=False, 
+                 filter_empty_rows=False, processors:list=None):
+        self._table = None
+        self._rows = None
         self.headers = None
 
         self.class_name = class_name
         self.attrs = None
         self.has_headers = has_headers
         self.processors = processors
+        self.filter_empty_rows = filter_empty_rows
 
     def __iter__(self):
-        return iter(self.rows)
+        return iter(self._rows)
 
     def __repr__(self):
         return f"<{self.__class__.__name__}>"
 
-    def __add__(self, b):
-        return 
+    # def __add__(self, b):
+    #     return 
 
     # @cached_property
     def _compose(self, include_links=False):
-        if self.rows is not None:
+        if self._rows is not None:
             rows = []
-            for row in self.rows:
+            for row in self._rows:
                 new_row = []
                 for column in row:
                     if column != '\n':
@@ -115,7 +119,7 @@ class TableRows(Extractor):
                 self.headers = rows.pop(0)
             return rows
         else:
-            return self.rows
+            return self._rows
 
     def _run_processors(self, rows):
         if self.processors:
@@ -123,7 +127,7 @@ class TableRows(Extractor):
             for row in rows:
                 for processor in self.processors:
                     if not callable(processor):
-                        raise TypeError('Processor should be a callable')
+                        raise TypeError(f"Processor should be a callable. Got {processor}")
                     row = [processor(value, row=row) for value in row]
                 processed_rows.append(row)
             return processed_rows
@@ -131,18 +135,19 @@ class TableRows(Extractor):
 
     @property
     def first(self):
-        return self.rows[0]
+        return self._rows[0]
 
     def _get_rows(self, element):
         return element.find_all('tr')
 
     def get_row(self, index):
         try:
-            return self.rows[index]
+            return self._rows[index]
         except IndexError:
             return None
 
-    def resolve(self, soup, include_links=False, limit_to_columns :list=[]):
+    def resolve(self, soup, include_links=False, 
+                limit_to_columns :list=[]):
         if self.attrs is None:
             # There might be a case where the user
             # does not pass the whole HTML page but just
@@ -151,37 +156,37 @@ class TableRows(Extractor):
             # return None. In that case, we should just test
             # if the name equals "table" and continue from there
             if soup.name == 'table':
-                self.table = soup
+                self._table = soup
             else:
-                self.table = soup.find('table')
+                self._table = soup.find('table')
 
-            if self.table is None:
+            if self._table is None:
                 # In case the user passes the table itself
                 # as oppposed to the whole HTML page, check
                 # the elements tag and assign it
                 if soup.name == 'table':
-                    self.table = soup
+                    self._table = soup
                 else:
-                    return self.rows
+                    return self._rows
 
-        self.attrs = self.table.attrs
+        self.attrs = self._table.attrs
         if self.class_name is not None and self.attrs:
             table_class = self.attrs.get('class', [])
             if self.class_name not in table_class:
-                self.table = self.table.find_next('table')
-                if self.table is None:
-                    return self.rows
-                self.resolve(self.table)
+                self._table = self._table.find_next('table')
+                if self._table is None:
+                    return self._rows
+                self.resolve(self._table)
 
-        if not self.table.is_empty_element:
-            tbody = self.table.find('tbody')
+        if not self._table.is_empty_element:
+            tbody = self._table.find('tbody')
             if tbody is None:
-                self.rows = self._get_rows(self.table)
+                self._rows = self._get_rows(self._table)
             else:
                 if tbody.is_empty_element:
-                    self.rows = self._get_rows(self.table)
+                    self._rows = self._get_rows(self._table)
                 else:
-                    self.rows = self._get_rows(tbody)
+                    self._rows = self._get_rows(tbody)
             
             return self._run_processors(self._compose(include_links=include_links))
 
@@ -239,3 +244,256 @@ class Text(Extractor):
             matrix = vectorizer.fit_transform(sentences)
             return matrix if return_matrix else vectorizer.get_feature_names()
         return None
+
+
+class LinkExtractor(Extractor):
+    """
+    Extract all links using a BeautifulSoup object
+
+    This helper class is a useful wrapper for rapidly getting
+    the links from a BeautifulSoup element
+
+    Parameters
+    ----------
+
+        url_must_contain (str, optional): only get items which url contains x. Defaults to None.
+        unique (bool, optional): links must be unique accross document. Defaults to False.
+        base_url (str, optional): [description]. Defaults to None.
+        only_valid_links (bool, optional): links must be valid (start with http). Defaults to False.
+    """
+    def __init__(self, url_must_contain=None, unique=False,
+                 base_url=None, only_valid_links=False):
+        self.base_url = base_url
+        self.unique = unique
+        self.validated_links = []
+        self.url_must_contain = url_must_contain
+        self.only_valid_links = only_valid_links
+
+    def __enter__(self):
+        return self.validated_links
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return False
+
+    def __len__(self):
+        return len(self.validated_links)
+
+    def __iter__(self):
+        return iter(self.validated_links)
+
+    def __getitem__(self, index):
+        return self.validated_links[index]
+
+    def __str__(self):
+        return str(self.validated_links)
+
+    def _document_links(self, soup):
+        """
+        Return all the document's links
+
+        Parameters
+        ----------
+
+            soup (type): BeautifulSoup object
+
+        Returns
+        -------
+
+            list: list of links
+        """
+        from zineb.http.responses import HTMLResponse
+        if isinstance(soup, HTMLResponse):
+            soup = soup.html_page
+        return soup.find_all('a')
+
+    def _link_iterator(self, soup):
+        """
+        Iterate on link BeautifulSoup ResultSet
+
+        Parameters
+        ----------
+
+            soup (type): BeautifulSoup object
+
+        Yields
+        ------
+
+            tuple: link (href) and link attributes
+        """
+        for tag in self._document_links(soup):
+            element_name = tag.name
+            if tag and element_name == 'a' and isinstance(element_name, str):
+                if self.url_must_contain is not None:
+                    attrs = tag.attrs
+                    url = attrs.get('href')
+                    if url is not None:
+                        if self.url_must_contain in url:
+                            yield tag, attrs
+                else:
+                    yield tag, tag.attrs
+
+    def _recompose_path(self, path):
+        if path.startswith('/'):
+            return urljoin(self.base_url, path)
+        return path
+
+    def resolve(self, soup):
+        """
+        Parameters
+        ----------
+
+                soup (type): BeautifulSoup object
+
+        Returns
+        -------
+
+                list: complete list of links
+        """
+        from zineb.tags import Link
+        if soup is None:
+            return None
+
+        tags = self._link_iterator(soup)
+        for tag in tags:
+            element, attrs = tag
+            href = attrs.get('href', None)
+            if href is not None:
+                attrs['href'] = self._recompose_path(attrs['href'])
+            self.validated_links.append(Link(element, attrs=attrs))
+
+        if self.unique:
+            self.validated_links = {
+                link for link in self.validated_links
+            }
+
+        if self.only_valid_links:
+            self.validated_links = list(
+                filter(lambda x: x.is_valid, self.validated_links)
+            )
+
+
+class MultiLinkExtractor(LinkExtractor):
+    """
+    Extract all links using a BeautifulSoup object
+    (including emails)
+
+    Parameters
+    ----------
+
+        url_must_contain (str, optional): only get items which url contains x. Defaults to None.
+        unique (bool, optional): links must be unique accross document. Defaults to False.
+        base_url (str, optional): [description]. Defaults to None.
+        only_valid_links (bool, optional): links must be valid (start with http). Defaults to False.
+    """
+    def _analyze_links(self):
+        for link in self.validated_links:
+            if link.is_email:
+                yield link
+
+    def _analyze_text(self, tokens):
+        pattern = r'^(\w+\W?\w+\@\w+\W?\w+\.\w+)$'
+        regex = re.compile(pattern)
+        for token in tokens:
+            is_match = regex.search(token)
+            if is_match:
+                yield is_match.group(1)
+
+    def resolve_emails(self, soup):
+        super().resolve(soup)
+
+        text = soup.text
+        tokenizer = WordPunctTokenizer()
+        tokens = tokenizer.tokenize(text)
+
+        emails_from_text = list(self._analyze_text(tokens))
+        emails_from_links = list(self._analyze_links())
+        return emails_from_links + emails_from_text
+
+
+class ImageExtractor(Extractor):
+    """
+    Extracts all the images from a document
+
+    Parameters
+    ----------
+
+        unique (bool, Optional): if images should be unique. Defaults to False
+        as_type (str, Optional): get images only from a specific extension. Defaults to None
+        url_must_contain: (str, Optional): images with a specific url. Defaults to None
+        match_height: (int, Optional): images of a certain height
+        match_width: (int, Optional): images of a certain width
+    """
+
+    def __init__(self, unique=False, as_type=None,
+                 url_must_contain=None, match_height=None,
+                 match_width=None):
+        self.images = []
+        self.unique = unique
+        self.as_type = as_type
+        self.url_must_contain = url_must_contain
+        self.match_height = match_height
+        self.match_width = match_width
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, index):
+        return self.images[index] if self.images else []
+
+    def _document_images(self, soup):
+        from zineb.http.responses import HTMLResponse
+        if isinstance(soup, HTMLResponse):
+            soup = soup.html_page
+        elif isinstance(soup, Tag):
+            soup = soup
+        return soup.find_all('img')
+
+    def _image_iterator(self, soup):
+        for image in self._document_images(soup):
+            yield image, image.attrs
+
+    def resolve(self, soup):
+        from zineb.tags import ImageTag
+        images = self._image_iterator(soup)
+        for i, image in enumerate(images):
+            tag, attrs = image
+            self.images.append(
+                ImageTag(tag, attrs=attrs, index=i, html_page=soup)
+            )
+        return self.images
+
+    def filter_images(self, expression=None):
+        expression = expression or self.url_must_contain
+
+        images = self.images.copy()
+
+        if self.unique:
+            images = list(set(images))
+
+        if expression is not None:
+            images = list(filter(lambda x: expression in x, images))
+
+        if self.as_type is not None:
+            images = list(filter(lambda x: x.endswith(self.as_type), images))
+
+        if self.url_must_contain is not None:
+            images = list(filter(lambda x: self.url_must_contain in x, images))
+
+        if self.match_height is not None:
+            filtered_images = []
+            for image in images:
+                height = image.attrs.get('height', None)
+                if height is not None:
+                    if height == self.match_height:
+                        filtered_images.append(image)
+            images = filtered_images
+
+        if self.match_width is not None:
+            filtered_images = []
+            for image in images:
+                height = image.attrs.get('width', None)
+                if height is not None:
+                    if height == self.match_width:
+                        filtered_images.append(image)
+            images = filtered_images
+        return images
