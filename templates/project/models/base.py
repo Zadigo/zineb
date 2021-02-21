@@ -1,4 +1,4 @@
-from zineb.models.datastructure import Model
 from zineb.models import fields
+from zineb.models.datastructure import Model
 
 # Implement your models here
