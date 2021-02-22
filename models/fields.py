@@ -1,7 +1,7 @@
 import ast
 import datetime
 import json
-from typing import Type
+import re
 
 import numpy
 import pandas
@@ -10,8 +10,7 @@ from bs4.element import Tag as beautiful_soup_tag
 from w3lib import html
 from w3lib.url import canonicalize_url, safe_download_url
 from zineb.http.request import HTTPRequest
-from zineb.models import validators
-from zineb.models.validators import MaxLengthValidator, MinLengthValidator
+from zineb.models import validators as model_validators
 from zineb.utils._html import deep_clean
 from zineb.utils.general import download_image
 
@@ -39,7 +38,10 @@ class Field:
         self._validators = validators
 
         if self._default_validators:
-            self._validators = self._validators + self._default_validators
+            self._validators = (
+                self._validators | 
+                set(self._default_validators)
+            )
 
         self.default = default
 
@@ -217,7 +219,7 @@ class NameField(CharField):
 
 
 class EmailField(Field):
-    _default_validators = [validators.validate_email]
+    _default_validators = [model_validators.validate_email]
 
     def __init__(self, limit_to_domains: list = [], **kwargs):
         null = kwargs.get('null')
@@ -239,7 +241,7 @@ class EmailField(Field):
 
 class UrlField(Field):
     name = 'url'
-    _default_validators = [validators.validate_url]
+    _default_validators = [model_validators.validate_url]
 
     def resolve(self, url):
         # TODO: This can be simplified into a single
@@ -293,10 +295,10 @@ class IntegerField(Field):
     def __init__(self, default=None, min_value=None, max_value=None):
         super().__init__(default=default)
         if min_value is not None:
-            self._validators.append(MinLengthValidator(min_value))
+            self._validators.add(model_validators.MinLengthValidator(min_value))
 
         if max_value is not None:
-            self._validators.append(MaxLengthValidator(max_value))
+            self._validators.add(model_validators.MaxLengthValidator(max_value))
 
     def resolve(self, value):
         self._cached_result = super().resolve(value)
