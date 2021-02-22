@@ -43,6 +43,19 @@ class Field:
 
         self.default = default
 
+        # Be careful here, the problem is each
+        # time the field is used, a validator
+        # is added for each new value added which
+        # creates an array containing the same
+        # validator
+        if self.max_length is not None:
+            # self._validators.append(MaxLengthValidator(self.max_length))
+            self._validators.add(model_validators.MaxLengthValidator(self.max_length))
+
+        if not self.null:
+            # self._validators.append(validators.validate_is_not_null)
+            self._validators.add(model_validators.validate_is_not_null)
+
     def _true_value_or_default(self, value):
         return str(value) if value is not None else str(self.default)
 
@@ -50,13 +63,6 @@ class Field:
         # Default values should be validated
         # too ? Otherwise the use might enter
         # anykind of none validated value ??
-
-
-        if self.max_length:
-            self._validators.append(MaxLengthValidator(self.max_length))
-
-        if self.null:
-            self._validators.append(validators.validate_is_not_null)
 
         validators_result = None
         for validator in self._validators:
