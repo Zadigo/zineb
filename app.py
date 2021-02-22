@@ -40,8 +40,6 @@ class BaseSpider(type):
         #                 raise TypeError(f"Meta received an invalid option: {key}. Authorized options are {', '.join(valid_options)}")
 
         if name == 'Zineb':
-            attrs.setdefault('settings', cls.settings)
-
             if not 'logger' in attrs:
                 params = {
                     'name': name,
@@ -49,10 +47,11 @@ class BaseSpider(type):
                     'log_format': cls.settings.LOG_FORMAT,
                     'to_file': cls.settings.LOG_TO_FILE
                 }
-                attrs.update({'logger': create_logger(**params)})
-        
-        # checks = ApplicationChecks(default_settings=cls.settings)
-        # checks.run()
+                logger = create_logger(**params)
+                attrs.update({'logger': logger})
+
+            attrs.setdefault('settings', cls.settings)
+            logger.info('Loaded project settings...')
 
         if 'start_urls' in attrs:            
             new_class = create_new(cls, name, bases, attrs)
