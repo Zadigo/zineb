@@ -14,8 +14,6 @@ class Settings:
     _settings = OrderedDict()
 
     def __init__(self):
-        from zineb.utils.general import create_logger
-
         settings = importlib.import_module('zineb.settings.base')
         modules_dict = settings.__dict__
 
@@ -26,9 +24,6 @@ class Settings:
                 # settings.MY_SETTING when using
                 # the Settings instance
                 self.__dict__[key] = value
-
-        logger = create_logger(self.__class__.__name__)
-        logger.info(f"Loaded project settings...")
 
     def __call__(self, **kwargs):
         self.__init__()
