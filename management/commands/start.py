@@ -38,7 +38,7 @@ class Command(BaseCommand):
         # Finally exectue each spider. Normally they don't
         # return an instance but it would be interesting to
         # actually register their state
-        loaded_spiders = self.project_structure.get('loaded_spiders')
+        loaded_spiders = new_settings.get('project_structure')['loaded_spiders']
         for spider in loaded_spiders:
             _ = spider()    
         
