@@ -91,9 +91,12 @@ class Utility:
         Returns:
             obj: Command instance
         """
+        # ['manage.py', 'commmand=start']
+        _, items = name
+        _, cmd_value = items.split('=')
         # Once all the commands were collected,
         # look for the actual command
-        command_instance = self.commands_registry.get(name, None)
+        command_instance = self.commands_registry.get(cmd_value, None)
         if command_instance is None:
             raise Exception('Command does not exist')
 
@@ -104,7 +107,6 @@ class Utility:
         command_called = namespace.command
         _, command_value = command_called.split('=')
         if command_value == 'shell':
-            print(namespace.url)
             command_instance.execute(url=namespace.url)
         else:
             command_instance.execute()

@@ -1,15 +1,20 @@
 import configparser
+import os
 import warnings
 # import time
 from collections import deque
+from io import StringIO
+
+# from zineb.signals import signal
+from bs4 import BeautifulSoup
 
 # from pydispatch import dispatcher
 from zineb.http.pipelines import CallBack
 # from zineb.checks.core import checks_registry
 from zineb.http.request import HTTPRequest
 # from zineb.middleware import Middleware
-from zineb.settings import Settings
-# from zineb.signals import signal
+# from zineb.settings import 
+from zineb.settings import settings as zineb_settings
 from zineb.utils.general import create_logger
 
 # from xml.etree import ElementTree
@@ -17,7 +22,7 @@ from zineb.utils.general import create_logger
 
 
 class BaseSpider(type):
-    settings = Settings()
+    settings = zineb_settings
 
     def __new__(cls, name, bases, attrs):
         create_new = super().__new__
@@ -100,10 +105,10 @@ class Spider(metaclass=BaseSpider):
     def __init__(self, **kwargs):
         self.logger.info(f'Starting {self.__class__.__name__}')
 
-        configuration = configparser.ConfigParser()
-        configuration.read(self.settings.get('CONFIGURATION_FILE', 'settings/zineb.conf'))
+        # configuration = configparser.ConfigParser()
+        # configuration.read(self.settings.get('CONFIGURATION_FILE', 'settings/zineb.conf'))
+        # self.logger.info(f'Loaded configuration file...')
 
-        self.logger.info(f'Loaded configuration file...')
         self.logger.info(f"{self.__class__.__name__} contains {self.__len__()} request(s)")
         
         # TODO: Resolve problems related to the signals
@@ -208,3 +213,38 @@ class Zineb(Spider):
 
 class SitemapCrawler(Spider):
     pass
+
+
+class FileCrawler:
+    """
+    This a kind of spider that can crawl files locally and then eventually
+    perform requests on the web to implement additional data
+
+    In order to use this spider efficiently, you need a set of local HTML
+    files that will be be opened sequentially and then parsed according to
+    the logic provided in the `start` function
+    """
+    settings = zineb_settings
+    start_files = []
+    root_dir = None
+
+    def __init__(self):
+        self.buffers = []
+
+        # full_paths = map(lambda x: os.path.join(self.root_dir, x), self.start_files)
+        
+        for file in self.start_files:
+            opened_file = open(file, mode='r', encoding='utf-8')
+            buffer = StringIO(opened_file.read())
+            self.buffers.append(buffer)
+            opened_file.close()
+
+        for buffer in self.buffers:
+            self.start(BeautifulSoup(buffer, 'html.parser'))
+
+    def __del__(self):
+        for buffer in self.buffers:
+            buffer.close()
+
+    def start(self, soup, **kwargs):
+        pass

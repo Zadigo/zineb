@@ -258,13 +258,16 @@ class HTTPRequest(BaseRequest):
     def _send(self):
         """Sends a new HTTP request to the web"""
         http_response = super()._send()
-        if http_response.ok:
-            logger.info(f'Sent request for {self.url}')
-            self._http_response = http_response
-            self.html_response = HTMLResponse(
-                http_response, url=self.url, headers=http_response.headers
-            )
-            self.session.close()
+        if http_response is not None:
+            if http_response.ok:
+                logger.info(f'Sent request for {self.url}')
+                self._http_response = http_response
+                self.html_response = HTMLResponse(
+                    http_response, url=self.url, headers=http_response.headers
+                )
+                self.session.close()
+        else:
+            logger.error(f'An error occured on this request: {self.url}')
 
     @classmethod
     def follow(cls, url):

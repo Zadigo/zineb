@@ -35,8 +35,12 @@ class Field:
                  default=None, validators:list = []):
         self.max_length = max_length
         self.null = null
-        self._validators = validators
+        # self._validators = validators
 
+        # if self._default_validators:
+        #     self._validators = self._validators + self._default_validators
+
+        self._validators = set(validators)
         if self._default_validators:
             self._validators = (
                 self._validators | 
@@ -77,7 +81,8 @@ class Field:
         return validators_result or value
 
     def _check_or_convert_to_type(self, value, object_to_check_against,
-                                  message, enforce=True, force_conversion=False):
+                                  message, enforce=True, force_conversion=False,
+                                  use_default=False):
         """
         Checks the validity of a value against a Python object for example
         an int, a str or a list
@@ -107,7 +112,14 @@ class Field:
                 Any: int, str
         """
         if force_conversion:
-            value = object_to_check_against(value)
+            try:
+                value = object_to_check_against(value)
+            except:
+                # Thing is the validators know how to use
+                # the default value which is not the case
+                # when calling this specific function
+                if use_default:
+                    return self.default
 
         result = isinstance(value, object_to_check_against)
         if not result:
@@ -186,9 +198,6 @@ class Field:
 
 class CharField(Field):
     name = 'char'
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
 
     def resolve(self, value):
         result = self._check_or_convert_to_type(
@@ -303,7 +312,11 @@ class IntegerField(Field):
     def resolve(self, value):
         self._cached_result = super().resolve(value)
         self._cached_result = self._check_or_convert_to_type(
-            self._cached_result, int, 'Value should be an integer', force_conversion=True
+            self._cached_result,
+            int,
+            'Value should be an integer',
+            force_conversion=True,
+            use_default=True
         )
 
 
@@ -415,7 +428,6 @@ class FunctionField(Field):
                 else:
                     new_cached_result = method(new_cached_result)
             self._cached_result = new_cached_result
-        
             self.output_field.resolve(self._cached_result)
             self._cached_result = self.output_field._cached_result
 
@@ -483,6 +495,8 @@ class CommaSeperatedField(Field):
 
 
 class Value:
+    result = None
+
     def __init__(self, result, field_name=None):
         self.result = result
         self.field_name = field_name
@@ -492,3 +506,28 @@ class Value:
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.result})"
+
+    def __setattr__(self, name, value):
+        if name == 'result':
+            pass
+        return super().__setattr__(name, value)
+
+
+class RegexField(Field):
+    def __init__(self, pattern, group=0, output_field=None, **kwargs):
+        self.pattern = re.compile(pattern)
+        self.group = group
+        self.output_field = output_field
+        super().__init__(**kwargs)
+
+    def resolve(self, value):
+        regexed_value = self.pattern.search(value)
+        if regexed_value:
+            true_value = regexed_value.group(self.group)
+            if self.output_field is not None:
+                if isinstance(self.output_field, Field):
+                    self._cached_result = self.output_field.resolve(true_value)
+                else:
+                    raise TypeError(f"Output field should be a instance of zineb.fields.Field. Got: {self.output_field}")
+            else:
+                self._cached_result = super().resolve(true_value)

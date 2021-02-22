@@ -15,8 +15,41 @@ class Pipeline:
 
 class ResponsesPipeline(Pipeline):
     """
-    Treats a set of HTTP Responses that will be
-    treated continuously through a set of functions
+    Treats a set of HTTP Responses through a set of functions
+
+    This pipeline is ideal for working with multiple responses
+    at once in order to do something with them and do multiple 
+    things at a time with a same response
+
+    Example
+    -------
+
+        Suppose you have a set of urls that you want to request for
+        and get all the responses, in your start function you would
+        have something like this:
+            
+            class MySpider(Zineb):
+                start_urls = []
+
+                def start(self, response, request=None, **kwargs):
+                    urls = [http://example.com, http://example.com]
+                    responses = request.follow_all(urls)
+                    RequestPipeline(responses, [self.do_something_with_each_response])
+
+                    # Continue my code here
+
+                def do_something_with_each_response(self, response, **kwargs):
+                    link = response.html_page.find("a")
+
+        Once the class is completed, the code resumes normally.
+
+    Parameters
+    ----------
+
+            responses (list): a list of HTMLResponse objects (instances)
+            functions (list): a list of functions to call
+            parameters (dict): things you want to pass to each method called
+            options (dict): extra options for the class
     """
     def __init__(self, responses:list, functions:list, 
                  parameters:dict={}, **options):
@@ -48,7 +81,9 @@ class ResponsesPipeline(Pipeline):
                     # else:
                     #     return await function(response)
                 except Exception as e:
-                    self.errors.append(f"An error occured within the Pipe. {e.args}")
+                    print(e.args)
+                    # self.errors.append(f"An error occured within the Pipe. {e.args}")
+                    raise 
                 else:
                     if result is not None:
                         return await result

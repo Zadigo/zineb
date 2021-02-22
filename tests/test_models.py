@@ -1,8 +1,10 @@
 import unittest
+from collections import OrderedDict
 
 import pandas
-from models.fields import (AgeField, CharField, DateField, FunctionField,
-                           ImageField, IntegerField, NameField, UrlField)
+from models.fields import (AgeField, CharField, DateField, Field,
+                           FunctionField, ImageField, IntegerField, NameField,
+                           UrlField)
 from zineb.http.request import HTTPRequest
 from zineb.models.datastructure import Model
 
@@ -39,6 +41,10 @@ class TestModel(unittest.TestCase):
     def setUp(self):
         self.player = Player(response=request.html_response)
 
+    def test_fields(self):
+        self.assertIsInstance(self.player._fields.cached_fields, OrderedDict)
+        self.assertIn('name', self.player._fields.cached_fields)
+
     def test_adding_value(self):
         self.player.add_value('name', 'Kendall Jenner')
 
@@ -63,6 +69,23 @@ class TestModel(unittest.TestCase):
     @unittest.expectedFailure
     def test_cannot_add_different_value(self):
         self.player.add_value('name', 1)
+
+    def test_iteration(self):
+        # When adding multiple values to the model,
+        # for whatever reasons the _validators variable
+        # gets populated multiple times with validators
+        self.player.add_value('name', 'Kendall Jenner')
+        self.player.add_value('name', 'Hailey Baldwin')
+
+        name_instance = self.player._get_field_by_name('name')
+        self.assertEqual(len(name_instance._validators), 0)
+
+    def test_field_type(self):
+        name_instance = self.player._get_field_by_name('name')
+        self.assertIsInstance(name_instance, Field)
+
+    def test_field_cache(self):
+        self.assertEqual(len(self.player._fields.cached_fields), 1)
 
 
 class TestComplexModels(unittest.TestCase):

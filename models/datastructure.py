@@ -241,6 +241,17 @@ class DataStructure(metaclass=Base):
             self._cached_result.setdefault(name, [])
             cached_field = self._cached_result.get(name)
         cached_field.append(resolved_value)
+        # ?? To prevent unbalanced columns for example
+        # when the user adds a value to field but not
+        # to another, maybe add a None value to the
+        # rest of the fields so that the len always
+        # stays equals between columns
+        # for field in self._fields.field_names():
+        #     if field not in self._cached_result:
+        #         self._cached_result.setdefault(field, [])
+        #         self._cached_result[field].extend([None])
+        #     else:
+        #         self._cached_result[field].extend([None])
         self._cached_result.update({name: cached_field})
 
     def resolve_fields(self):

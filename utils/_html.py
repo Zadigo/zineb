@@ -1,4 +1,7 @@
+import re
+
 from w3lib.html import replace_escape_chars, strip_html5_whitespace
+
 
 def deep_clean(value:str):
     """
@@ -20,3 +23,10 @@ def deep_clean(value:str):
     )
     cleaned_words = filter(lambda x: x != '', value.split(' '))
     return ' '.join(cleaned_words).strip()
+
+
+def is_path(path):
+    is_match = re.search(r'^(?:[/].*/)(?:.*)$', path)
+    if is_match:
+        return True
+    return False
