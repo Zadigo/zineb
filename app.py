@@ -185,7 +185,16 @@ class Spider(metaclass=BaseSpider):
         Parameters
         ----------
 
-            response (type): an HTMLResponse object
+            response (HTMLResponse): an HTMLResponse object
+            
+            In addition to the response, these objects are also
+            passed in the kwargs parameter:
+
+                request (HTTPRequest): the HTTPRequest object 
+                soup (BeautifulSoup): the beautiful soup object
+
+                def start(self, response, request=None, soup=None):
+                    pass
         """
         pass
 
