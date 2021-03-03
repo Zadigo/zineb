@@ -2,19 +2,20 @@ import configparser
 import os
 import warnings
 # import time
-from collections import deque
+from collections import OrderedDict, deque
 from io import StringIO
+from typing import Union
 
-# from zineb.signals import signal
 from bs4 import BeautifulSoup
+from pydispatch import dispatcher
 
-# from pydispatch import dispatcher
 from zineb.http.pipelines import CallBack
 # from zineb.checks.core import checks_registry
 from zineb.http.request import HTTPRequest
-# from zineb.middleware import Middleware
-# from zineb.settings import 
+from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
+from zineb.middleware import Middleware
 from zineb.settings import settings as zineb_settings
+from zineb.signals import signal
 from zineb.utils.general import create_logger
 
 # from xml.etree import ElementTree
@@ -34,7 +35,6 @@ class BaseSpider(type):
         #     options = _meta.__dict__
 
         #     valid_options = OrderedDict()
-
         #     allowed_options = ['domains']
         #     for key, option in options.items():
         #         if not key.startswith('__'):
@@ -111,23 +111,13 @@ class Spider(metaclass=BaseSpider):
 
         self.logger.info(f"{self.__class__.__name__} contains {self.__len__()} request(s)")
         
-        # TODO: Resolve problems related to the signals
-        # and the middlewares
-        # middlewares = Middleware(settings=self.settings)
-        # middlewares._load
-        # objs = middlewares.loaded_middlewares.values()
-        # for obj in objs:
-        #     # Each middleware class should provide a 
-        #     # __call__ function that will be called
-        #     # like a regular function by the dispatcher
-        #     receiver = obj()
-        #     # Initialize all the signals and the
-        #     # ones that were created for the project and
-        #     # mark the sender as Anonymous so that triggers
-        #     # can be sent from anywhere within the project
-        #     signal_name = f'Zineb-{receiver.__class__.__name__}'
-        #     signal.connect(receiver, signal=signal_name)
-        # self.middlewares = middlewares
+        middlewares = Middleware(settings=self.settings)
+        middlewares._load
+
+        # Tell all middlewares and signals registered
+        # to receive Any that the Spider is ready
+        # and fully loaded
+        signal.send(dispatcher.Any, self, tag='Pre.Start')
 
         self._cached_aggregated_results = None
         self._cached_aggregated_results = self._resolve_requests(debug=kwargs.get('debug', False))
@@ -160,9 +150,7 @@ class Spider(metaclass=BaseSpider):
                 return_values_container = deque()
                 for request in self._prepared_requests:
                     request._send()
-                    # Pass the following parameters in the
-                    # start function fo the class: HTMLResponse,
-                    # HTTPRequest and the BeautifulSoup Tag
+
                     return_value = self.start(
                         request.html_response,
                         request=request,
@@ -171,8 +159,7 @@ class Spider(metaclass=BaseSpider):
                     if return_value is not None:
                         return_values_container.append(return_value)
 
-                # post_start.send('History', self)
-                # post_start.send('GeneralStatistics', self)
+                signal.send(dispatcher.Any, self, tag='Post.Initial.Requests', urls=self._prepared_requests)
                 return self._resolve_return_containers(return_values_container)
             else:
                 self.logger.warn(f'You are using {self.__class__.__name__} in DEBUG mode')
