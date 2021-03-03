@@ -68,7 +68,7 @@ RANDOMIZE_USER_AGENTS = False
 # Use this to set a base set of headers for
 # every HTTP request in the application
 
-HEADERS = {}
+DEFAULT_REQUEST_HEADERS = {}
 
 
 # Register all the steps that were run by
@@ -114,3 +114,14 @@ DEFAULT_REQUEST_HEADERS = {
     'Accept': 'text/html,application/json,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     'Referrer': 'https://google.com',
 }
+
+
+# The main folder to store all your downloaded
+# files from the internet. This folder could
+# also point to a folder in the cloud
+
+AWS_SECRET_KEY = None
+
+AWS_SOMETHING_KEY = None
+
+MEDIA_FOLDER = os.path.join(PROJECT_PATH, 'media')
