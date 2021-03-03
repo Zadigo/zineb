@@ -3,6 +3,7 @@ from collections import OrderedDict
 from functools import lru_cache
 from importlib import import_module
 from os.path import basename
+from typing import Union
 
 from zineb.settings import settings
 
@@ -15,7 +16,7 @@ def collect_commands():
     Returns
     -------
 
-        [Iterator]: the paths of each commands in the directory
+        Iterator [Iterator]: the paths of each commands in the directory
     """
     commands_path = list(os.walk(os.path.join(settings.PROJECT_PATH, 'management', 'commands')))
     files = commands_path[0][-1]
@@ -75,46 +76,44 @@ class Utility:
         for module in modules:
             module_name = basename(module)
             true_name, ext = module_name.split('.')
-            module_obj = import_module(f'zineb.management.commands.{true_name}')
+            try:
+                module_obj = import_module(f'zineb.management.commands.{true_name}')
+            except Exception as e:
+                raise ImportError(f"Could not import module at {module}.", e.args)
             self.commands_registry[true_name] = module_obj.Command()
 
-    def call_command(self, name):
+    def _parse_incoming_commands(self, command: list):
+        name = command[0]
+        remaining_tokens = command[1:]
+        return name, remaining_tokens
+
+    def call_command(self, name: Union[list, str]):
         """
         Call a specific command from the registry
 
         Args:
-            name (str): command's name
-
-        Raises:
-            Exception: [description]
+            name (Union[list, str]): command name
 
         Returns:
-            obj: Command instance
+            BaseCommand: the command instance to use
         """
-        # ['manage.py', 'commmand=start']
-        _, items = name
-        _, cmd_value = items.split('=')
-        # Once all the commands were collected,
-        # look for the actual command
-        command_instance = self.commands_registry.get(cmd_value, None)
+        # cmd_value = 'start'
+        # cmd_value = 'shell'
+
+        module_or_file, tokens = self._parse_incoming_commands(name)
+        command_name = tokens.pop(0)
+        command_instance = self.commands_registry.get(command_name, None)
         if command_instance is None:
             raise Exception('Command does not exist')
 
-        # command_instance = command_instance.Command()
         parser = command_instance.create_parser()
         namespace = parser.parse_args()
 
         command_called = namespace.command
-        _, command_value = command_called.split('=')
-        if command_value == 'shell':
-            command_instance.execute(url=namespace.url)
+        if command_called == 'shell':
+            command_instance.execute(url=namespace.url)            
         else:
-            command_instance.execute()
-
-        # if command_called == 'startproject':
-        #     pass
-        # elif command_called == 'start':
-        #     pass
+            command_instance.execute(namespace=namespace)
 
         return command_instance
 
