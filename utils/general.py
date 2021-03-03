@@ -34,6 +34,19 @@ def create_new_name(length=5):
     return secrets.token_hex(nbytes=length)
 
 
+def download_image_from_tag(tag: BeautifulSoup, download_to=None, 
+                            as_thumbnail=None, link_processor=None):
+    from zineb.http.request import HTTPRequest
+
+    url = tag.attrs.get('src')
+    if link_processor is not None:
+        url = link_processor(url)
+    if url is not None:
+        request = HTTPRequest(url=url)
+        request._send()
+        return download_image(request.html_response, download_to=download_to, as_thumbnail=as_thumbnail)
+    
+
 def download_image(response, download_to=None, as_thumbnail=False):
     """
     Helper for downloading images
@@ -46,17 +59,17 @@ def download_image(response, download_to=None, as_thumbnail=False):
         as_thumbnail (bool, Optional): download the image as a thumbnail. Defaults to True
     """
     from zineb.http.responses import HTMLResponse
-    # from zineb.signals import pre_download
 
     if isinstance(response, HTMLResponse):
         response = response.cached_response
-    elif isinstance(response, Response):
-        response = response.content
     else:
         raise TypeError(f'The response argument requires an HTMLResponse or a Response object. Got: {response}')
 
-    image_data = BytesIO(response)
-    image = Image.open(image_data)
+    response_content = response.content
+    signal.send(dispatcher.Any, response, tag='Pre.Download')
+    
+    buffer = BytesIO(response_content)
+    image = Image.open(buffer)
     
     if download_to is None:
         download_to = f'{create_new_name()}.jpg'
@@ -72,7 +85,8 @@ def download_image(response, download_to=None, as_thumbnail=False):
         return new_image.width, new_image.height
 
     image.save(download_to)
-    return image.width, image.height, image_data
+    signal.send(dispatcher.Any, response, tag='Post.Download', obj=image)
+    return image.width, image.height, buffer
 
 
 def reconstruct_url(url, pattern=None, func=None):
