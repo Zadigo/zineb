@@ -16,8 +16,7 @@ from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
 from zineb.middleware import Middleware
 from zineb.settings import settings as zineb_settings
 from zineb.signals import signal
-from zineb.utils.general import create_logger
-
+from zineb.logger import create_logger
 # from xml.etree import ElementTree
 
 
