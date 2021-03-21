@@ -15,7 +15,7 @@ class Middleware:
     settings = None
     module_registry = OrderedDict()
 
-    def __init__(self, settings={}):
+    def __init__(self, settings: dict={}):
         self.project_middlewares = settings.get('MIDDLEWARES', [])
         self.loaded_middlewares = OrderedDict()
 
