@@ -1,12 +1,11 @@
 import os
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from collections import OrderedDict
 from importlib import import_module
 from typing import Any
 
+from zineb.logger import create_logger
 from zineb.settings import settings
-from zineb.utils.general import create_logger
-from argparse import Namespace
 
 logger = create_logger('Command', to_file=True)
 
@@ -46,8 +45,8 @@ class BaseCommand:
             OrderedDict: the base settings file updated with
             the user's settings and some additional annotations
         """
-        # project_structure = dict(loaded_spiders=[], middlewares=[])
         project = os.environ.get('ZINEB_SPIDER_PROJECT')
+
         try:
             project_name, _ = project.split('.', maxsplit=1)
         except:
