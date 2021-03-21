@@ -2,13 +2,16 @@ import os
 import re
 from collections import deque
 from functools import cached_property
+from typing import Any, Callable, List, NoReturn, Optional, Sequence, Union
 
 import pandas
+from bs4 import BeautifulSoup
 from bs4.element import Tag
 from nltk.tokenize import PunktSentenceTokenizer, WordPunctTokenizer
 from sklearn.feature_extraction.text import CountVectorizer
 from w3lib.html import safe_url_string
 from w3lib.url import is_url, urljoin
+from zineb.extractors._mixins import MultipleRowsMixin
 from zineb.settings import settings
 from zineb.utils._html import deep_clean, is_path
 
@@ -18,17 +21,17 @@ class Extractor:
     Base class for every extractor class
     """
     def __enter__(self):
-        raise NotImplementedError('Should be implemented by the subclasses')
+        raise NotImplementedError('__enter__ should be implemented by the subclasses')
     
     def __exit__(self, exc_type, exc_val, exc_tb):
         return False
 
-    def resolve(self, soup):
+    def resolve(self, soup: BeautifulSoup) -> NoReturn:
         raise NotImplementedError(('Provide functionnalities for quickly '
         'extracting items from the HTML page'))
 
 
-class TableRows(Extractor):
+class TableExtractor(Extractor):
     """
     Quickly extract a table from an HTML page.
     
@@ -65,7 +68,7 @@ class TableRows(Extractor):
     """
 
     def __init__(self, class_name=None, has_headers=False, 
-                 filter_empty_rows=False, processors:list=None):
+                 filter_empty_rows=False, processors: List = []):
         self._table = None
         self._rows = None
         self.headers = None
@@ -134,7 +137,7 @@ class TableRows(Extractor):
         return rows
 
     @property
-    def first(self):
+    def first(self) -> Union[Tag, None]:
         return self._rows[0]
 
     def _get_rows(self, element):
@@ -146,8 +149,8 @@ class TableRows(Extractor):
         except IndexError:
             return None
 
-    def resolve(self, soup, include_links=False, 
-                limit_to_columns :list=[]):
+    def resolve(self, soup: BeautifulSoup, include_links=False, 
+                limit_to_columns: list=[]):
         if self.attrs is None:
             # There might be a case where the user
             # does not pass the whole HTML page but just
@@ -190,14 +193,15 @@ class TableRows(Extractor):
             
             return self._run_processors(self._compose(include_links=include_links))
 
-    def resolve_to_dataframe(self, columns: dict={}):
-        df = pandas.DataFrame(data=self._compose())
+    def resolve_to_dataframe(self, soup: BeautifulSoup, columns: dict={}):
+        df = pandas.DataFrame(data=self.resolve(soup))
+        # df = pandas.DataFrame(data=self._compose())
         if columns:
             return df.rename(columns=columns)
         return df
 
 
-class Text(Extractor):
+class TextExtractor(Extractor):
     """
     Extract all the text from a soup object
     """
@@ -228,7 +232,7 @@ class Text(Extractor):
             new_words.append(word.replace('\n', ''))
         return new_words
 
-    def resolve(self, soup):
+    def resolve(self, soup: BeautifulSoup):
         text = soup.text
         self.tokens = self.tokenizer.tokenize(text)
         self.raw_text = text
@@ -337,7 +341,7 @@ class LinkExtractor(Extractor):
             return urljoin(self.base_url, path)
         return path
 
-    def resolve(self, soup):
+    def resolve(self, soup: BeautifulSoup):
         """
         Parameters
         ----------
@@ -398,7 +402,7 @@ class MultiLinkExtractor(LinkExtractor):
             if is_match:
                 yield is_match.group(1)
 
-    def resolve_emails(self, soup):
+    def resolve_emails(self, soup: BeautifulSoup):
         super().resolve(soup)
 
         text = soup.text
@@ -452,7 +456,7 @@ class ImageExtractor(Extractor):
         for image in self._document_images(soup):
             yield image, image.attrs
 
-    def resolve(self, soup):
+    def resolve(self, soup: BeautifulSoup):
         from zineb.tags import ImageTag
         images = self._image_iterator(soup)
         for i, image in enumerate(images):
@@ -462,7 +466,7 @@ class ImageExtractor(Extractor):
             )
         return self.images
 
-    def filter_images(self, expression=None):
+    def filter_images(self, expression: str=None):
         expression = expression or self.url_must_contain
 
         images = self.images.copy()
@@ -497,3 +501,21 @@ class ImageExtractor(Extractor):
                         filtered_images.append(image)
             images = filtered_images
         return images
+
+
+# class ListExtractor(MultipleRowsMixin, Extractor):
+#     def __init__(self, class_name=None, processors: List=[]):
+#         self.class_name = class_name
+
+#     def resolve(self, soup):
+#         attrs = {}
+#         list_items = []
+#         if self.class_name is not None:
+#             attrs['class'] = self.class_name
+
+#         tags = soup.find_all('ul', attrs=attrs)
+#         for index, tag in enumerate(tags):
+#             items = tag.find_all('li')
+#             list_items.extend([(index, tag)])
+
+#         return self._run_processors(self._compose())
