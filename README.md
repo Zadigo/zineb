@@ -173,7 +173,7 @@ Here is a list of expressions that you can use for this field:
 
 By default, if a pseudo is not provided, `__text` pseudo is appended in order to always retrieve the inner text element of the tag.
 
-## Model meta
+## Meta options
 
 By adding a Meta to your model, you can pass custom behaviours to your model.
 
@@ -279,6 +279,8 @@ Every time the resolve function will be called on this field, the methods provid
 An output field is not compulsory but if not provided, each value will be returned as a character.
 
 ### ArrayField
+
+An array field will store an array of values that are all evalutated to an output field that you would have specified.
 
 ### CommaSeperatedField
 
@@ -543,9 +545,11 @@ HTTPPipeline([https://example.com], [download_image], parameters={'extra': False
 
 In this specific case, your function should accept an `extra` parameter which result would be False.
 
-## CallBack
+## Callback
 
-The CallBack allows you to implement callbacks after each url is processed through the start function. The `__call__` method is called on the instance in order to resolve the function to use.
+The Callback class allows you to run a callback function once each url is processed and passed through the main start function of your spider.
+
+The `__call__` method is triggerd on the instance in order to resolve the function to use.
 
 ```
 class Spider(Zineb):
@@ -554,7 +558,7 @@ class Spider(Zineb):
     def start(self, response, **kwargs):
         request = kwargs.get("request")
         model = MyModel()
-        return Callback(request.follow(""), self.another_function, model=model)
+        return Callback(request.follow, self.another_function, model=model)
 
     def another_function(self, response, **kwargs):
         model = kwargs.get("model")
