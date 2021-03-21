@@ -10,12 +10,12 @@ logger = create_logger('Middleware')
 class Middleware:
     """
     Loads every middleware present in the project's
-    settings file
+    settings file and in the user's settings file
     """
     settings = None
     module_registry = OrderedDict()
 
-    def __init__(self, settings: dict={}):
+    def __init__(self, settings={}):
         self.project_middlewares = settings.get('MIDDLEWARES', [])
         self.loaded_middlewares = OrderedDict()
 
