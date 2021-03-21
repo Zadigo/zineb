@@ -1,6 +1,10 @@
 import importlib
 from collections import OrderedDict
 
+from pydispatch import dispatcher
+
+from zineb.signals import signal
+
 
 class Settings:
     """ 
@@ -28,9 +32,13 @@ class Settings:
     def __call__(self, **kwargs):
         self.__init__()
         self._settings.update(kwargs)
+        # Alert all middlewares and registered
+        # signals on Any that the settings
+        # have changed
+        signal.send(dispatcher.Any, self)
         return self._settings
     
-    def __str__(self) -> str:
+    def __str__(self):
         return str(self._settings)
 
     def __getitem__(self, key):
