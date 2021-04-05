@@ -15,7 +15,7 @@ class Middleware:
     settings = None
     module_registry = OrderedDict()
 
-    def __init__(self, settings={}):
+    def __init__(self, settings: dict={}):
         self.project_middlewares = settings.get('MIDDLEWARES', [])
         self.loaded_middlewares = OrderedDict()
 
@@ -37,5 +37,8 @@ class Middleware:
             # in the middleware list individually
             for key, obj in module_dict.items():
                 if key == klass:
-                    self.loaded_middlewares.setdefault(key, obj)
+                    obj_instance = obj()
+                    self.loaded_middlewares.setdefault(key, obj_instance)
                     logger.info(f"Loaded middleware: {middleware}")
+
+                    signal.connect(obj_instance)
