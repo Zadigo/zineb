@@ -1,13 +1,14 @@
+import logging
 import os
 from collections import OrderedDict
 from importlib import import_module
 
 from zineb.app import Zineb
 from zineb.checks.core import checks_registry
+from zineb.logger import create_logger
 from zineb.management.base import BaseCommand
 from zineb.models.datastructure import Model
 from zineb.settings import settings
-from zineb.utils.general import create_logger
 
 logger = create_logger('Start', to_file=False)
 
@@ -23,6 +24,9 @@ class Command(BaseCommand):
         try:
             # Load the spiders module e.g. project.spiders
             spiders_module = import_module(f'{project_name}.spiders')
+        except Exception as e:
+            logger.error(e.args, stack_info=True)
+            raise
         except:
             raise ImportError((f"The command was executed outside "
             f"of a project and thus cannot load the 'spiders' module. "
@@ -63,7 +67,11 @@ class Command(BaseCommand):
             if not loaded_spiders:
                 logger.info(f"'{namespace.name}' spider was not found in project")
             else:
-                _ = spider[0][-1]()
+                try:
+                    _ = spider[0][-1]()
+                except:
+                    raise ValueError(("Spider does not exist. Did you forget to register "
+                    f"'{namespace.name}' in your settings file?"))
         else:
             # Finally execute each spider. Normally they don't
             # return an instance but it would be interesting to
