@@ -59,8 +59,6 @@ def download_image(response, download_to=None, as_thumbnail=False):
     else:
         download_to = f'{download_to}/{create_new_name()}.jpg'
 
-    # pre_download.send('History', dowSnload_image, image_name=download_to)
-
     if as_thumbnail:
         new_image = image.copy()
         new_image.thumbnail((200,))
