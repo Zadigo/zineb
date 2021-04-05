@@ -37,7 +37,7 @@ CONFIGURATION_FILE = os.path.join(PROJECT_PATH, 'settings', 'zineb.conf')
 
 LOG_TO_FILE = True
 
-LOG_FILE = os.path.join(PROJECT_PATH, 'zineb.logs')
+LOG_FILE = os.path.join(PROJECT_PATH, 'zineb.log')
 
 LOG_FORMAT = '%(asctime)s [%(name)s] %(levelname)s: %(message)s'
 
@@ -97,13 +97,13 @@ RETRY_HTTP_CODES = [500, 502, 503, 504, 522, 524, 408, 429]
 
 # Database settings
 
-DATABASE = {
-    'db': 'zineb.database.connection.SQLite',
-    'name': 'some_name',
-    'path': os.path.join(PROJECT_PATH, 'db.sqlite'),
-    'username': None,
-    'password': None
-}
+# DATABASE = {
+#     'db': 'zineb.database.connection.SQLite',
+#     'name': 'some_name',
+#     'path': os.path.join(PROJECT_PATH, 'db.sqlite'),
+#     'username': None,
+#     'password': None
+# }
 
 
 # Represents the default headers that will be
@@ -124,4 +124,8 @@ AWS_SECRET_KEY = None
 
 AWS_SOMETHING_KEY = None
 
+AWS_STORAGE_URL = 'https://example.com'
+
 MEDIA_FOLDER = os.path.join(PROJECT_PATH, 'media')
+
+STORAGE = 'zineb.storages.FileFinder'
