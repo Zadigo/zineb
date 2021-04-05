@@ -1,28 +1,19 @@
+from typing import Any, Callable, Dict, Union
 from pydispatch import dispatcher
 from pydispatch.dispatcher import disconnect, getAllReceivers, liveReceivers
 
 
 class Signal:
+    custom_signals = {}
+
     def disconnect_all(self, sender, signal):
         for receiver in liveReceivers(getAllReceivers(sender, signal)):
             self.disconnect(receiver, signal=signal, sender=sender) 
 
-    def receivers(self, sender):
-        return getAllReceivers(sender=sender)
+    def receivers(self, sender=dispatcher.Any, signal=dispatcher.Any):
+        return getAllReceivers(sender=sender, signal=signal)
 
     def connect(self, receiver, signal=None, sender=None):
-        """
-        Connect a receiver to a sender
-
-        Parameters
-        ----------
-
-                receiver (func)
-                    The function that is to receive the signal
-
-                signal (Any, optional): [description]. Defaults to None.
-                sender (Any, optional): [description]. Defaults to None.
-        """
         if signal is None:
             signal = dispatcher.Any
 
@@ -37,21 +28,36 @@ class Signal:
     def send(self, signal, sender, *arguments, **named):
         return dispatcher.send(signal=signal, sender=sender, *arguments, **named)
 
+    def register(self, receiver: Callable[[str, Union[Dict, None]], None], tag: str=None):
+        if tag is None:
+            tag = receiver.__name__
+        self.custom_signals[tag] = receiver
+        self.connect(receiver)
+
 
 signal = Signal()
 
 
-# def register(sender, signal, name=None):
-#     def _signal(func):
-#         signal.connect(func, signal, name=name)
-#         return dispatcher.send
-#     return _signal
+def receiver(tag: str=None):
+    """
+    Connect a receiving function to the global
+    signals interface
 
+    Example
+    -------
 
-pre_start = signal
-post_start = signal
+            @receiver(tag="tag")
+            def my_custom_function():
+                # Do something here
+                pass
 
-pre_download = signal
+    Args:
+        tag (str, optional): [description]. Defaults to None.
+    """
+    def wrapper(func):
+        signal.register(func, tag=tag)
+    return wrapper
+
 
 
 # class A:
