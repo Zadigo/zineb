@@ -15,7 +15,7 @@ class ModelsPipeline:
             models (list): list of models to to combine
             callbacks (list, Optional): Defaults to []
     """
-    def __init__(self, models, callbacks:list=[]):
+    def __init__(self, models, callbacks: list = []):
         pseudo_dataframes = []
         for model in models:
            if isinstance(model, Model):
