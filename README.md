@@ -640,3 +640,21 @@ SPIDERS = [
 **USER_AGENTS**
 
 A user agent is a characteristic string that lets servers and network peers identify the application, operating system, vendor, and/or version of the requesting [MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent). You can add a list of user agents to use within your project with this constant.
+
+
+# Signals
+
+## Custom signals
+
+You can created custom signals that can be triggered within the process of your application.
+
+```
+from zineb.signals import receiver
+
+@receiver(tag="custom_signal")
+def custom_signal(sender, **kwargs):
+   # Do something here
+   pass
+```
+
+The `receiver` decorator will convert a custom method into a signal receiver and in which you'll be able to run a set of functions.
