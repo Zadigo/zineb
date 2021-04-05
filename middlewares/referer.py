@@ -46,7 +46,7 @@ class Origin(Policy):
 
 class Referer:
     def __call__(self, sender, **kwargs):
-        print('Referer', sender)
+        # print('Referer', sender)
 
         url = kwargs.get('url')
 
