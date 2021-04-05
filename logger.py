@@ -1,4 +1,5 @@
 import logging
+from zineb.settings import settings
 
 def create_logger(name, debug_level=logging.DEBUG, to_file=False, **kwargs):
     logger = logging.getLogger(name)
@@ -10,7 +11,7 @@ def create_logger(name, debug_level=logging.DEBUG, to_file=False, **kwargs):
     formatter = logging.Formatter(log_format, datefmt='%d-%m-%Y %H:%S')
 
     if to_file:
-        handler = logging.FileHandler('zineb.log')
+        handler = logging.FileHandler(settings.LOG_FILE)
         logger.addHandler(handler)
         handler.setFormatter(formatter)
 
