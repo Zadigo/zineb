@@ -74,6 +74,7 @@ class BaseCommand:
                     'project_name': project_name
                 }
             )
+
             return new_settings
 
     def add_arguments(self, parser: ArgumentParser):
