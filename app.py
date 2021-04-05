@@ -62,7 +62,7 @@ class BaseSpider(type):
 
             start_urls = getattr(new_class, 'start_urls')
             if not start_urls:
-                warnings.warn("No start urls were provided for the project", Warning, stacklevel=6)
+                warnings.warn("No start urls were provided for the project", Warning, stacklevel=0)
 
             prepared_requests = attrs.get('_prepared_requests', [])
             if start_urls:
