@@ -12,7 +12,10 @@ from w3lib.url import canonicalize_url, safe_download_url
 from zineb.http.request import HTTPRequest
 from zineb.models import validators as model_validators
 from zineb.utils._html import deep_clean
-from zineb.utils.general import download_image
+from zineb.utils.images import download_image_from_url
+
+Number = Union[int, float]
+
 
 
 class Field:
@@ -63,7 +66,9 @@ class Field:
             self._validators.add(model_validators.validate_is_not_null)
 
     def _true_value_or_default(self, value):
-        return str(value) if value is not None else str(self.default)
+        if self.default is not None and value is None:
+            return self.default
+        return value
 
     def _run_validation(self, value):
         # Default values should be validated
@@ -192,11 +197,21 @@ class Field:
                 clean_value = float(clean_value)
             
         true_value = self._run_validation(clean_value)
-        self._cached_result = true_value
-        return true_value
+        # self._cached_result = true_value
+        self._cached_result = self._true_value_or_default(true_value)
+        return self._cached_result
 
 
 class CharField(Field):
+    """
+    Field for text
+
+    Args:
+        max_length (int, optional): [description]. Defaults to None.
+        null (bool, optional): [description]. Defaults to True.
+        default (Any, optional): [description]. Defaults to None.
+        validators (Union[List[Callable[[Any], Any], Tuple[Callable[[Any], Any]]]], optional): [description]. Defaults to [].
+    """
     name = 'char'
 
     def resolve(self, value):
@@ -244,8 +259,9 @@ class EmailField(Field):
 
     def resolve(self, value):
         value = super().resolve(value)
-        _, domain = value.split('@')
-        self._check_domain(domain)
+        if value is not None:
+            _, domain = value.split('@')
+            self._check_domain(domain)
 
 
 class UrlField(Field):
@@ -288,16 +304,22 @@ class ImageField(UrlField):
         super().resolve(url)
 
         if self.download:
-            request = HTTPRequest(self._cached_result, is_download_url=True)
-            request._send()
-            self.image_data = download_image(
-                request._http_response, 
-                download_to=self.download_to, 
+            download_image_from_url(
+                url,
+                download_to=self.download_to,
                 as_thumbnail=self.as_thumbnail
             )
 
 
 class IntegerField(Field):
+    """
+    Field for numbers
+
+    Args:
+        default (Any, optional): [description]. Defaults to None.
+        min_value (int, optional): [description]. Defaults to None.
+        max_value (int, optional): [description]. Defaults to None.
+    """
     name = 'integer'
     _dtype = numpy.int
 
@@ -326,10 +348,10 @@ class DecimalField(Field):
 
     def __init__(self, default=None, min_value=None, max_value=None):
         if min_value is not None:
-            pass
+            self._validators.add(model_validators.MinLengthValidator)
 
         if max_value is not None:
-            pass
+            self._validators.add(model_validators.MaxLengthValidator)
 
         super().__init__(default=default)
 
@@ -390,6 +412,15 @@ class FunctionField(Field):
 
             class MyModel(Model):
                 age = Function(NumberField(), addition)
+
+    Args:
+        output_field (Field, optional): [description]. Defaults to None.
+        default (Any, optional): [description]. Defaults to None.
+        validators (Validators, optional): [description]. Defaults to [].
+
+    Raises:
+        TypeError: [description]
+        TypeError: [description]
     """
     name = 'function'
     _dtype = numpy.object
@@ -494,8 +525,8 @@ class CommaSeperatedField(Field):
         self._cached_result = ','.join(resolved_values)
 
 
-class Value:
-    result = None
+class RegexField(Field):
+    name = 'regex'
 
     def __init__(self, result, field_name=None):
         self.result = result
