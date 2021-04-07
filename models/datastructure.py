@@ -19,8 +19,42 @@ class FieldDescripor:
 
 
 class ModelOptions:
-    def __init__(self, options:dict = {}):
-        pass
+    def __init__(self, options):
+        self.cached_options = OrderedDict(options)
+
+        self.ordering_field_names = set()
+        self.ascending_fields = []
+        self.descending_fields = []
+        self.ordering_booleans = []
+        
+        if self.has_option('ordering'):
+            ordering = self.get_option_by_name('ordering')
+            self.ordering_field_names = list({
+                field.removeprefix('-') for field in ordering
+            })
+            self.ascending_fields = [
+                field for field in ordering 
+                    if not field.startswith('-')
+            ]
+            self.descending_fields = [
+                field for field in ordering 
+                    if field.startswith('-')
+            ]
+
+            def convert_to_boolean(value):
+                if value.startswith('-'):
+                    return False
+                return True
+            self.ordering_booleans = list(map(convert_to_boolean, ordering))
+
+    def __getitem__(self, name):
+        return self.cached_options[name]
+
+    def get_option_by_name(self, name):
+        return self.cached_options.get(name)
+
+    def has_option(self, name):
+        return name in self.cached_options
 
 
 class Base(type):
@@ -55,13 +89,24 @@ class Base(type):
             meta = None
             if 'Meta' in attrs:
                 meta_dict = attrs.pop('Meta').__dict__
-                authorize_options = []
+                authorized_options = ['ordering']
+                non_authorized_options = []
 
-                def check_option(key, value):
-                    return key, value
+                def check_option(item):
+                    key, _ = item
+                    if key.startswith('__'):
+                        return False
+                    if key in authorized_options:
+                        return True
+                    non_authorized_options.append(key)
+                    return False
 
-                options = [check_option(key, value) for key, value in meta_dict.items()]
+                options = list(filter(check_option, meta_dict.items()))
+                if non_authorized_options:
+                    raise ValueError(f"Meta received an illegal options: {', '.join(non_authorized_options)}")
                 meta = ModelOptions(options=options)
+            else:
+                meta = ModelOptions(options=[])
 
             new_class = super_new(cls, name, bases, attrs)
             setattr(new_class, '_fields', descriptor)
