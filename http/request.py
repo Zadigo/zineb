@@ -1,23 +1,21 @@
-import inspect
 import random
 from collections import OrderedDict
 
 import requests
 from pydispatch import dispatcher
+from requests.models import Response
 from requests.sessions import Request, Session
-from w3lib.url import safe_download_url, safe_url_string, urljoin, urlparse
+from w3lib.url import (is_url, safe_download_url, safe_url_string, urljoin,
+                       urlparse)
 from zineb.extractors.base import Extractor
 from zineb.http.headers import ResponseHeaders
 from zineb.http.responses import HTMLResponse, JsonResponse
 from zineb.http.user_agent import UserAgent
-# from zineb.signals import Signal, signal
+from zineb.logger import create_logger
+from zineb.signals import signal
 from zineb.tags import ImageTag, Link
-from zineb.utils.general import create_logger
 
-logger = create_logger('BaseRequest')
-
-# pre_request = Signal()
-# post_request = Signal()
+logger = create_logger('BaseRequest', to_file=True)
 
 
 class BaseRequest:
@@ -33,7 +31,7 @@ class BaseRequest:
     Raises
     ------
 
-        TypeError: [description]
+        MissingSchema: the url is missing a schema
     """
     only_secured_requests = False
     only_domains = []
@@ -104,8 +102,7 @@ class BaseRequest:
         self.resolved = False
         self._http_response = None
 
-        # signal.connect(self, signal='Request-Before')
-        # signal.connect(self, signal='Request-After')
+        self.domain = None
 
     def __repr__(self):
         return f"{self.__class__.__name__}(url={self.url}, resolved={self.resolved})"
@@ -124,7 +121,7 @@ class BaseRequest:
             headers = self.project_settings.DEFAULT_REQUEST_HEADERS
         else:
             from zineb.settings import settings
-            headers = settings.get('DEFAULT_PROJECT_SETTINGS', {})
+            headers = settings.get('DEFAULT_REQUEST_HEADERS', {})
         headers.update({'User-Agent': user_agent.get_random_agent()})
         extra_headers.update(headers)
         request.headers = headers
@@ -145,6 +142,11 @@ class BaseRequest:
 
                 str: a safe url string
         """
+        if not is_url(url):
+            message = f"The url that was provided is not valid. Got: {url}"
+            logger.error(message, stack_info=True)
+            raise requests.exceptions.InvalidURL(message)
+
         parsed_url = urlparse(url)
 
         scheme = parsed_url[0]
@@ -152,12 +154,12 @@ class BaseRequest:
 
         if self.only_secured_requests:
             if scheme != 'https' or scheme != 'ftps':
-                logger.critical(f'{url} is not secured. No HTTPS scheme is present')
+                logger.critical(f"{url} is not secured. No HTTPS scheme is present")
                 self.can_be_sent = False
 
         if self.only_domains:
             if netloc in self.only_domains:
-                logger.critical(f'{url} is part of the restricted domains list and will not be able to be sent')
+                logger.critical(f"{url} is not part of the restricted domains list and will not be able to be sent")
                 self.can_be_sent = False
             
         return safe_url_string(url)
@@ -172,10 +174,13 @@ class BaseRequest:
                 Request (obj): an HTTP request object
         """
         response = None
-        # class_name = self.__class__.__name__
-        # pre_request.send('Request.Before', self)
+        signal.send(dispatcher.Any, self, tag='Pre.Request')
+
         try:
             response = self.session.send(self.prepared_request)
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"An error occured while processing request for {self.prepared_request}", stack_info=True)
+            self.errors.append([e.args])
         except Exception as e:
             self.errors.extend([e.args])
         else:
@@ -188,14 +193,18 @@ class BaseRequest:
             if response.status_code == 200:
                 self.resolved = True
 
-        # result = signal.send(
-        #     'Zineb-History', 
-        #     class_name, 
-        #     url=response.url, 
-        #     http_response=response,
-        #     http_instance=self
-        # )
+        signal.send(
+            dispatcher.Any,
+            self, 
+            url=response.url, 
+            http_response=response,
+            tag='Post.Request'
+        )
         # policy = response.headers.get('Referer-Policy', 'origin')
+
+        parsed_url = urlparse(response.url)
+        self._domain = f"{parsed_url.scheme}://{parsed_url.netloc}"
+
         return response
 
     def _retry(self):
@@ -215,7 +224,7 @@ class BaseRequest:
             # allows Tags like Link to
             # be passed directly to the
             # request
-            instance = cls(str(url))
+            instance = cls(url)
             yield instance._send()
 
 
@@ -252,7 +261,9 @@ class HTTPRequest(BaseRequest):
     #     return super().__getattr__(key)
 
     def _send(self):
-        """Sends a new HTTP request to the web"""
+        """
+        Sends a new HTTP request to the web
+        """
         http_response = super()._send()
         if http_response is not None:
             if http_response.ok:
@@ -274,9 +285,10 @@ class HTTPRequest(BaseRequest):
     @classmethod
     def follow_all(cls, *urls):
         for url in urls:
-            instance = cls(url)
-            instance._send()
-            yield instance.html_response
+            # instance = cls(url)
+            # instance._send()
+            # yield instance.html_response
+            yield cls.follow(url)
 
     def urljoin(self, path):
         """
@@ -284,6 +296,8 @@ class HTTPRequest(BaseRequest):
         full ones, this joins the main url to the
         relative path 
         """
+        if use_domain:
+            return urljoin(self._domain, str(path))
         return urljoin(self._http_response.url, str(path))
 
 
