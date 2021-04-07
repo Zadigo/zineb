@@ -11,6 +11,18 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true
+        },
+        {
+            "name": "Python : Zineb Commands",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": ["start"],
+            // "env": {
+            //     "celebrity": "Kendall"
+            // }
         }
     ]
 }
