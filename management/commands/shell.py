@@ -74,11 +74,9 @@ class Shell:
 
 class Command(BaseCommand):
     def add_arguments(self, parser):
-        parser.add_argument('url', type=str, help='Url to use for testing')
+        parser.add_argument('--url', type=str, help='Url to use for testing')
 
     def execute(self, **kwargs):
-        print(kwargs)
-        command_value = kwargs.get('url')
-        _, url = command_value.split('=')
+        url = kwargs.get('url')
         shell = Shell()
         shell.start(url=url, use_settings=super()._load_project_settings())
