@@ -180,15 +180,15 @@ class ImageResponse(BaseResponse):
 class JsonResponse(BaseResponse):
     def __init__(self, response, **kwargs):
         super().__init__(response)
-        # content_type = response.headers.get('Content-Type')
         content_type = self.headers.get('content-type')
         if 'application/json' not in content_type:
-            raise ValueError('Response does not have a application/json in its headers')
+            raise ValueError(("Response does not have an 'application/json' "
+            "content-type header in its headers"))
 
         try:
             self.raw_data = response.json()
         except:
-            raise TypeError('Response should be an HTTP request response')
+            raise TypeError('Response should be an HTTP request response (requests.models.Response)')
         self.response_data = pandas.DataFrame(data=self.raw_data)
 
     def __repr__(self):

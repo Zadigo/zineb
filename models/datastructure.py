@@ -31,13 +31,7 @@ class Base(type):
         if not parents:
             return super_new(cls, name, bases, attrs)
 
-        # fields = []
         if name != 'Model':
-            # new_attrs = {}
-            # class_module = attrs.pop('__module__')
-            # class_qualname = attrs.pop('__qualname__')
-
-            # fields = list(attrs.keys())
             # Normally, we should have all the fields
             # anad/or remaining methods of the class
             declared_fields = []
@@ -255,7 +249,10 @@ class DataStructure(metaclass=Base):
         self._cached_result.update({name: cached_field})
 
     def resolve_fields(self):
-        return pandas.DataFrame(
+        """
+        Translate the data to a pandas DataFrame
+        """
+        df = pandas.DataFrame(
             self._cached_result, 
             columns=self._fields.field_names(),
         )
@@ -312,6 +309,7 @@ class Model(DataStructure):
 
             dataframe: pandas dataframe object
         """
+        signal.send(dispatcher.Any, self, tag='Pre.Save')
         df = self.resolve_fields()
         if commit:
             if filename is None:
@@ -319,5 +317,7 @@ class Model(DataStructure):
             else:
                 if not filename.endswith('json'):
                     filename = f'{filename}.json'
+
+            signal.send(dispatcher.Any, self, tag='Post.Save')
             return df.to_json(filename, orient='records')
         return df.copy()    
