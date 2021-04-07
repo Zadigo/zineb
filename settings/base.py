@@ -1,3 +1,7 @@
+"""
+Default Zineb settings.
+"""
+
 import os
 import logging
 
