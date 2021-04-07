@@ -1,9 +1,36 @@
 import importlib
-from collections import OrderedDict
+import os
+import warnings
 
 from pydispatch import dispatcher
-
+from zineb._functionnal import LazyObject
+from zineb.settings import base
 from zineb.signals import signal
+
+USER_SETTINGS_ENV_VARIABLE_NAME = 'ZINEB_SPIDER_PROJECT'
+
+class UserSettings:
+    SETTINGS_MODULE = None
+
+    def __init__(self, user_settings_module: str):
+        self.configured  = False
+        if user_settings_module is None:
+            warnings.warn('Using global settings as user did not define project settings', Warning)
+        else:
+            module = importlib.import_module(user_settings_module)
+            for key in dir(module):
+                if key.isupper():
+                    setattr(self, key, getattr(module, key))
+            self.configured = True
+
+        self.SETTINGS_MODULE = user_settings_module
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__}(configured={self.is_configured})>"
+
+    @property
+    def is_configured(self):
+        return self.configured
 
 
 class Settings:
@@ -15,45 +42,52 @@ class Settings:
 
         OrderedDict: [description]
     """
-    _settings = OrderedDict()
-
     def __init__(self):
-        settings = importlib.import_module('zineb.settings.base')
-        modules_dict = settings.__dict__
+        # settings = importlib.import_module('zineb.settings.base')
+        # modules_dict = settings.__dict__
+        # for key, value in modules_dict.items():
 
-        for key, value in modules_dict.items():
+        for key in dir(base):
             if key.isupper():
-                self._settings.setdefault(key, value)
+                # self._settings.setdefault(key, value)
                 # Also allow something like
                 # settings.MY_SETTING when using
                 # the Settings instance
-                self.__dict__[key] = value
+                setattr(self, key, getattr(base, key, None))
+
+        # Load the user settings and update the global
+        # settings with what the user has defined
+        user_settings_module = os.environ.get(USER_SETTINGS_ENV_VARIABLE_NAME)
+        self._user_settings = UserSettings(user_settings_module)
+        for key in self._user_settings.__dict__.keys():
+            if key.isupper():
+                setattr(self, key, getattr(self._user_settings, key))
 
     def __call__(self, **kwargs):
         self.__init__()
-        self._settings.update(kwargs)
+        self.__dict__.update(kwargs)
         # Alert all middlewares and registered
         # signals on Any that the settings
         # have changed
         signal.send(dispatcher.Any, self)
-        return self._settings
-    
-    def __str__(self):
-        return str(self._settings)
+        return self.__dict__
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__} ''>"
 
     def __getitem__(self, key):
-        return self._settings[key]
+        return self.__dict__[key]
 
-    def __iter__(self):
-        return iter(self._settings)
+    def __setitem__(self, key, value):
+        self.__dict__[key] = value
 
     def copy(self):
-        return self._settings.copy()
+        return self.__dict__.copy()
 
     def get(self, key, default=None):
-        return self._settings.get(key, default)
+        return self.__dict__.get(key, default)
 
     def has_setting(self, key):
-        return key in self._settings.keys()
+        return key in self.__dict__.keys()
 
 settings = Settings()
