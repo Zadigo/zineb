@@ -25,7 +25,8 @@ class TestPipeline(unittest.TestCase):
     def test_resolution_two(self):
         self.assertIsInstance(pipeline2.responses, list)
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     runner = unittest.TextTestRunner()
     suite = unittest.TestSuite()
     suite.addTest(TestPipeline('test_resolution_two'))

@@ -1,5 +1,5 @@
 from zineb.app import Zineb
-from zineb.extractors.images import ImageExtractor
+from zineb.extractors.base import ImageExtractor
 from zineb.utils.general import download_image
 from zineb.http.pipelines import ResponsesPipeline
 from zineb.utils.general import replace_urls_suffix

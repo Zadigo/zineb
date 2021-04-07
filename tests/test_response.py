@@ -1,28 +1,44 @@
+from tests import create_test_image_request, create_test_json_request
 import unittest
-
+import pandas
 from zineb.http.request import HTTPRequest, JsonRequest
-from zineb.http.responses import HTMLResponse, ImageResponse
+from zineb.tests import create_test_request
+from zineb.http.responses import HTMLResponse, ImageResponse, JsonResponse
 
-# request = HTTPRequest('http://example.com')
-# request._send()
-
-# image_request = HTTPRequest('https://www.hawtcelebs.com/wp-content/uploads/2021/01/kimberley-garner-in-a-colorful-bikini-at-a-beach-in-miami-01-07-2021-8.jpg')
-# image_request._send()
+_request = create_test_request()
 
 class TestHTMLResponse(unittest.TestCase):
     def setUp(self):
-        self.html_response = HTMLResponse(request.html_response)
+        self.html_response = HTMLResponse(_request.html_response)
 
     def test_page_title(self):
         self.assertEqual(self.html_response.page_title, 'Example Domain')
 
+    def test_number_of_links(self):
+        self.assertEqual(len(self.html_response.links), 1)
+
+
+_image_request = create_test_image_request()
 
 class TestImageResponse(unittest.TestCase):
     def setUp(self):
-        self.image_response = ImageResponse(image_request._http_response)
+        self.image_response = ImageResponse(_image_request._http_response)
 
-    def test_result(self):
-        self.image_response.save('tests/media')
+    def test_saving_to_media_folder(self):
+        self.image_response.save(path='tests/media')
+
+
+_json_response = create_test_json_request()
+
+class TestJsonResponse(unittest.TestCase):
+    def setUp(self):
+        self.json_response = JsonResponse(_json_response._http_response)
+
+    def test_raw_data_first_value(self):
+        self.assertIsInstance(self.json_response.raw_data[0], dict)
+
+    def test_response_data(self):
+        self.assertIsInstance(self.json_response.response_data, pandas.DataFrame)
 
 
 if __name__ == "__main__":

@@ -17,5 +17,5 @@ class TestJsonRequest(unittest.TestCase):
         # df = request.json_response.get_response_from_key('stats')
         
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

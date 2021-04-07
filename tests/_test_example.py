@@ -8,7 +8,7 @@ with open('tests/html/simpggle.html') as f:
 class Player(Model):
     name = UrlField()
 
-player = Player(html_document=soup)
-player.add_expression('name', 'a#jenner__href')
-print(player)
+# player = Player(html_document=soup)
+# player.add_expression('name', 'a#jenner__href')
+# print(player)
 
