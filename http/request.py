@@ -46,15 +46,11 @@ class BaseRequest:
     can_be_sent = True
     project_settings = {}
 
-    def __init__(self, url, method='GET', **kwargs):
-        if isinstance(url, Link):
-            url = url.href
-        elif inspect.isclass(url):
-            url = url.href
-        elif isinstance(url, ImageTag):
-            url = url.src
-        else:
-            url = url
+    def __init__(self, url: Union[Link, str, ImageTag], method='GET', **kwargs):
+        # Calling "str" on the pseudo-url allows
+        # us to get the string contained in classes
+        # that represent the url such as Link or ImageTag
+        url = str(url)
 
         self.project_settings = kwargs.get('settings', {})
 
