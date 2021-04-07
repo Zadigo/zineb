@@ -16,9 +16,30 @@ def start(self, response, **kwargs):
      images = response.images
 ```
 
+# Getting started
+
+All your interractions with Zineb will be made trough the management commands that are executed through `python manage.py` from your project's directory.
+
+## Creating a project
+
+To create a project do `python manage.py startproject <project name>` which will create a directory which will have the following structure.
+
+
+The models directory allows you to place the elements that will help structure the data that you have scrapped from from the internet.
+
+The `manage.py` file will allow you to run all the required commands from your project.
+
+Finally, the spiders module will contain all the spiders for your project.
+
+## Configuring your project
+
+On startup, Zineb implements a set of basic settings (`zineb.settings.base`) that will get overrided by the values that you would have defined in your `settings.py` located in your project.
+
+You can readd more about this in the [settings section of this file](#Settings).
+
 ## Creating a spider
 
-Creating a spider is extremely easy and requires a set of starting urls that can be used to scrap an HTML page.
+Creating a spider is extremely easy and requires a set of starting urls that can be used to scrap one or many HTML pages.
 
 ```
 class Celebrities(Zineb):
@@ -30,20 +51,22 @@ class Celebrities(Zineb):
 
 ```
 
-Once the Celibrities class is called, each request is passed through the `start` method using the `zineb.response.HTTPResponse`, the `zineb.request.HTTPRequest` and the `BeautifulSoup` HTML page object.
+Once the Celibrities class is called, each request is passed through the `start` method. In other words the `zineb.response.HTTPResponse`,  `zineb.request.HTTPRequest` and the `BeautifulSoup` HTML page object and sent through the function.
 
 You are not required to use all these parameters at once. They're just for convinience.
 
-In which case, you can also write the start method as so:
+In which case, you can also write the start method as so if you only need one of these.
 
 ```
 def start(self, response, **kwargs):
   # Do something here
 ```
 
-### Adding meta options to the spider
+Other objects can be passes through the function such as the models that you have created but also the settings of the application etc.
 
-Meta options allows you to customize certain behaviours related to the spider.
+### Adding meta options
+
+Meta options allows you to customize certain very specific behaviours [not found in the `settings.py` file] related to the spider.
 
 ```
 
@@ -56,23 +79,35 @@ Meta options allows you to customize certain behaviours related to the spider.
 
 #### Domains
 
-You can limit the spider to very specific domains.
+This option limits a spider to a very specific set of domains.
 
-# Doing queries
+#### Verbose name
 
-Like said previously, the majority of your interactions with the HTML page will be done through the ``HTMLResponse`` object.
+This option writter as `verbose_name` will specific a different name to your spider.
 
-This class implements some basic functionnalities that you can use through the course of your project.
+## Running commands
 
-To illustrate this, let's create a basic HTTP response:
+#### Start
+
+Triggers the execution of all the spiders present in the given the project. This command will be the main one that you will be using to execute your project.
+
+#### Shell
+
+Start a iPython shell on which you can test various elements on the HTML page, the HTTP request
+
+## Queries on the page
+
+Like said previously, the majority of your interactions with the HTML page will be done through the ``HTMLResponse`` object or the `zineb.http.HTMLResponse` class.
+
+This class will implement some very basic general functionnalities that you can use through the course of your project. To illustrate this, let's create a basic Zineb HTTP response:
 
 ```
 from zineb.http.requests import HTTPRequest
 
-request = HTTPRequest('http://example.co' resolved=False)
+request = HTTPRequest("http://example.co")
 ```
 
-Requests, when created a not sent [or resolved] automatically the `_send` function is called. In that case, they are marked as being unresolved.
+Requests, when created a not sent [or resolved] automatically if the `_send` function is not called. In that case, they are marked as being unresolved ex. `HTTPRequest("http://example.co", resolved=False)`.
 
 ```
 request._send()
@@ -81,15 +116,11 @@ request.html_response.html_page
     -> BeautifulSoup object
 ```
 
-By using the `html_page` attribute, you can do all the classic querying that you would do with BeautifulSoup e.g. find, findall...
+Once the `_send` method is called, by using the By using the `html_page` attribute, you can do all the classic querying that you would do with BeautifulSoup e.g. find, findall...
 
-To find out what you can do with BeautifulSoup please read [the documentation here](https://www.crummy.com/software/BeautifulSoup/bs4/doc/).
+If you do not know about BeautifulSoup please read [the documentation here](https://www.crummy.com/software/BeautifulSoup/bs4/doc/).
 
-## Basic implementations
-
-The `request.html_response` attribute provides some very basic functionalities that we will be reviewing below.
-
-These three elements are generally the most common items retrieved when doing web scraping.
+In order to understand what the `Link`, `Image` and `Table` objects represents, please read the [following section]() of this page.
 
 ### Getting all the links
 
@@ -98,8 +129,6 @@ request.html_response.links
 
     -> [Link(url='http://example.com')]
 ```
-
-In order to understand what the ``Link`` object represents, please read the [following section]() of this page.
 
 ### Getting all the images
 
@@ -117,15 +146,13 @@ request.html_response.tables
     -> [Table(url='https://example.com/1')]
 ```
 
-### Getting the page text
+### Getting all the text
 
 Finally you can retrieve all the text of the web page at once.
 
-First, the text is retrieved as a raw value then tokenized and vectorized.
-
 # Models
 
-Models are a simple way to structure your scrapped data before saving them to a file. The Model class is built around Panda's excellent DataFrame class.
+Models are a simple way to structure your scrapped data before saving them to a file. The Model class is built around Panda's excellent DataFrame class in order to simplify as a much as possible the fact of dealing with your data.
 
 ## Creating a custom Model
 
@@ -143,7 +170,7 @@ class Player(Model):
 
 On its own, a model does nothing. In order to make it work, you have to add values to it and then resolve the fields.
 
-You can add values to your model in two main ways that we will be developping below.
+You can add values to your model in two main ways.
 
 #### Adding a free custom value
 
@@ -175,7 +202,7 @@ By default, if a pseudo is not provided, `__text` pseudo is appended in order to
 
 ## Meta options
 
-By adding a Meta to your model, you can pass custom behaviours to your model.
+By adding a Meta to your model, you can pass custom behaviours.
 
 * Ordering
 * Indexing
@@ -204,17 +231,15 @@ Fields are a very simple way to passing HTML data to your model in a very struct
 
 ### How fields work
 
-Once the field is called by the model, the `resolve` function is called on each field which in turns calls the `super().resolve` function of the Field super class.
+Once the field is called via the `resolve` function on each field which in turns calls the `super().resolve` function of the `Field` super class, the value is stored.
 
 By default, the resolve function will do the following things.
 
-First, it will run all checks on the value that was passed then it will strip any "<" or ">" tags in the value if present using the `w3lib.html.remove_tags`.
+First, it will run all cleaning functions on the value for example by stripping tags like "<" or ">" by using the `w3lib.html.remove_tags` library.
 
-Second, the `deep_clean` method will be called on the value which takes out any spaces using `w3lib.html.strip_html5_whitespace` and also remove escape characters with the `w3lib.html.replace_escape_chars` function.
+Second, a `deep_clean` method will be called on the value which takes out any spaces using `w3lib.html.strip_html5_whitespace`, remove escape characters with the `w3lib.html.replace_escape_chars` function and finally reconstruct the value to ensure that any none-detected white space be eliminated.
 
-A filtering function is run at last to ensure that no white space is included in the new returned value something which can happen when the strip_html5_whitespace cannot detect these edge cases.
-
-Finally, all validators (default and custom) are called on the value. The final value is then returned.
+Finally, all validators (default and custom created) are called on the value. The final value is then returned within the model class.
 
 ### CharField
 
@@ -286,7 +311,7 @@ An array field will store an array of values that are all evalutated to an outpu
 
 ### Creating your own field
 
-You an also create a custom field by suclassing the `Field` class. When doing so, your custom field has to provide a `resolve` function in order to determine how the value should be treated. For example:
+You an also create a custom field by suclassing `zineb.models.fields.Field`. When doing so, your custom field has to provide a `resolve` function in order to determine how the value should be treated. For example:
 
 ```
 class MyCustomField(Field):
@@ -294,9 +319,11 @@ class MyCustomField(Field):
         initial_result = super().resolve(value)
 ```
 
-#### Checks
+If you want to use the custom cleaning functionalities on your resolve function before running yours, make sure to call super.
 
-Checks make sure that the value that was passed respects the constraints that were implemented as a keyword arguments on the field class. There are five basic checks:
+## Validators
+
+Validators make sure that the value that was passed respects the constraints that were implemented as a keyword arguments on the field class. There are five basic validations:
 
 - Maximum length
 - Uniqueness
@@ -304,13 +331,17 @@ Checks make sure that the value that was passed respects the constraints that we
 - Defaultness
 - Validity (validators)
 
-The maximum length check ensures that the value does not exceed a certain length.
+### Maximum or Minimum length
 
-The nullity check makes sure that the value is not null and that if a default is provided, that null value be replaced by the latter.
+The maximum length check ensures that the value does not exceed a certain length using `zineb.models.validators.max_length_validator` or `zineb.models.validators.min_length_validator` which are encapsulated and used within the `zineb.models.validators.MinLengthValidator` or `zineb.models.validators.MaxLengthValidator` class.
+
+### Nullity
+
+The nullity validation ensures that the value is not null and that if a default is provided, that null value be replaced by the latter. It uses `zineb.models.validators.validate_is_not_null`.
 
 The defaultness provides a default value for null or none existing ones.
 
-And, finally, the validity checks are a set of extra validation checks that can be passed to ensure value correctness.
+### Practical examples
 
 For instance, suppose you want only values that do not exceed a certain length:
 
@@ -324,11 +355,9 @@ Or suppose you want a default value for fields that are empty or blank:
 name = CharField(default='Kylie Jenner')
 ```
 
-#### Validators
+Remember that validators will validate the value itself for example by making sure that an URL is indeed an url or that an email follows the expected pattern that you would expect from an email.
 
-__Validators__ validate the value itself. For instance, making sure that an URL is indeed an url or that an email follows the expected pattern that you would expect from an email.
-
-Suppose you want only values that would be `Kendall Jenner`:
+Suppose you want only values that would be `Kendall Jenner`. Then you could create a custom validator that would do the following:
 
 ```
 def check_name(value):
@@ -339,22 +368,7 @@ def check_name(value):
 name = CharField(validators=[check_name])
 ```
 
-Zineb comes with a default set of validators. But you can also create yours and pass it to the field:
-
-```
-from zineb.models.datastructure import Model
-from models.fields import CharField
-
-def custom_validator(value):
-    if value == 'Kendall Jenner':
-        return 'Kylie Jenner'
-    return value
-
-class Player(Model):
-    name = CharField(validators=[custom_validator])
-```
-
-You can also create validators that match a specific regex pattern using the `regex_compiler` decorator:
+You can also create validators that match a specific regex pattern using the `zineb.models.validators.regex_compiler` decorator:
 
 ```
 from zineb.models.datastructure import Model
@@ -375,9 +389,7 @@ It is important to understand that the result of the regex compiler is reinjecte
 
 #### Field resolution
 
-Once the field tries to resolve the value, it will run __checks__ if any and will __validate__ the value before storing it.
-
-In order to get the complete structured data, you need to call `resolve_values`:
+In order to get the complete structured data, you need to call `resolve_values` which will return a `pandas.DataFrame` object:
 
 ```
 player.add_value("name", "Kendall Jenner")
@@ -386,44 +398,19 @@ player.resolve_values()
     -> pandas.DataFrame
 ```
 
-This returns a DataFrame object.
-
-You can also call the `save` method to create a JSON file:
+Practically though, you'll be using the `save` method which also calls the `resolve_values` under the hood:
 
 ```
-player.save(commit=True)
+player.save(commit=True, filename=None, **kwargs)
 
-    -> JSON File
+    -> pandas.DataFrame or new file
 ```
 
-## Signals
-
-Signals are a very simple yet efficient way for you to run functions during the lifecycle of your project. You can run many types of signals:
-
-- Before the spider starts
-- After the spider has started
-- Before the spider downloads anything
-- while the spider generates data
-
-### Creating a signal
-
-```
-from zineb.signals import register
-
-@register(sender, receiver)
-def my_custom_signal(sender, **kwargs):
-    pass
-```
-
-The signals function has to be able to accept an instance object and additional parameters such as the current url or the current HTML page.
-
-This instance element represents the spider object on which you will be able to run a set of options.
-
-You custom signals do not have to return anything.
+By calling the save method, you'll be able to store the data directly to a JSON or CSV file.
 
 # Extractors
 
-Extractors a utilities that facilitates extracting certain specific pieces of data from a web page such as links, images [...] They are very handly when you need to quickly get these objects for further processing.
+Extractors are utilities that facilitates extracting certain specific pieces of data from a web page such as links, images [...] quickly. They are very handy in that regards.
 
 ## LinkExtractor
 
@@ -458,9 +445,14 @@ for link in extractor:
     ...
 ```
 
-## TableRows
+## TableExtractor
 
 Extract all the rows from the first table that is matched on the HTML page.
+
+* `class_name` - intercept a table with a specific class name
+* `has_headers` - specify if the table has headers in order to ignore it in the final data
+* `filter_empty_rows` - ignore any rows that do not have a values
+* `processors` - a set of functions to run on the data once it is all extracted
 
 ## ImageExtractor
 
@@ -474,9 +466,43 @@ You can filter down the images that you get by using a specific set of parameter
 * `match_height` - only return images that match as specific height
 * `match_width` - only return images that match a specific width
 
-# Configuring your spider
+## TextExtractor
 
-Your spiders get configured on initialization through your ``settings.conf`` file.
+Extract all the text on an HTML page.
+
+First, the text is retrieved as a raw value then tokenized and vectorized using `nltk.tokenize.PunktSentenceTokenizer` and `nltk.tokenize.WordPunctTokenizer`.
+
+To know more about NLKT, [please read the following documentation](https://www.nltk.org/).
+
+# Signals
+
+Signals are a very simple yet efficient way for you to run functions during the lifecycle of your project when certain events occur at very specific moments.
+
+Internally signals are sent on the following events:
+
+- When the registry is populated
+- Before the spider starts
+- After the spider has started
+- Before an HTTP request is sent
+- Before and HTTP request is sent
+- Before the model downloads anything
+- After the model has downloaded something
+
+### Creating a custom signal
+
+To create custom signal, you need to mark a method as being a receiver for any incoming signals. For example, if you want to create a signal to intercept one of the events above, you should do:
+
+```
+from zineb.signals import receiver
+
+@receiver(tag="Signal Name")
+def my_custom_signal(sender, **kwargs):
+    pass
+```
+
+The signals function has to be able to accept a `sender` object and additional parameters such as the current url or the current HTML page.
+
+You custom signals do not have to return anything.
 
 # Pipelines
 
@@ -640,21 +666,3 @@ SPIDERS = [
 **USER_AGENTS**
 
 A user agent is a characteristic string that lets servers and network peers identify the application, operating system, vendor, and/or version of the requesting [MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent). You can add a list of user agents to use within your project with this constant.
-
-
-# Signals
-
-## Custom signals
-
-You can created custom signals that can be triggered within the process of your application.
-
-```
-from zineb.signals import receiver
-
-@receiver(tag="custom_signal")
-def custom_signal(sender, **kwargs):
-   # Do something here
-   pass
-```
-
-The `receiver` decorator will convert a custom method into a signal receiver and in which you'll be able to run a set of functions.
