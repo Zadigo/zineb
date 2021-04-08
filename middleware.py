@@ -5,7 +5,7 @@ from importlib import import_module
 from zineb.signals import signal
 from zineb.logger import create_logger
 
-logger = create_logger('Middleware')
+logger = create_logger('Middleware', to_file=True)
 
 class Middleware:
     """
@@ -42,3 +42,8 @@ class Middleware:
                     logger.info(f"Loaded middleware: {middleware}")
 
                     signal.connect(obj_instance)
+
+    def get_middleware(self, name):
+        if not self.loaded_middlewares:
+            raise ValueError('Settings is not yet loaded')
+        return self.loaded_middlewares.get(name, None)
