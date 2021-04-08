@@ -4,7 +4,7 @@ import warnings
 
 from pydispatch import dispatcher
 from zineb._functionnal import LazyObject
-from zineb.settings import base
+from zineb.settings import base as global_settings
 from zineb.signals import signal
 
 USER_SETTINGS_ENV_VARIABLE_NAME = 'ZINEB_SPIDER_PROJECT'
@@ -43,17 +43,12 @@ class Settings:
         OrderedDict: [description]
     """
     def __init__(self):
-        # settings = importlib.import_module('zineb.settings.base')
-        # modules_dict = settings.__dict__
-        # for key, value in modules_dict.items():
-
-        for key in dir(base):
+        for key in dir(global_settings):
             if key.isupper():
-                # self._settings.setdefault(key, value)
                 # Also allow something like
                 # settings.MY_SETTING when using
                 # the Settings instance
-                setattr(self, key, getattr(base, key, None))
+                setattr(self, key, getattr(global_settings, key, None))
 
         # Load the user settings and update the global
         # settings with what the user has defined

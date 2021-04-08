@@ -37,9 +37,16 @@ class LazyObject:
             return type(self)()
         return copy.copy(self.cached_object)
 
+    def __call__(self, **kwargs):
+        if self.cached_object is None:
+            self._init_object()
+        self.cached_object(**kwargs)
+
     __dir__ = create_proxy_function(dir)
     __str__ = create_proxy_function(str)
     __repr__ = create_proxy_function(repr)
+    __getitem__ = create_proxy_function(operator.getitem)
+    __setitem__ = create_proxy_function(operator.setitem)
 
     def _init_object(self):
         """
