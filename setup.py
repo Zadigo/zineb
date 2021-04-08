@@ -15,7 +15,7 @@ def read_files(filename):
 
 
 classifiers = [
-    'Development Status :: 2 - Pre-Alpha',
+    'Development Status :: 3 - Alpha',
 
     'Environment :: Console',
 
@@ -57,7 +57,7 @@ install_requires = [
 setuptools.setup(
     name='zineb',
     # packages: [],
-    version='2.0.0',
+    version='1.0.0',
     author='John Pendenque',
     author_email='pendenquejohn@gmail.com',
     classifiers=classifiers,
@@ -68,5 +68,5 @@ setuptools.setup(
     long_description=read_files('README.md'),
     long_description_content_type='text/markdown',
     python_requires='>=3.9',
-    url='https://github.com/Zadigo/zineb/releases/tag/2.0.0-pre-alpha'
+    url='https://github.com/Zadigo/zineb/releases/tag/1.0.0-alpha'
 )
