@@ -8,7 +8,7 @@ import logging
 
 PROJECT_PATH = os.path.dirname(os.path.dirname(__file__))
 
-SETTINGS_FILE = os.path.join(PROJECT_PATH, 'settings', 'base.py')
+# SETTINGS_FILE = os.path.join(PROJECT_PATH, 'settings', 'base.py')
 
 
 # Register all your spiders from your
@@ -32,7 +32,7 @@ ENSURE_HTTPS = False
 # Use this configuration file to monitor and configure the
 # way your spider will be crawling the internet
 
-CONFIGURATION_FILE = os.path.join(PROJECT_PATH, 'settings', 'zineb.conf')
+# CONFIGURATION_FILE = os.path.join(PROJECT_PATH, 'settings', 'zineb.conf')
 
 
 # Logging is done primaryly in the console.
