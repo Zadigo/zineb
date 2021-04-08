@@ -3,6 +3,7 @@ import re
 from collections import deque
 from functools import cached_property
 from typing import Any, Callable, List, NoReturn, Optional, Sequence, Union
+import typing
 
 import pandas
 from bs4 import BeautifulSoup
@@ -29,6 +30,12 @@ class Extractor:
     def resolve(self, soup: BeautifulSoup) -> NoReturn:
         raise NotImplementedError(('Provide functionnalities for quickly '
         'extracting items from the HTML page'))
+
+    def _check_response(self, response):
+        from zineb.http.responses import HTMLResponse
+        if isinstance(response, HTMLResponse):
+            return response.html_page
+        return response
 
 
 class TableExtractor(Extractor):
@@ -503,19 +510,25 @@ class ImageExtractor(Extractor):
         return images
 
 
-# class ListExtractor(MultipleRowsMixin, Extractor):
-#     def __init__(self, class_name=None, processors: List=[]):
-#         self.class_name = class_name
+class ListExtractor(MultipleRowsMixin, Extractor):
+    def __init__(self, class_name=None, processors: List=[]):
+        super().__init__(class_name=class_name, processors=processors)
+        self.class_name = class_name
 
-#     def resolve(self, soup):
-#         attrs = {}
-#         list_items = []
-#         if self.class_name is not None:
-#             attrs['class'] = self.class_name
+    def resolve(self, soup):
+        attrs = {}
+        # list_items = []
+        if self.class_name is not None:
+            attrs['class'] = self.class_name
 
-#         tags = soup.find_all('ul', attrs=attrs)
-#         for index, tag in enumerate(tags):
-#             items = tag.find_all('li')
-#             list_items.extend([(index, tag)])
+        soup = self._check_response(soup)
 
-#         return self._run_processors(self._compose())
+        tags = soup.find_all('ul', attrs=attrs)
+        for tag in tags:
+            items = tag.find_all('li')
+            for index, item in enumerate(items):
+                link = item.find('a')
+                if link is not None:
+                    link = link.attrs['href']
+                self._rows.append([index, deep_clean(item.text), link])
+        return self._run_processors(self._compose())

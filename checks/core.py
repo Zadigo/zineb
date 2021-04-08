@@ -1,4 +1,6 @@
 from collections import deque
+from importlib import import_module
+from typing import Callable
 
 
 class GlobalMixins:
@@ -12,13 +14,17 @@ class ApplicationChecks(GlobalMixins):
         self._checks = deque()
     
     def run(self):
+        modules = ['base', 'http']
+        for module in modules:
+            module = import_module(f'zineb.checks.{module}')
+            
         for check in self._checks:
             new_errors = check(self._default_settings)
             if new_errors:
                 self._errors.extend(new_errors)
 
-    def register(self, tag=None):
-        def inner(func):
+    def register(self, tag: str = None):
+        def inner(func: Callable):
             if not callable(func):
                 raise TypeError('A system check should be a callable function to be registered')
             self._checks.append(func)

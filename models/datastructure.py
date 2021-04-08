@@ -1,11 +1,17 @@
 import re
 import secrets
 from collections import OrderedDict
+from typing import Any
 
 import pandas
+from bs4 import BeautifulSoup
+from bs4.element import ResultSet, Tag
+from pydispatch import dispatcher
 from zineb.exceptions import FieldError, ParserError
 from zineb.http.responses import HTMLResponse
+from zineb.models._expressions import Expressions
 from zineb.models.fields import Field
+from zineb.signals import signal
 
 
 class FieldDescripor:
@@ -125,7 +131,8 @@ class Registry:
 
 
 class DataStructure(metaclass=Base):
-    def __init__(self, html_document=None, html_tag=None, response=None):
+    def __init__(self, html_document: BeautifulSoup=None, 
+                 html_tag: Tag=None, response: HTMLResponse=None):
         self._cached_result = {}
         self.html_document = html_document
         self.html_tag = html_tag
@@ -251,7 +258,7 @@ class DataStructure(metaclass=Base):
         cached_field.extend(results)
         self._cached_result.update({name: cached_field})
 
-    def add_value(self, name, value):
+    def add_value(self, name: str, value: Any):
         """
         Adds a value to your Model object. This definition does not
         require a BeautifulSoup object
@@ -302,6 +309,13 @@ class DataStructure(metaclass=Base):
             columns=self._fields.field_names(),
         )
 
+        if self._meta.has_option('ordering'):
+            df = df.sort_values(
+                by=self._meta.ordering_field_names,
+                ascending=self._meta.ordering_booleans
+            )
+        return df
+
 
 class Model(DataStructure):
     """
@@ -335,6 +349,19 @@ class Model(DataStructure):
 
     def __setitem__(self, field, value):
         self.add_value(field, value)
+
+    # def clean(self, dataframe: pandas.DataFrame, **kwargs):
+    #     """
+    #     Put all additional functionnalities that you wish to
+    #     run on the DataFrame here before calling the save
+    #     function on your model.
+
+    #     Parameters
+    #     ----------
+
+    #         dataframe (pandas.DataFrame): [description]
+    #     """
+    #     pass
         
     def save(self, commit=True, filename=None, **kwargs):
         """
@@ -356,6 +383,9 @@ class Model(DataStructure):
         """
         signal.send(dispatcher.Any, self, tag='Pre.Save')
         df = self.resolve_fields()
+
+        # self.clean(dataframe=df)
+
         if commit:
             if filename is None:
                 filename = f'{secrets.token_hex(nbytes=5)}.json'

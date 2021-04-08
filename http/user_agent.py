@@ -1,5 +1,8 @@
 import random
 
+from zineb.settings import settings
+
+
 class UserAgent:
     agents = [
         'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.3',
@@ -15,5 +18,14 @@ class UserAgent:
     def __init__(self):
         self.current_agent = None
 
-    def get_random_agent(self):
-        return random.choice(self.agents)
+    def get_random_agent(self) -> str:
+        """
+        Get a random user agent from a list of agents
+
+        Returns:
+            str: a user agent to use for a request
+        """
+        user_agents_from_settings = settings.get('USER_AGENTS', [])
+        self.agents.extend(user_agents_from_settings)
+        random.shuffle(self.agents)
+        return random.choice(list(set(self.agents)))

@@ -1,11 +1,14 @@
 import re
-from w3lib.url import is_url
 from functools import wraps
+from typing import Any, Callable, Tuple, Union
+
+from w3lib.url import is_url
 from zineb.exceptions import ValidationError
 
-def regex_compiler(pattern):
-    def compiler(func):
-        def wrapper(value, **kwargs):
+
+def regex_compiler(pattern: str):
+    def compiler(func: Callable[[Tuple], Any]):
+        def wrapper(value: Any, **kwargs):
             compiled_pattern = re.compile(pattern)
             result = compiled_pattern.match(str(value))
             if not result or result is None:
@@ -23,13 +26,13 @@ def validate_numeric(clean_value):
 
 
 @regex_compiler(r'^\w+\W?\w+@\w+\W\w+$')
-def validate_email(email):
+def validate_email(email) -> str:
     if '@' not in email:
         raise ValidationError(f'{email} is not a valid email for the field')
     return email
 
 
-def validate_is_not_null(value):
+def validate_is_not_null(value: Any):
     if value is None:
         raise TypeError('None values are not permitted')
     if value == '':
@@ -45,7 +48,7 @@ def validate_length(value, max_length):
 
 
 @regex_compiler(r'(?<=\.)(\w+)\Z')
-def validate_extension(clean_value, extensions:list=[]):
+def validate_extension(clean_value, extensions: list = []):
     base_extensions = []
     base_extensions = base_extensions + extensions
     if clean_value not in base_extensions:
@@ -62,11 +65,11 @@ def min_length_validator(a, b) -> bool:
 
 
 @regex_compiler(r'^(\-?\d+[\W]\d?)(?=\%$)')
-def validate_percentage(number):
+def validate_percentage(number) -> Union[int, float]:
     return number
 
 
-def validate_url(url):
+def validate_url(url: str):
     if url.startswith('/'):
         return url
 
@@ -100,7 +103,7 @@ class LengthValidator:
 
 
 class MinLengthValidator(LengthValidator):
-    def __call__(self, value_to_test):
+    def __call__(self, value_to_test: Any):
         value_length = super().__call__(value_to_test)
         result = min_length_validator(value_length, self.constraint)
         super().should_return_result(value_length, result, True)
@@ -108,7 +111,7 @@ class MinLengthValidator(LengthValidator):
 
 
 class MaxLengthValidator(LengthValidator):
-    def __call__(self, value_to_test):
+    def __call__(self, value_to_test: Any):
         value_length = super().__call__(value_to_test)
         result = max_length_validator(value_length, self.constraint)
         super().should_return_result(value_length, result, False)

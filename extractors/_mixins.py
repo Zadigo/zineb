@@ -7,6 +7,9 @@ class MultipleRowsMixin:
 
         self.class_name = None
         self.attrs = dict()
+        
+        if not isinstance(processors, list):
+            raise TypeError('Processors should be a list of processors')
         self.processors = processors
 
     def __iter__(self):

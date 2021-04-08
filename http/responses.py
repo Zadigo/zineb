@@ -17,7 +17,7 @@ from zineb.utils.general import create_new_name
 
 
 class BaseResponse:
-    def __init__(self, response):
+    def __init__(self, response: Response):
         self.cached_response = response
         self.headers = ResponseHeaders(response.headers)
     
@@ -41,7 +41,7 @@ class HTMLResponse(BaseResponse):
             wrapped_response = HTMLResponse(response)
             wrapped_response.html_page -> BeautifulSoup object
     """
-    def __init__(self, response, **kwargs):
+    def __init__(self, response: Response, **kwargs):
         super().__init__(response)
 
         if isinstance(response, str):
@@ -120,7 +120,7 @@ class ImageResponse(BaseResponse):
     Args:
         BaseResponse ([type]): [description]
     """
-    def __init__(self, response):
+    def __init__(self, response: Response):
         super().__init__(response)
         self.attrs = {}
 
@@ -170,7 +170,7 @@ class ImageResponse(BaseResponse):
         # else:
         #     raise ValueError('Cannot save image with unset image parameter')
 
-    def get_thumbnail(self, size:tuple):
+    def get_thumbnail(self, size: tuple):
         if self.image is not None:
             self.image.thumbnail(size, Image.ANTIALIAS)
         else:
@@ -178,7 +178,7 @@ class ImageResponse(BaseResponse):
 
 
 class JsonResponse(BaseResponse):
-    def __init__(self, response, **kwargs):
+    def __init__(self, response: Response, **kwargs):
         super().__init__(response)
         content_type = self.headers.get('content-type')
         if 'application/json' not in content_type:

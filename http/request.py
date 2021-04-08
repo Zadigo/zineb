@@ -1,5 +1,6 @@
 import random
 from collections import OrderedDict
+from typing import Union
 
 import requests
 from pydispatch import dispatcher
@@ -107,11 +108,7 @@ class BaseRequest:
     def __repr__(self):
         return f"{self.__class__.__name__}(url={self.url}, resolved={self.resolved})"
 
-    def __call__(self, sender, **kwargs):
-        # print(sender, kwargs)
-        pass
-
-    def _set_headers(self, request, **extra_headers):
+    def _set_headers(self, request: Request, **extra_headers):
         user_agent = UserAgent()
         # This is a specific technique that allows
         # to call the HTTPRequest class without
@@ -188,6 +185,7 @@ class BaseRequest:
             if retry:
                 retry_http_status_codes = self.retries.get('retry_http_status_codes', [])
                 if response.status_code in retry_http_status_codes:
+                    # TODO: Might create an error
                     response = self._retry()
 
             if response.status_code == 200:
@@ -207,10 +205,25 @@ class BaseRequest:
 
         return response
 
-    def _retry(self):
+    def _retry(self) -> Response:
+        retry_responses = []
         retry_times = self.retries.get('retry_times')
         for _ in range(0, retry_times + 2):
-            return self.session.send(self.prepared_request)
+            # return self.session.send(self.prepared_request)
+            response = self.session.send(self.prepared_request)
+            retry_responses.extend([(response.status_code, response)])
+        sorted_responses = sorted(retry_responses)
+        
+        other_success_codes = []
+        def filter_codes(response):
+            code = response[0]
+            if code == 200:
+                return True
+            else:
+                if code in other_success_codes:
+                    return True
+            return False
+        return list(filter(filter_codes, sorted_responses))[-1]
 
     @classmethod
     def follow(cls, url):
@@ -218,9 +231,9 @@ class BaseRequest:
         return instance._send()
 
     @classmethod
-    def follow_all(cls, urls):
+    def follow_all(cls, urls: Union[str, Link]):
         for url in urls:
-            # Calling str() on the url
+            # FIXME: Calling str() on the url
             # allows Tags like Link to
             # be passed directly to the
             # request
@@ -277,20 +290,20 @@ class HTTPRequest(BaseRequest):
             logger.error(f'An error occured on this request: {self.url}')
 
     @classmethod
-    def follow(cls, url):
+    def follow(cls, url: Union[str, Link]):
         instance = cls(url)
         instance._send()
         return instance.html_response
 
     @classmethod
-    def follow_all(cls, *urls):
+    def follow_all(cls, *urls: Union[str, Link]):
         for url in urls:
             # instance = cls(url)
             # instance._send()
             # yield instance.html_response
             yield cls.follow(url)
 
-    def urljoin(self, path):
+    def urljoin(self, path: str, use_domain=False):
         """
         To compensate for relative paths not being
         full ones, this joins the main url to the
@@ -302,7 +315,7 @@ class HTTPRequest(BaseRequest):
 
 
 class JsonRequest(BaseRequest):
-    def __init__(self, url, **kwargs):
+    def __init__(self, url: Union[str, Link], **kwargs):
         super().__init__(url, **kwargs)
         self.json_response = None
 
@@ -317,5 +330,5 @@ class JsonRequest(BaseRequest):
             
 
 class FormRequest(BaseRequest):
-    def __init__(self, url, **kwargs):
-        super().__init__(url, method='POST', **kwargs)
+    def __init__(self, url: Union[Link, str], **attrs):
+        super().__init__(url, method='POST')

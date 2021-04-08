@@ -2,6 +2,7 @@ import ast
 import datetime
 import json
 import re
+from typing import Any, Callable, List, Tuple, Union
 
 import numpy
 import pandas
@@ -19,14 +20,16 @@ Number = Union[int, float]
 
 
 class Field:
-    """ 
+    """
     This is the base class for all field classes
 
-    Parameters
-    ----------
-    
-            TypeError: [description]
-            ValidationError: [description]
+    Raises:
+        TypeError: [description]
+        an: [description]
+        TypeError: [description]
+
+    Returns:
+        [type]: [description]
     """
 
     name = None
@@ -34,8 +37,8 @@ class Field:
     _default_validators = []
     _dtype = numpy.str
 
-    def __init__(self, max_length=None, null=True, 
-                 default=None, validators:list = []):
+    def __init__(self, max_length: int=None, null=True, default: Any = None, 
+                 validators = []):
         self.max_length = max_length
         self.null = null
         # self._validators = validators
@@ -133,7 +136,7 @@ class Field:
 
         return value
 
-    def resolve(self, value):
+    def resolve(self, value: Any):
         """
         Resolves a given value by cleaning it and calling
         a series of default validators and checks before
@@ -227,7 +230,7 @@ class CharField(Field):
 class TextField(CharField):
     name = 'text'
 
-    def __init__(self, max_length=500, **kwargs):
+    def __init__(self, max_length: int=500, **kwargs):
         super().__init__(max_length=max_length, **kwargs)
 
 
@@ -245,7 +248,7 @@ class NameField(CharField):
 class EmailField(Field):
     _default_validators = [model_validators.validate_email]
 
-    def __init__(self, limit_to_domains: list = [], **kwargs):
+    def __init__(self, limit_to_domains: Union[List[str], Tuple[str]] = [], **kwargs):
         null = kwargs.get('null')
         default = kwargs.get('default')
         validators = kwargs.get('validators', [])
@@ -291,7 +294,7 @@ class ImageField(UrlField):
     """
     field_name = 'image'
 
-    def __init__(self, download=False, as_thumnail=False, download_to=None):
+    def __init__(self, download=False, as_thumnail=False, download_to: str=None):
         super().__init__()
         self.download = download
         self.as_thumbnail = as_thumnail
@@ -300,7 +303,6 @@ class ImageField(UrlField):
         self.download_to = download_to
 
     def resolve(self, url):
-
         super().resolve(url)
 
         if self.download:
@@ -323,7 +325,7 @@ class IntegerField(Field):
     name = 'integer'
     _dtype = numpy.int
 
-    def __init__(self, default=None, min_value=None, max_value=None):
+    def __init__(self, default: Any = None, min_value: int = None, max_value: int = None):
         super().__init__(default=default)
         if min_value is not None:
             self._validators.add(model_validators.MinLengthValidator(min_value))
@@ -346,7 +348,8 @@ class DecimalField(Field):
     name = 'float'
     _dtype = numpy.float
 
-    def __init__(self, default=None, min_value=None, max_value=None):
+    def __init__(self, default: Any = None, 
+                 min_value: int = None, max_value: int = None):
         if min_value is not None:
             self._validators.add(model_validators.MinLengthValidator)
 
@@ -365,7 +368,7 @@ class DecimalField(Field):
 class DateField(Field):
     name = 'date'
 
-    def __init__(self, date_format, default=None, tz_info=None):
+    def __init__(self, date_format: str, default: Any = None, tz_info = None):
         super().__init__(default=default)
         self.date_format = date_format
         if tz_info is None:
@@ -389,7 +392,7 @@ class AgeField(DateField):
     def __str__(self):
         return str(self._cached_result)
 
-    def _substract(self):
+    def _substract(self) -> int:
         current_date = datetime.datetime.now()
         return current_date.year - self._cached_result.year
 
@@ -425,7 +428,8 @@ class FunctionField(Field):
     name = 'function'
     _dtype = numpy.object
 
-    def __init__(self, *methods, output_field=None, default=None, validators=[]):
+    def __init__(self, *methods: Callable[[Any], Any], output_field: Field = None, 
+                 default: Any = None, validators = []):
         super().__init__(default=default, validators=validators)
         self.filtered_methods = []
         self.output_field = output_field
@@ -473,7 +477,7 @@ class ArrayField(ObjectFieldMixins, Field):
     name = 'list'
     _dytpe = numpy.object
 
-    def __init__(self, output_field, default=None, validators=[]):
+    def __init__(self, output_field: Field, default: Any = None, validators = []):
         super().__init__(default=default, validators=validators)
         self.output_field = output_field
         
@@ -508,10 +512,10 @@ class CommaSeperatedField(Field):
     name = 'comma_separated'
     _dtype = numpy.str
 
-    def __init__(self, max_length=None):
+    def __init__(self, max_length: int = None):
         super().__init__(max_length=max_length)
 
-    def resolve(self, values):
+    def resolve(self, values: Union[List[Any], Tuple[Any]]):
         self._check_or_convert_to_type(
             values, list, 'Values should of type list', force_conversion=True
         )
@@ -528,24 +532,7 @@ class CommaSeperatedField(Field):
 class RegexField(Field):
     name = 'regex'
 
-    def __init__(self, result, field_name=None):
-        self.result = result
-        self.field_name = field_name
-
-    def __str__(self):
-        return self.result
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}({self.result})"
-
-    def __setattr__(self, name, value):
-        if name == 'result':
-            pass
-        return super().__setattr__(name, value)
-
-
-class RegexField(Field):
-    def __init__(self, pattern, group=0, output_field=None, **kwargs):
+    def __init__(self, pattern: str, group: int = 0, output_field: Field=None, **kwargs):
         self.pattern = re.compile(pattern)
         self.group = group
         self.output_field = output_field
@@ -562,3 +549,55 @@ class RegexField(Field):
                     raise TypeError(f"Output field should be a instance of zineb.fields.Field. Got: {self.output_field}")
             else:
                 self._cached_result = super().resolve(true_value)
+
+
+# class RelatedField(Field):
+#     name = 'related'
+#     _dtype = numpy.object
+#     relation = None
+
+#     def __init__(self, to, default=None, validators: List=[]):
+#         self.to_field = to
+#         self.to_field_object = None
+#         super().__init__(default=default, validators=validators)
+
+#     def __getattr__(self, name):
+#         if name == 'relation':
+#             if self.relation is None:
+#                 raise ValueError(f"{self.relation} should be an actual relationship to a Model field")
+
+#     def __setattr__(self, name, value):
+#         if name == 'relation':
+#             if not callable(value) or not isinstance(value, Field):
+#                 raise ValueError(f"{self.relation} should be an actual relationship to a Model field")
+
+#     def resolve(self):
+#         self._cached_result = self.relation._cached_result
+
+
+# class Value:
+#     result = None
+
+#     def __init__(self, result, field_name=None):
+#         self.result = result
+#         self.field_name = field_name
+
+#     def __str__(self):
+#         return self.result
+
+#     def __repr__(self):
+#         return f"{self.__class__.__name__}({self.result})"
+
+#     def __add__(self, value):
+#         if isinstance(self.result, tuple):
+#             self.result = list(self.result)
+
+#         if isinstance(self.result, list):
+#             self.result.extend([value])
+#             return self.result
+#         return self.result + value
+
+#     def __setattr__(self, name, value):
+#         if name == 'result':
+#             value = deep_clean(value)
+#         return super().__setattr__(name, value)

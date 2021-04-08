@@ -1,8 +1,11 @@
 import asyncio
-from warnings import warn
 import warnings
-
+from typing import Callable, Optional, Sequence, Union, Type
+from warnings import warn
+from zineb.models.datastructure import Model
 from zineb.http.request import HTTPRequest
+from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
+
 
 
 class Pipeline:
@@ -107,114 +110,148 @@ class ResponsesPipeline(Pipeline):
         return str(self.responses)
         
 
-class HTTPPipeline:
-    """
-    Create and send a set of requests that will be treated
-    continuously through a series of functions
+# class HTTPPipeline:
+#     """
+#     Create and send a set of requests that will be treated
+#     continuously through a series of functions
 
-    Note that once the HTTPRequest is created, it returns
-    the original HTTP request object
+#     Note that once the HTTPRequest is created, it returns
+#     the original HTTP request object
 
-    Pipeline's are useful for example when you wish to download
-    a set of images at once
+#     Pipeline's are useful for example when you wish to download
+#     a set of images at once
 
-    Example
-    -------
-            def download_image(response):
-                ...
+#     Example
+#     -------
+#             def download_image(response):
+#                 ...
 
-            Pipeline([http://example.com], [download_image])
-    """
+#             Pipeline([http://example.com], [download_image])
+#     """
 
-    def __init__(self, urls:list, functions:list, 
-                 parameters: dict={}, **options):
-        self.responses = []
+#     def __init__(self, urls:list, functions:list, 
+#                  parameters: dict={}, **options):
+#         self.responses = []
+#         model = options.get('model')
 
-        requests_to_send = []
-        for i, url in enumerate(urls):
-            if isinstance(url, HTTPRequest):
-                url = url.url
-            request = HTTPRequest(str(url), index=i)
-            request.options.update(**options)
-            requests_to_send.append(request)
+#         requests_to_send = []
+#         for i, url in enumerate(urls):
+#             if isinstance(url, HTTPRequest):
+#                 url = url.url
+#             request = HTTPRequest(str(url), index=i)
+#             request.options.update(**options)
+#             requests_to_send.append(request)
 
-        types = []
-        for function in functions:
-            if type(function) == 'class':
-                types.append(function)
+#         types = []
+#         for function in functions:
+#             if type(function) == 'class':
+#                 types.append(function)
 
-        results = []
-        async def run_function(func, result, **parameters):
-            if not parameters:
-                return func(result)
-            return func(result, **parameters)
+#         results = []
+#         async def run_function(func: Callable, result, new_parameters:dict):
+#             # if not parameters:
+#             #     return func(result)
+#             return func(**new_parameters)
 
-        async def wrapper(request):
-            result = None
-            request._send()
-            response = request.html_response.cached_response
-            self.responses.append(response)
+#         async def wrapper(request):
+#             result = None
+#             request._send()
+#             response = request.html_response.cached_response
+#             self.responses.append(response)
+
+#             new_parameters = {
+#                 **parameters,
+#                 'response': request.html_response,
+#                 'request': request,
+#                 'soup': request.html_response.html_page,
+#             }
             
-            for function in functions:
-                if result is not None:
-                    # result = function(result)
-                    result = await run_function(function, result)
-                else:
-                    if parameters:
-                        # result = function(result, **parameters)
-                        result = await run_function(function, result, **parameters)
-                    else:
-                        # result = function(response)
-                        result = await run_function(function, response)
-                return result
+#             for function in functions:
+#                 return await run_function(function, result, new_parameters)
+#                 # if result is not None:
+#                 #     # result = function(result)
+#                 #     result = await run_function(function, result)
+#                 # else:
+#                 #     if parameters:
+#                 #         # result = function(result, **parameters)
+#                 #         result = await run_function(function, result, **parameters)
+#                 #     else:
+#                 #         # result = function(response)
+#                 #         result = await run_function(function, response)
+#                 # return result
 
-        async def main():
-            for request in requests_to_send:
-                # task = asyncio.create_task(wrapper(request))
-                # await task
-                await asyncio.sleep(1)
-                result = await wrapper(request)
-                if result and result is not None:
-                    results.append(result)
+#         async def main():
+#             for request in requests_to_send:
+#                 # task = asyncio.create_task(wrapper(request))
+#                 # await task
+#                 await asyncio.sleep(1)
+#                 result = await wrapper(request)
+#                 if result and result is not None:
+#                     results.append(result)
     
-        asyncio.run(main())
-        self.requests_to_send = requests_to_send
-        self.results = results
+#         asyncio.run(main())
+#         self.requests_to_send = requests_to_send
+#         self.results = results
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}({self.requests_to_send})"
+#     def __repr__(self):
+#         return f"{self.__class__.__name__}({self.requests_to_send})"
 
-    def __str__(self):
-        return str(self.requests_to_send)
+#     def __str__(self):
+#         return str(self.requests_to_send)
 
-    def __getitem__(self, index):
-        return self.requests_to_send[index]
+#     def __getitem__(self, index):
+#         return self.requests_to_send[index]
 
-    def __iter__(self):
-        return iter(self.requests_to_send)
+#     def __iter__(self):
+#         return iter(self.requests_to_send)
 
-    def __enter__(self):
-        return self.requests_to_send
+#     def __enter__(self):
+#         return self.requests_to_send
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        return False
+#     def __exit__(self, exc_type, exc_val, exc_tb):
+#         return False
         
 
-class CallBack:
-    def __init__(self, request_or_url, func, model=None):
+class Callback:
+    """
+    The CallBack class allows you to run a callback function
+    once each url is processed and passed through the main start 
+    function of your spider.
+
+    Parameters
+    ----------
+    
+        request_or_url (Union[HTTPRequest, str]): [description]
+        func (Callable[[Union[HTMLResponse, JsonResponse, XMLResponse], HTTPRequest, Optional[dict]], None]): [description]
+        model (Type[Model], optional): [description]. Defaults to None.
+
+    Raises
+    ------
+
+        TypeError: [description]
+    """
+    def __init__(self, request_or_url: Union[HTTPRequest, str], 
+                 func: Callable[[Union[HTMLResponse, JsonResponse, XMLResponse], HTTPRequest, Optional[dict]], None], 
+                 model: Type[Model]=None):
         if not callable(func):
             raise TypeError('Func should be a callable function')
+
         self.func = func
+        self.model = model
+
+        # TODO: Restructure this section
         request = request_or_url
         if isinstance(request_or_url, str):
             request = HTTPRequest(request_or_url)
-
         request._send()
+
         self.html = request.html_response
         self.request = request
+        self._response = None
 
     def __call__(self, request_or_url, func):
         return self.__init__(request_or_url, func)
 
     def _run_function(self):
-        self.func(self._response, request=self.request)
+        kwargs = {'model': self.model}
+        self.func(self._response, request=self.request, **kwargs)

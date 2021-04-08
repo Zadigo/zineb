@@ -4,6 +4,7 @@ from mimetypes import guess_extension, guess_type
 from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
+from bs4.element import Tag
 from w3lib.url import canonicalize_url, is_url, safe_url_string
 
 
@@ -11,6 +12,9 @@ class BaseTags:
     def __init__(self, html_page):
         self.html_page = None
         if isinstance(html_page, str):
+            # There might be some cases where an HTML string
+            # is passed while not being a BeautifulSoup instance
+            # at the same time. We can account for this here.
             self.html_page = BeautifulSoup(html_page, 'html.parser')
         elif isinstance(html_page, BeautifulSoup):
             self.html_page = html_page
@@ -19,7 +23,7 @@ class BaseTags:
 class HTMLTag(BaseTags):
     tag_name = None
 
-    def __init__(self, tag, html_page=None, **kwargs):
+    def __init__(self, tag: Tag, html_page: BeautifulSoup=None, **kwargs):
         super().__init__(html_page)
         self.tag = tag
         self.attrs = kwargs.get('attrs', tag.attrs)
@@ -45,7 +49,7 @@ class Link(HTMLTag):
         tag (src): a BeautifulSoup image object
         index (int):
     """
-    def __init__(self, tag, **kwargs):
+    def __init__(self, tag: Tag, **kwargs):
         self.tag = tag
         self.text = tag.text
         self.attrs = kwargs.get('attrs', tag.attrs)
@@ -136,7 +140,7 @@ class ImageTag(HTMLTag):
         tag (src): a BeautifulSoup image object
         index (int):
     """
-    def __init__(self, tag, index=None, **kwargs):
+    def __init__(self, tag: Tag, index=None, **kwargs):
         super().__init__(tag, **kwargs)
         self.index = index
         self.src = self.attrs.get('src', None)
@@ -176,7 +180,7 @@ class ImageTag(HTMLTag):
 
 
 class TableTag(HTMLTag):
-    def __init__(self, tag, html_page, index=None, **kwargs):
+    def __init__(self, tag: Tag, html_page: BeautifulSoup, index: int=None, **kwargs):
         self.tag = tag
         self.html_page = html_page
         self.index = index

@@ -9,7 +9,7 @@ from typing import Union
 from bs4 import BeautifulSoup
 from pydispatch import dispatcher
 
-from zineb.http.pipelines import CallBack
+# from zineb.http.pipelines import CallBack
 # from zineb.checks.core import checks_registry
 from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
@@ -127,17 +127,17 @@ class Spider(metaclass=BaseSpider):
     def __repr__(self):
         return f"{self.__class__.__name__}(requests={self.__len__()})"
 
-    def _resolve_return_containers(self, containers):
-        from zineb.models.pipeline import ModelsPipeline
-        if not containers or containers is None:
-            return False
+    # def _resolve_return_containers(self, containers):
+    #     from zineb.models.pipeline import ModelsPipeline
+    #     if not containers or containers is None:
+    #         return False
 
-        callbacks = filter(lambda k: isinstance(k, CallBack), containers)
-        pipes = list(filter(lambda p: isinstance(p, ModelsPipeline), containers))
+    #     callbacks = filter(lambda k: isinstance(k, CallBack), containers)
+    #     pipes = list(filter(lambda p: isinstance(p, ModelsPipeline), containers))
 
-        if pipes:
-            pipe = ModelsPipeline(pipes)
-            return pipe._resolve_dataframes()
+    #     if pipes:
+    #         pipe = ModelsPipeline(pipes)
+    #         return pipe._resolve_dataframes()
 
     def _resolve_requests(self, debug=False):
         """
@@ -155,15 +155,17 @@ class Spider(metaclass=BaseSpider):
                         request=request,
                         soup=request.html_response.html_page
                     )
-                    if return_value is not None:
-                        return_values_container.append(return_value)
+                    # TODO: Work with return values from
+                    # from the functions
+                    # if return_value is not None:
+                    #     return_values_container.append(return_value)
 
                 signal.send(dispatcher.Any, self, tag='Post.Initial.Requests', urls=self._prepared_requests)
-                return self._resolve_return_containers(return_values_container)
+                # return self._resolve_return_containers(return_values_container)
             else:
                 self.logger.warn(f'You are using {self.__class__.__name__} in DEBUG mode')
 
-    def start(self, response, **kwargs):
+    def start(self, response: Union[HTMLResponse, JsonResponse, XMLResponse], request: HTTPRequest=None, **kwargs):
         """
         Use this function as an entrypoint to scrapping
         your HTML page. This method gets called on the
@@ -232,5 +234,5 @@ class FileCrawler:
         for buffer in self.buffers:
             buffer.close()
 
-    def start(self, soup, **kwargs):
+    def start(self, soup: BeautifulSoup, **kwargs):
         pass

@@ -91,3 +91,16 @@ class Settings:
         return key in self.__dict__.keys()
 
 settings = Settings()
+
+
+class LazySettings(LazyObject):
+    """
+    This class implements a lazy loading of the settings
+    for the application. In other words, the Settings class
+    is cached and used only when functionnalities are used
+    via the proxy class.
+    """
+    def _init_object(self):
+        self.cached_object = Settings()
+
+lazy_settings = LazySettings() 
