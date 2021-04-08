@@ -221,6 +221,6 @@ class TableTag(HTMLTag):
 
     @lru_cache(maxsize=2)
     def data(self):
-        from zineb.extractors.base import TableRows
-        extractor = TableRows()
+        from zineb.extractors.base import TableExtractor
+        extractor = TableExtractor()
         return extractor, extractor.resolve(self.tag)
