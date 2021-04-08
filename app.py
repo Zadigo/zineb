@@ -13,7 +13,6 @@ from pydispatch import dispatcher
 # from zineb.checks.core import checks_registry
 from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
-from zineb.middleware import Middleware
 from zineb.settings import settings as zineb_settings
 from zineb.signals import signal
 from zineb.logger import create_logger
@@ -110,9 +109,6 @@ class Spider(metaclass=BaseSpider):
 
         self.logger.info(f"{self.__class__.__name__} contains {self.__len__()} request(s)")
         
-        middlewares = Middleware(settings=self.settings)
-        middlewares._load
-
         # Tell all middlewares and signals registered
         # to receive Any that the Spider is ready
         # and fully loaded

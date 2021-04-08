@@ -6,6 +6,7 @@ from typing import Type
 
 from pydispatch import dispatcher
 
+from zineb.middleware import Middleware
 from zineb.signals import signal
 
 
@@ -105,6 +106,12 @@ class Registry:
             self.spiders[spider] = config
 
         settings.REGISTRY = self
+
+        # Load all the middlewares once everything
+        # is setup and ready to run
+        middlewares = Middleware(settings=settings)
+        middlewares._load
+
         signal.send(dispatcher.Any, self, spiders=self.spiders)
 
     def run_all_spiders(self):
