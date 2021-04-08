@@ -83,5 +83,3 @@ class FileFinder:
                 return True
             return False
         return list(filter(iterator, self.file_storages))
-# f = FileFinder()
-# print(f.file_storages)
