@@ -82,6 +82,9 @@ class Settings:
     def get(self, key, default=None):
         return self.__dict__.get(key, default)
 
+    def keys(self):
+        return self.__dict__.keys()
+
     def has_setting(self, key):
         return key in self.__dict__.keys()
 
