@@ -3,15 +3,16 @@ from collections import OrderedDict
 from functools import lru_cache
 from importlib import import_module
 from os.path import basename
-from typing import Union
+from typing import Type, Union
 
 from zineb.settings import settings
 
 
 def collect_commands():
     """
-    This collects all the commands in the management/commands
-    directory  without loading any of them
+    This collects all the paths to the commands
+    located in the `management/commands` directory
+    without loading any of them
 
     Returns
     -------
@@ -24,11 +25,11 @@ def collect_commands():
     return complete_paths
 
 
-def load_command_class(name):
+def load_command_class(name: str) -> Type:
     """
-    Loads each commands in the management/commands directory
+    Loads each commands in the `management/commands` directory
     and then returns the Command class instance of a specific
-    command
+    command specified the name in the parameter
 
     Parameters
     ----------
@@ -71,40 +72,43 @@ class Utility:
     commands_registry = OrderedDict()
 
     def __init__(self):
-        modules = collect_commands()
+        modules_paths = collect_commands()
 
-        for module in modules:
-            module_name = basename(module)
+        for path in modules_paths:
+            module_name = basename(path)
             true_name, ext = module_name.split('.')
             try:
                 module_obj = import_module(f'zineb.management.commands.{true_name}')
             except Exception as e:
-                raise ImportError(f"Could not import module at {module}.", e.args)
+                raise ImportError(f"Could not import module at {path}.", e.args)
             self.commands_registry[true_name] = module_obj.Command()
 
-    def _parse_incoming_commands(self, command: list):
-        name = command[0]
-        remaining_tokens = command[1:]
+    def _parse_incoming_commands(self, args: list):
+        if len(args) <= 1:
+            raise ValueError('You called manage.py without specifying any commands')
+        name = args[0]
+        remaining_tokens = args[1:]
         return name, remaining_tokens
 
     def call_command(self, name: Union[list, str]):
         """
         Call a specific command from the registry
 
-        Args:
+        Parameters
+        ----------
+
             name (Union[list, str]): command name
 
-        Returns:
-            BaseCommand: the command instance to use
-        """
-        # cmd_value = 'start'
-        # cmd_value = 'shell'
+        Returns
+        -------
 
+            Type[BaseCommand]: the command instance to use
+        """
         module_or_file, tokens = self._parse_incoming_commands(name)
         command_name = tokens.pop(0)
         command_instance = self.commands_registry.get(command_name, None)
         if command_instance is None:
-            raise Exception('Command does not exist')
+            raise Exception(f'Command {command_name} does not exist')
 
         parser = command_instance.create_parser()
         namespace = parser.parse_args()
@@ -125,7 +129,7 @@ def execute_command_inline(arg):
     Parameters
     ----------
 
-        arg (list): a list where [command name, value]
+        arg (List): a list where [command name, value]
     """
     utility = Utility()
     utility.call_command(arg)
