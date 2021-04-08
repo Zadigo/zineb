@@ -2,9 +2,7 @@ import unittest
 
 import pandas
 from bs4 import BeautifulSoup
-from zineb.extractors.base import TableRows
-from zineb.extractors.images import ImageExtractor
-from zineb.extractors.links import LinkExtractor
+from zineb.extractors.base import ImageExtractor, LinkExtractor, TableRows
 from zineb.tags import ImageTag
 
 with open('tests/html/images.html', 'r') as f:

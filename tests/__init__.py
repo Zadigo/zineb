@@ -9,6 +9,7 @@ def create_test_request() -> HTTPRequest:
     request._send()
     return request
 
+
 def create_test_json_request() -> JsonRequest:
     request = JsonRequest('https://jsonplaceholder.typicode.com/comments')
     request._send()
