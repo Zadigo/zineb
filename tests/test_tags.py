@@ -2,9 +2,8 @@ import unittest
 
 from bs4 import BeautifulSoup
 from bs4.element import Tag
-from zineb.extractors.base import TableRows
+from zineb.extractors.base import TableExtractor
 from zineb.tags import Link, TableTag
-
 
 path = 'tests/html/test_links.html'
 with open(path, mode='r') as f:
@@ -40,7 +39,8 @@ class TestTableTag(unittest.TestCase):
         self.assertIsInstance(self.table.rows, list)
         extractor, rows = self.table.data()
         self.assertIsInstance(rows, list) 
-        self.assertIsInstance(extractor, TableRows)
+        self.assertIsInstance(extractor, TableExtractor)
+
 
 if __name__ == "__main__":
     unittest.main()
