@@ -57,29 +57,3 @@ def receiver(tag: str=None):
     def wrapper(func):
         signal.register(func, tag=tag)
     return wrapper
-
-
-
-# class A:
-#     def create_order(self):
-#         dispatcher.send(
-#             signal='order.created',
-#             sender=self,
-#             order='Kendall'
-#         )
-
-
-# def send_order_email_listener(sender, order):
-#     print(sender, order)
-#     # print(f'[MAIL] sending email about order {sender}, {order}')
-
-
-# dispatcher.connect(
-#     send_order_email_listener,
-#     signal='order.created',
-#     sender=dispatcher.Any
-# )
-
-
-# w = A()
-# w.create_order()
