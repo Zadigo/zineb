@@ -14,6 +14,7 @@ class Command(BaseCommand):
         parser.add_argument('--name', '-n', required=False, type=str)
 
     def execute(self, namespace=None):
+        checks_registry.run()
         # HACK: In order to load the correct settings
         # as per what the user has entered, we
         # have to reinstantiate the class which
@@ -47,10 +48,3 @@ class Command(BaseCommand):
             spider_config.run()
         else:
             registry.run_all_spiders()
-
-        # TODO: Run checks on the new settings that were
-        # provided/updated in order to keep things
-        # tight and solid
-        # checks_registry._default_settings = new_settings
-        # checks_registry._default_settings = settings
-        # checks_registry.run()

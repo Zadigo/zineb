@@ -1,5 +1,5 @@
-from zineb.checks.core import checks_registry
 from w3lib.url import urlparse
+from zineb.checks.core import checks_registry
 
 W001 = Warning(
     "You do not have zineb.middlewares in your settings"
@@ -59,6 +59,9 @@ def check_default_request_headers(project_settings):
 def check_proxies_valid(project_settings):
     errors = []
     proxies = project_settings.get('PROXIES')
+    if proxies is None:
+        return [E001]
+
     for proxy in proxies:
         if not isinstance(proxy, (tuple, list)):
             errors.append(E001)
@@ -74,20 +77,4 @@ def check_proxies_valid(project_settings):
 
             if ip == '' or ip is None:
                 errors.append(E003)
-    return errors
-
-
-def D001(parsed_domain, domain):
-    return ('Domains in DOMAINS should not start with '
-        f'http:// or wwww. Use {parsed_domain[1]} instead of {domain}')
-
-
-@checks_registry.register(tag='domains')
-def check_domains_validity(project_settings):
-    errors = []
-    domains = project_settings.get('DOMAINS')
-    for domain in domains:
-        if domain.startswith('http') or domain.startswith('www'):
-            parsed_domain = urlparse(domain)
-            errors.append(D001(parsed_domain, domain))
     return errors
