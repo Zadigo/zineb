@@ -3,10 +3,12 @@ from functools import cached_property
 from io import BytesIO
 from itertools import chain
 from mimetypes import guess_extension
+from typing import Any, Union
 from urllib.parse import urljoin
 
 import pandas
 from bs4 import BeautifulSoup
+from bs4.element import Tag
 from PIL import Image
 from requests.models import Response
 from w3lib.html import strip_html5_whitespace
@@ -55,12 +57,21 @@ class HTMLResponse(BaseResponse):
             self.html_page = self._get_soup(response.cached_response.text)
             self.cached_response = response.cached_response
         else:
-            raise ValueError("Response should be either an html string, an HTTP requests.Response object or a zineb.HTMLResponse instance")
+            raise ValueError(f"Response should be either an html string, a zineb.requests.HTTPRequest object or a zineb.responses.HTMLResponse instance. Instead got {response}")
 
         self.kwargs = kwargs.copy()
         # Indicates whether the request was completed
         # with a status code of 200
         # self.completed = True
+
+    def __getattr__(self, name) -> Union[Tag, Any]:
+        soup_attributes = dir(self.html_page)
+        if name in soup_attributes:
+            return getattr(self.html_page, name)
+        elif name not in soup_attributes:
+            raise AttributeError(f"{self.__class__.__name__} does not have an attribute {name}. Please read https://www.crummy.com/software/BeautifulSoup/bs4/doc/ for available BeautifulSoup functionnalities.")
+        else:
+            return super().__getattribute__(name)
 
     def __repr__(self):
         return f"{self.__class__.__name__}(title={self.page_title})"
