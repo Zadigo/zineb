@@ -1,11 +1,13 @@
 import os
 import threading
+import warnings
 from collections import OrderedDict
 from functools import lru_cache
 from typing import Type
 
 from pydispatch import dispatcher
 
+from zineb import _logger
 from zineb.middleware import Middleware
 from zineb.signals import signal
 
@@ -78,7 +80,6 @@ class Registry:
 
     @lru_cache(maxsize=1)
     def get_spiders(self):
-        self.check_spiders_ready()
         return self.spiders.values()
 
     def check_spiders_ready(self):
@@ -93,7 +94,7 @@ class Registry:
         return self.spiders[spider_name]
 
     def populate(self, project_module):
-        from zineb.settings import settings, lazy_settings
+        from zineb.settings import lazy_settings, settings
 
         # TODO: Force the loading of the settings with
         # the user settings because the settings are
@@ -116,14 +117,21 @@ class Registry:
         signal.send(dispatcher.Any, self, spiders=self.spiders)
 
     def run_all_spiders(self):
-        for spider_config in self.get_spiders():
-            try:
-                spider_config.run()
-            except Exception:
-                raise TypeError(f"Could not start {spider_config}. Is the configuration correct?")
-            # Send a signal to all applications that might
-            # be interested that the spiders have started
-            # successfully
-            signal.send(dispatcher.Any, self)
+        spiders = self.get_spiders()
+        if not spiders:
+            warnings.warn("There are no registered spiders in your project. If you created spiders, register them within the SPIDERS variable of your settings.py file.", Warning, stacklevel=0)
+        else:
+            for spider_config in spiders:
+                try:
+                    spider_config.run()
+                except Exception:
+                    # raise TypeError(f"Could not start {spider_config}. Is the configuration correct?")
+                    new_logger = _logger(name=self.__class__.__name__, to_file=True)
+                    new_logger.error(f"Could not start {spider_config}. Did you use the correct class name?")
+                else:
+                    # Send a signal to all applications that might
+                    # be interested that the spiders have started
+                    # successfully
+                    signal.send(dispatcher.Any, self)
 
 registry = Registry()
