@@ -101,13 +101,8 @@ class Spider(metaclass=BaseSpider):
     _prepared_requests = []
 
     def __init__(self, **kwargs):
-        self.logger.info(f'Starting {self.__class__.__name__}')
-
-        # configuration = configparser.ConfigParser()
-        # configuration.read(self.settings.get('CONFIGURATION_FILE', 'settings/zineb.conf'))
-        # self.logger.info(f'Loaded configuration file...')
-
-        self.logger.info(f"{self.__class__.__name__} contains {self.__len__()} request(s)")
+        _logger.info(f'Starting {self.__class__.__name__}')
+        _logger.info(f"{self.__class__.__name__} contains {self.__len__()} request(s)")
         
         # Tell all middlewares and signals registered
         # to receive Any that the Spider is ready
