@@ -1,23 +1,20 @@
-import configparser
 import os
 import warnings
 # import time
-from collections import OrderedDict, deque
+from collections import deque
 from io import StringIO
 from typing import Union
 
 from bs4 import BeautifulSoup
 from pydispatch import dispatcher
 
+# from xml.etree import ElementTree
+from zineb import _logger
 # from zineb.http.pipelines import CallBack
-# from zineb.checks.core import checks_registry
 from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
 from zineb.settings import settings as global_settings
 from zineb.signals import signal
-from zineb.logger import create_logger
-# from xml.etree import ElementTree
-
 
 
 class BaseSpider(type):
@@ -41,20 +38,6 @@ class BaseSpider(type):
         #                 attrs.update({'_meta': valid_options})
         #             else:
         #                 raise TypeError(f"Meta received an invalid option: {key}. Authorized options are {', '.join(valid_options)}")
-
-        if name == 'Zineb':
-            if not 'logger' in attrs:
-                params = {
-                    'name': name,
-                    'debug_level': cls.settings.LOG_LEVEL,
-                    'log_format': cls.settings.LOG_FORMAT,
-                    'to_file': cls.settings.LOG_TO_FILE
-                }
-                logger = create_logger(**params)
-                attrs.update({'logger': logger})
-
-            attrs.setdefault('settings', cls.settings)
-            logger.info('Loaded project settings...')
 
         if 'start_urls' in attrs:            
             new_class = create_new(cls, name, bases, attrs)
@@ -99,6 +82,7 @@ class Spider(metaclass=BaseSpider):
         configuration (dict, optional): A set of additional default values. Defaults to None
     """
     _prepared_requests = []
+    start_urls = []
 
     def __init__(self, **kwargs):
         _logger.info(f'Starting {self.__class__.__name__}')
@@ -184,20 +168,23 @@ class Spider(metaclass=BaseSpider):
 
 class Zineb(Spider):
     """
-    This is the base Spider to subclass in order
-    to create a scrapping project
+    This is the base class that spiders need to
+    subclass in order to implement a spider
+    for a scrapping project
     """
-    start_urls = []
 
 
 class SitemapCrawler(Spider):
-    pass
+    """
+    Use this class in order to scrap from a
+    websites' sitemaps
+    """
 
 
 class FileCrawler:
     """
-    This a kind of spider that can crawl files locally and then eventually
-    perform requests on the web to implement additional data
+    This is a kind of spider that can crawl files locally and then eventually
+    perform requests to the web in order to implement additional data.
 
     In order to use this spider efficiently, you need a set of local HTML
     files that will be be opened sequentially and then parsed according to
