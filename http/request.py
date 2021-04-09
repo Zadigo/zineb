@@ -12,11 +12,12 @@ from zineb.extractors.base import Extractor
 from zineb.http.headers import ResponseHeaders
 from zineb.http.responses import HTMLResponse, JsonResponse
 from zineb.http.user_agent import UserAgent
-from zineb.logger import create_logger
+# from zineb.logger import create_logger
 from zineb.signals import signal
 from zineb.tags import ImageTag, Link
+from zineb import _logger
 
-logger = create_logger('BaseRequest', to_file=True)
+# logger = create_logger('BaseRequest', to_file=True)
 
 
 class BaseRequest:
@@ -141,7 +142,7 @@ class BaseRequest:
         """
         if not is_url(url):
             message = f"The url that was provided is not valid. Got: {url}"
-            logger.error(message, stack_info=True)
+            _logger.error(message, stack_info=True)
             raise requests.exceptions.InvalidURL(message)
 
         parsed_url = urlparse(url)
@@ -151,12 +152,12 @@ class BaseRequest:
 
         if self.only_secured_requests:
             if scheme != 'https' or scheme != 'ftps':
-                logger.critical(f"{url} is not secured. No HTTPS scheme is present")
+                _logger.critical(f"{url} is not secured. No HTTPS scheme is present")
                 self.can_be_sent = False
 
         if self.only_domains:
             if netloc in self.only_domains:
-                logger.critical(f"{url} is not part of the restricted domains list and will not be able to be sent")
+                _logger.critical(f"{url} is not part of the restricted domains list and will not be able to be sent")
                 self.can_be_sent = False
             
         return safe_url_string(url)
@@ -176,7 +177,7 @@ class BaseRequest:
         try:
             response = self.session.send(self.prepared_request)
         except requests.exceptions.HTTPError as e:
-            logger.error(f"An error occured while processing request for {self.prepared_request}", stack_info=True)
+            _logger.error(f"An error occured while processing request for {self.prepared_request}", stack_info=True)
             self.errors.append([e.args])
         except Exception as e:
             self.errors.extend([e.args])
@@ -280,14 +281,14 @@ class HTTPRequest(BaseRequest):
         http_response = super()._send()
         if http_response is not None:
             if http_response.ok:
-                logger.info(f'Sent request for {self.url}')
+                _logger.info(f'Sent request for {self.url}')
                 self._http_response = http_response
                 self.html_response = HTMLResponse(
                     http_response, url=self.url, headers=http_response.headers
                 )
                 self.session.close()
         else:
-            logger.error(f'An error occured on this request: {self.url}')
+            _logger.error(f'An error occured on this request: {self.url}')
 
     @classmethod
     def follow(cls, url: Union[str, Link]):
@@ -323,7 +324,7 @@ class JsonRequest(BaseRequest):
         response = super()._send()
         if response.ok:
             self._http_response = response
-            logger.info(f'Sent request for {self.url}')
+            _logger.info(f'Sent request for {self.url}')
             self.json_response = JsonResponse(response, url=self.url)
             self.resolved = True
             self.session.close()
