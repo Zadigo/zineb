@@ -13,7 +13,7 @@ class Middleware:
     settings file and in the user's settings file
     """
     settings = None
-    module_registry = OrderedDict()
+    MODULES = OrderedDict()
 
     def __init__(self, settings: dict={}):
         self.project_middlewares = settings.get('MIDDLEWARES', [])
@@ -31,7 +31,7 @@ class Middleware:
             module_dict = module.__dict__
 
             _, name = module.__name__.rsplit('.', maxsplit=1)
-            self.module_registry[name] = module
+            self.MODULES[name] = module
 
             # Now load each class object specified
             # in the middleware list individually
