@@ -46,8 +46,6 @@ class Celebrities(Zineb):
 
     def start(self, response, request=None, soup=None, **kwargs):
         # Do something here
-
-
 ```
 
 Once the Celibrities class is called, each request is passed through the `start` method. In other words the `zineb.response.HTTPResponse`,  `zineb.request.HTTPRequest` and the `BeautifulSoup` HTML page object and sent through the function.
@@ -68,7 +66,6 @@ Other objects can be passes through the function such as the models that you hav
 Meta options allows you to customize certain very specific behaviours [not found in the `settings.py` file] related to the spider.
 
 ```
-
  class Celerities(Zineb):
     start_urls = ['http://example.com']
   
@@ -125,7 +122,7 @@ If you do not know about BeautifulSoup please read [the documentation here](http
 
 For instance, suppose you have a spider and want to get the first link present on the http://example.com page. That's what you would so:
 
-```mermaid
+```
 from zineb.app import Zineb
 
 class MySpider(Zineb):
@@ -433,7 +430,44 @@ By calling the save method, you'll be able to store the data directly to a JSON 
 
 Extractors are utilities that facilitates extracting certain specific pieces of data from a web page such as links, images [...] quickly. They are very handy in that regards.
 
+Some extractors can be used in various manners. First, with a context processor:
+
+```
+extractor = LinkExtractor()
+with extractor:
+    # Do something here
+```
+
+Second, in an interation process:
+
+```
+for link in extractor:
+    # Do something here
+```
+
+Finally, with `next`:
+
+```
+next(extractor)
+```
+
+You can also check if an extractor has a specific value and even concatenate some of them together:
+
+```
+# Contains
+if x in extractor:
+    # Do something here
+
+# Addition
+concatenated_extractors = extractor1 + extractor2
+```
+
 ## LinkExtractor
+
+* `url_must_contain` - only keep urls that contain a specific string
+* `unique` - return a unique set of urls (no duplicates)
+* `base_url` - reconcile a domain to a path
+* `only_valid_links` - only keep links (Link) that are marked as valid
 
 ```
 extractor = LinkExtractor()
@@ -445,26 +479,24 @@ extractor.finalize(response.html_response)
 There might be times where the extracted links are relative paths. This can cause an issue for running additional requests. In which case, use the `base_url` parameter:
 
 ```
-extractor = LinkExtractor(base_url=http://example.com)
+extractor = LinkExtractor(base_url="http://example.com")
 extractor.finalize(response.html_response)
 
-# Instead of returning this result:
+# Instead of getting this result which would also
+# be marked as a none valid link
 
     -> [Link(url=/relative/path, valid=False)]
 
-# You will get:
+# You will get the following with the full url link
 
     -> [Link(url=http://example.com/relative/path, valid=True)]
 ```
 
 NOTE: By definition, a relative path is not a valid link hence the valid set to False.
 
-Some extractors such the LinkExtractor are iterable. It is perfectly possible to do the following:
+## MultiLinkExtractor
 
-```
-for link in extractor:
-    ...
-```
+A `MultiLinkExtractor` works exactly like the `LinkExtractor` with the only difference being that it also identifies and collects emails that are contained within the HTML page.
 
 ## TableExtractor
 
@@ -552,7 +584,6 @@ It comes with three main parameters:
 The best way to use the ResponsesPipeline is within the functions of your custom spider:
 
 ```
-
 class MySpider(Zineb):
    start_urls = ["https://example.com"]
 
@@ -564,7 +595,6 @@ class MySpider(Zineb):
 
    def do_something_here(self, response, soup=None, **kwargs):
        # Continue parsing data here
-
 ```
 
 **N.B.** Each function is executed sequentially. So, the final result will come from the final function of the list
