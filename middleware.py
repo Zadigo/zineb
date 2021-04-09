@@ -2,8 +2,8 @@ from collections import OrderedDict
 from functools import cached_property
 from importlib import import_module
 
-from zineb.signals import signal
 from zineb.logger import create_logger
+from zineb.signals import signal
 
 logger = create_logger('Middleware', to_file=True)
 

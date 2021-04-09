@@ -5,7 +5,7 @@ from importlib import import_module
 from os.path import basename
 from typing import Type, Union
 
-from zineb.settings import settings
+from zineb.settings import settings as global_settings
 
 
 def collect_commands():
@@ -19,7 +19,7 @@ def collect_commands():
 
         Iterator [Iterator]: the paths of each commands in the directory
     """
-    commands_path = list(os.walk(os.path.join(settings.PROJECT_PATH, 'management', 'commands')))
+    commands_path = list(os.walk(os.path.join(global_settings.PROJECT_PATH, 'management', 'commands')))
     files = commands_path[0][-1]
     complete_paths = map(lambda filename: os.path.join(commands_path[0][0], filename), files)
     return complete_paths

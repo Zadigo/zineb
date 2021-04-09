@@ -3,7 +3,7 @@ import code
 from zineb.extractors import base
 from zineb.http.request import HTTPRequest
 from zineb.management.base import BaseCommand
-from zineb.settings import settings
+from zineb.settings import settings as global_settings
 
 
 def start_ipython_shell():
@@ -53,7 +53,7 @@ class Shell:
 
     def start(self, url, use_settings=None):
         request = HTTPRequest(url)
-        request.project_settings = use_settings or settings
+        request.project_settings = use_settings or global_settings
         request._send()
 
         self.shell_variables.setdefault('request', request)
@@ -68,7 +68,7 @@ class Shell:
         self.shell_variables.setdefault('table', base.TableRows)
 
         # Pass the project setttings
-        self.shell_variables.setdefault('settings', settings)
+        self.shell_variables.setdefault('settings', global_settings)
         self._start_consoles()
 
 
@@ -79,4 +79,4 @@ class Command(BaseCommand):
     def execute(self, **kwargs):
         url = kwargs.get('url')
         shell = Shell()
-        shell.start(url=url, use_settings=super()._load_project_settings())
+        shell.start(url=url)

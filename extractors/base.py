@@ -13,7 +13,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from w3lib.html import safe_url_string
 from w3lib.url import is_url, urljoin
 from zineb.extractors._mixins import MultipleRowsMixin
-from zineb.settings import settings
+from zineb.settings import settings as global_settings
 from zineb.utils._html import deep_clean, is_path
 
 
@@ -230,7 +230,7 @@ class TextExtractor(Extractor):
 
     @cached_property
     def _stop_words(self):
-        stop_words_path = os.path.join(settings.PROJECT_PATH, 'extractors', 'stop_words')
+        stop_words_path = os.path.join(global_settings.PROJECT_PATH, 'extractors', 'stop_words')
         with open(stop_words_path, mode='r') as f:
             data = f.readlines()
             words = data.copy()

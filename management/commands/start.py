@@ -5,6 +5,7 @@ from zineb.checks.core import checks_registry
 from zineb.logger import create_logger
 from zineb.management.base import BaseCommand
 from zineb.registry import registry
+from zineb.settings import USER_SETTINGS_ENV_VARIABLE_NAME
 
 logger = create_logger('Start', to_file=False)
 
@@ -27,7 +28,7 @@ class Command(BaseCommand):
         # Windows environment and therefore load the settings
         # file of the project
         # reloaded_settings = settings(LOADED_SPIDERS=[])
-        project = os.environ.get('ZINEB_SPIDER_PROJECT')
+        project = os.environ.get(USER_SETTINGS_ENV_VARIABLE_NAME)
         project_name, _ = project.split('.', maxsplit=1)
         
         try:

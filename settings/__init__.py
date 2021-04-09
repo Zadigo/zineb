@@ -52,11 +52,21 @@ class Settings:
 
         # Load the user settings and update the global
         # settings with what the user has defined
+        settings_containing_data = ['RETRY_HTTP_CODES', 'MIDDLEWARES', 'DEFAULT_REQUEST_HEADERS']
         user_settings_module = os.environ.get(USER_SETTINGS_ENV_VARIABLE_NAME)
         self._user_settings = UserSettings(user_settings_module)
         for key in self._user_settings.__dict__.keys():
             if key.isupper():
+            # if key.isupper() and key not in settings_containing_data:
                 setattr(self, key, getattr(self._user_settings, key))
+            # else:
+            #     # In order to ensure that both the user setting
+            #     # and the global setting are used, we have to collide
+            #     # both of these elements together
+            #     user_setting = getattr(self._user_settings, key)
+            #     global_setting = getattr(global_settings, key)
+            #     user_setting.extend(global_setting)
+            #     setattr(self, key, user_setting)
 
     def __call__(self, **kwargs):
         self.__init__()

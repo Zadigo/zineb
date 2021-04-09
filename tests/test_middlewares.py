@@ -1,10 +1,10 @@
 from zineb.middleware import Middleware
-from zineb.settings import settings
+from zineb.settings import settings as global_settings
 import unittest
 
 class TestMiddleware(unittest.TestCase):
     def setUp(self):
-        self.middleware = Middleware(settings=settings)
+        self.middleware = Middleware(settings=global_settings)
         self.middleware._load
 
     def test_loading(self):

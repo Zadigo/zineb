@@ -16,7 +16,9 @@ SPIDERS = []
 # A set of codes that will be executed before or after
 # certain specific actions within the application
 
-MIDDLEWARES = []
+MIDDLEWARES = [
+    'zineb.middlewares.automation.Automate'
+]
 
 
 MEDIA_FOLDER = [

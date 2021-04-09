@@ -2,7 +2,7 @@ from collections import OrderedDict, deque
 from importlib import import_module
 from typing import Callable
 
-from zineb.settings import lazy_settings
+from zineb.settings import settings as global_settings
 
 
 class GlobalMixins:
@@ -15,7 +15,7 @@ class ApplicationChecks(GlobalMixins):
     def __init__(self, default_settings={}):
         self._default_settings = (
             default_settings or 
-            lazy_settings
+            global_settings
         )
         self._checks = deque()
     

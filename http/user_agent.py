@@ -1,6 +1,6 @@
 import random
 
-from zineb.settings import settings
+from zineb.settings import settings as global_settings
 
 
 class UserAgent:
@@ -25,7 +25,7 @@ class UserAgent:
         Returns:
             str: a user agent to use for a request
         """
-        user_agents_from_settings = settings.get('USER_AGENTS', [])
+        user_agents_from_settings = global_settings.get('USER_AGENTS', [])
         self.agents.extend(user_agents_from_settings)
         random.shuffle(self.agents)
         return random.choice(list(set(self.agents)))

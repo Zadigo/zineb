@@ -93,14 +93,15 @@ class Registry:
         return self.spiders[spider_name]
 
     def populate(self, project_module):
-        from zineb.settings import settings
+        from zineb.settings import settings, lazy_settings
 
-        # Force the loading of the settings with
+        # TODO: Force the loading of the settings with
         # the user settings because the settings are
         # loaded before the all this code is run aka
         # zineb.settings.__init__. In that scenario,
         # the user settgins are not implemented
         settings(REGISTRY=None)
+        lazy_settings.cached_object(REGISTRY=None)
         for spider in settings.SPIDERS:
             config = SpiderConfig(spider, project_module)
             self.spiders[spider] = config

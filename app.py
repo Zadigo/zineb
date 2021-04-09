@@ -13,7 +13,7 @@ from pydispatch import dispatcher
 # from zineb.checks.core import checks_registry
 from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
-from zineb.settings import settings as zineb_settings
+from zineb.settings import settings as global_settings
 from zineb.signals import signal
 from zineb.logger import create_logger
 # from xml.etree import ElementTree
@@ -21,7 +21,7 @@ from zineb.logger import create_logger
 
 
 class BaseSpider(type):
-    settings = zineb_settings
+    settings = global_settings
 
     def __new__(cls, name, bases, attrs):
         create_new = super().__new__
@@ -208,7 +208,7 @@ class FileCrawler:
     files that will be be opened sequentially and then parsed according to
     the logic provided in the `start` function
     """
-    settings = zineb_settings
+    settings = global_settings
     start_files = []
     root_dir = None
 
