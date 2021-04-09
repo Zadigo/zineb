@@ -29,7 +29,7 @@ class Command(BaseCommand):
         # file of the project
         # reloaded_settings = settings(LOADED_SPIDERS=[])
         project = os.environ.get(USER_SETTINGS_ENV_VARIABLE_NAME)
-        project_name, _ = project.split('.', maxsplit=1)
+        project_name, _ = project.rsplit('.', maxsplit=1)
         
         try:
             # Load the spiders module e.g. project.spiders
