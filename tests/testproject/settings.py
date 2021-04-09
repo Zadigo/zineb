@@ -10,15 +10,16 @@ PROJECT_PATH = os.path.dirname(__file__)
 # python manage.py start to execute all
 # of them or python manage.py <spider name>
 
-SPIDERS = []
+SPIDERS = [
+    'MySpider',
+    'KendallJenner'
+]
 
 
 # A set of codes that will be executed before or after
 # certain specific actions within the application
 
-MIDDLEWARES = [
-    'zineb.middlewares.automation.Automate'
-]
+MIDDLEWARES = []
 
 
 MEDIA_FOLDER = [

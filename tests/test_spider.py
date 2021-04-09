@@ -13,17 +13,6 @@ class Spider(Zineb):
     ]
 
 
-class SpiderMeta(Zineb):
-    start_urls = [
-        'http://example.com'
-    ]
-
-    class Meta:
-        domains = [
-            'http://example.com'
-        ]
-
-
 class TestSpider(unittest.TestCase):
     def setUp(self):
         self.spider = Spider()
@@ -45,19 +34,12 @@ class TestSpider(unittest.TestCase):
         self.assertEqual(http_request.html_response.page_title, 'Example Domain')
 
 
-class TestMeta(unittest.TestCase):
-    def setUp(self):
-        self.spider = SpiderMeta()
-
-    def test_spider_init(self):
-        self.assertIsInstance(self.spider._meta, dict)
-        self.assertDictEqual(self.spider._meta, {'domains': ['http://example.com']})
-
 if __name__ == "__main__":
-    # unittest.main()
-    runner = unittest.TextTestRunner()
-    suite = unittest.TestSuite()
-    suite.addTest(TestSpider('test_prepared_requests'))
-    # suite.addTest(TestSpider('test_response_objects'))
-    # suite.addTest(TestSpider('test_page_title'))
-    runner.run(suite)
+#     # # unittest.main()
+#     # runner = unittest.TextTestRunner()
+#     # suite = unittest.TestSuite()
+#     # suite.addTest(TestSpider('test_prepared_requests'))
+#     # # suite.addTest(TestSpider('test_response_objects'))
+#     # # suite.addTest(TestSpider('test_page_title'))
+#     # runner.run(suite)
+    unittest.main()
