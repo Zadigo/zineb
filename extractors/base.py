@@ -283,14 +283,24 @@ class LinkExtractor(Extractor):
     def __enter__(self):
         return self.validated_links
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        return False
+    def __call__(self, **kwargs):
+        return self.__class__(**kwargs)
 
     def __len__(self):
         return len(self.validated_links)
 
     def __iter__(self):
         return iter(self.validated_links)
+
+    def __contains__(self, value_to_check):
+        links = [str(link) for link in self.validated_links]
+        return value_to_check in links
+
+    def __add__(self, a):
+        if not isinstance(a, (LinkExtractor, MultiLinkExtractor)):
+            raise ValueError(f"Cannot add object of type {type(a)} to an extractor.")
+        self.validated_links.extend(a)
+        return self.validated_links
 
     def __getitem__(self, index):
         return self.validated_links[index]

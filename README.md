@@ -428,7 +428,7 @@ By calling the save method, you'll be able to store the data directly to a JSON 
 
 # Extractors
 
-Extractors are utilities that facilitates extracting certain specific pieces of data from a web page such as links, images [...] quickly. They are very handy in that regards.
+Extractors are utilities that facilitates extracting certain specific pieces of data from a web page such as links, images [...] quickly. They can be found in `zineb.extactors`.
 
 Some extractors can be used in various manners. First, with a context processor:
 

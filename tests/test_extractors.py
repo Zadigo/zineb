@@ -2,7 +2,7 @@ import unittest
 
 import pandas
 from bs4 import BeautifulSoup
-from zineb.extractors.base import ImageExtractor, LinkExtractor, TableRows
+from zineb.extractors.base import ImageExtractor, LinkExtractor, TableExtractor
 from zineb.tags import ImageTag
 
 with open('tests/html/images.html', 'r') as f:
@@ -43,7 +43,7 @@ class TestImagesExtractor(unittest.TestCase):
 
 class TestRowsExtractor(unittest.TestCase):
     def setUp(self):
-        self.extractor = TableRows(has_headers=True)
+        self.extractor = TableExtractor(has_headers=True)
 
     def test_resolution(self):
         result = self.extractor.resolve(soup2)
@@ -62,15 +62,39 @@ class TestRowsExtractor(unittest.TestCase):
             else:
                 return value
 
-        extractor = TableRows(has_headers=True, processors=[replace_empty_values])
+        extractor = TableExtractor(has_headers=True, processors=[replace_empty_values])
         rows = extractor.resolve(player_table)
         self.assertNotIn('', rows[2])
 
     def test_pandas_resolution(self):
-        extractor = TableRows(has_headers=True)
-        df = extractor.resolve_to_dataframe()
+        extractor = TableExtractor(has_headers=True)
+        df = extractor.resolve_to_dataframe(soup2)
         self.assertIsInstance(df, pandas.DataFrame)
-        print(extractor._compose)
+
+
+class TestLinkExactor(unittest.TestCase):
+    def setUp(self):
+        extractor = LinkExtractor()
+        extractor.resolve(soup)
+        self.extractor = extractor
+
+    def test_can_be_used_with_context_processor(self):
+        with self.extractor as links:
+            self.assertTrue(len(links) > 1)
+
+    def test_can_iterate(self):
+        for _ in self.extractor:
+            pass
+
+    def test_contains(self):
+        self.assertFalse('google' in self.extractor)
+        self.assertTrue('https://www.sawfirst.com/' in self.extractor)
+
+    def test_can_add(self):
+        extractor2 = self.extractor()
+        extractor2.resolve(soup2)
+        result = self.extractor + extractor2
+        self.assertTrue(len(result) > 1)
 
 if __name__ == "__main__":
     unittest.main()
