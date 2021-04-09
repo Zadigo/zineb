@@ -24,7 +24,6 @@ All your interractions with Zineb will be made trough the management commands th
 
 To create a project do `python manage.py startproject <project name>` which will create a directory which will have the following structure.
 
-
 The models directory allows you to place the elements that will help structure the data that you have scrapped from from the internet.
 
 The `manage.py` file will allow you to run all the required commands from your project.
@@ -97,7 +96,7 @@ Start a iPython shell on which you can test various elements on the HTML page, t
 
 ## Queries on the page
 
-Like said previously, the majority of your interactions with the HTML page will be done through the ``HTMLResponse`` object or the `zineb.http.HTMLResponse` class.
+Like said previously, the majority of your interactions with the HTML page will be done through the ``HTMLResponse`` object or the `zineb.http.responses.HTMLResponse` class.
 
 This class will implement some very basic general functionnalities that you can use through the course of your project. To illustrate this, let's create a basic Zineb HTTP response:
 
@@ -109,16 +108,38 @@ request = HTTPRequest("http://example.co")
 
 Requests, when created a not sent [or resolved] automatically if the `_send` function is not called. In that case, they are marked as being unresolved ex. `HTTPRequest("http://example.co", resolved=False)`.
 
+Once the `_send` method is called, by using the By using the `html_page` attribute or calling any BeautifulSoup function on the class, you can do all the classic querying on the page e.g. find, findall...
+
 ```
 request._send()
 request.html_response.html_page
 
     -> BeautifulSoup object
+
+request.html_response.find("a")
+    -> BeautifulSoup Tag 
+
 ```
 
-Once the `_send` method is called, by using the By using the `html_page` attribute, you can do all the classic querying that you would do with BeautifulSoup e.g. find, findall...
-
 If you do not know about BeautifulSoup please read [the documentation here](https://www.crummy.com/software/BeautifulSoup/bs4/doc/).
+
+For instance, suppose you have a spider and want to get the first link present on the http://example.com page. That's what you would so:
+
+```mermaid
+from zineb.app import Zineb
+
+class MySpider(Zineb):
+    start_urls = ["http://example.com"]
+
+    def start(self, response=None, request=None, soup=None, **kwargs):
+        link = response.find("a")
+        # Or, you can also use this tehnic through
+        # the request object
+        link = request.html_response.find("a")
+        # Or you can directly use the soup
+        # object as so
+        link = soup.find("a")
+```
 
 In order to understand what the `Link`, `Image` and `Table` objects represents, please read the [following section]() of this page.
 
