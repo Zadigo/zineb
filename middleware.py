@@ -37,7 +37,10 @@ class Middleware:
             # in the middleware list individually
             for key, obj in module_dict.items():
                 if key == klass:
-                    obj_instance = obj()
+                    try:
+                        obj_instance = obj()
+                    except Exception as e:
+                        raise TypeError(f"{obj} was not loaded. {e.args[0]}")
                     self.loaded_middlewares.setdefault(key, obj_instance)
                     logger.info(f"Loaded middleware: {middleware}")
 
