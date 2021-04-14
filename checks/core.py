@@ -63,6 +63,13 @@ class ApplicationChecks(GlobalMixins):
             if not isinstance(value, (list, tuple)):
                 raise ValueError(f"{item} in settings.py should contain a list or a tuple ex. {item} = []")
 
+        # If Zineb is called from a project configuration
+        # we should automatically assume that is a path
+        PROJECT_PATH = getattr(self._default_settings, 'PROJECT_PATH', None)
+        if PROJECT_PATH is None:
+            raise ValueError(("PROJECT_PATH is empty. If you are using "
+            "Zineb outside of a project, call .configure(**kwargs)"))
+
     def register(self, tag: str = None):
         def inner(func: Callable):
             if not callable(func):
