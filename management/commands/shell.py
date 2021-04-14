@@ -3,7 +3,6 @@ import code
 from zineb.extractors import base as base_extractors
 from zineb.http.request import HTTPRequest
 from zineb.management.base import BaseCommand
-from zineb.settings import settings as global_settings
 
 
 def start_ipython_shell():
@@ -52,6 +51,11 @@ class Shell:
                 pass
 
     def start(self, url, use_settings=None):
+        from zineb.settings import settings as global_settings
+        # Force reload to take into account
+        # the user's settings. See related issue.
+        global_settings()
+
         request = HTTPRequest(url)
         request.project_settings = use_settings or global_settings
         request._send()
@@ -76,7 +80,10 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('--url', type=str, help='Url to use for testing')
 
-    def execute(self, **kwargs):
-        url = kwargs.get('url')
+    def execute(self, namespace):
         shell = Shell()
+        url = namespace.url
+        if url is None:
+            raise ValueError(("Did you provide a url when calling shell? "
+            "ex. python manage.py shell --url http://"))
         shell.start(url=url)
