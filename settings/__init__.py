@@ -23,7 +23,7 @@ class UserSettings:
                     setattr(self, key, getattr(module, key))
             self.configured = True
 
-        self.SETTINGS_MODULE = user_settings_module
+            self.SETTINGS_MODULE = module
 
     def __repr__(self):
         return f"<{self.__class__.__name__}(configured={self.is_configured})>"
@@ -43,12 +43,12 @@ class Settings:
         OrderedDict: [description]
     """
     def __init__(self):
-        for key in dir(global_settings):
+        for key in dir(initial_project_settings):
             if key.isupper():
                 # Also allow something like
                 # settings.MY_SETTING when using
                 # the Settings instance
-                setattr(self, key, getattr(global_settings, key, None))
+                setattr(self, key, getattr(initial_project_settings, key, None))
 
         # Load the user settings and update the global
         # settings with what the user has defined
