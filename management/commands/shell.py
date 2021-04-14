@@ -1,6 +1,6 @@
 import code
 
-from zineb.extractors import base
+from zineb.extractors import base as base_extractors
 from zineb.http.request import HTTPRequest
 from zineb.management.base import BaseCommand
 from zineb.settings import settings as global_settings
@@ -61,11 +61,11 @@ class Shell:
         self.shell_variables.setdefault('html_page', request.html_response.html_page)
 
         # Pass the extractors in the shell
-        self.shell_variables.setdefault('base', base)
-        self.shell_variables.setdefault('images', base.ImageExtractor)
-        self.shell_variables.setdefault('links', base.LinkExtractor)
-        self.shell_variables.setdefault('multilinks', base.MultiLinkExtractor)
-        self.shell_variables.setdefault('table', base.TableRows)
+        self.shell_variables.setdefault('base', base_extractors)
+        self.shell_variables.setdefault('images', base_extractors.ImageExtractor)
+        self.shell_variables.setdefault('links', base_extractors.LinkExtractor)
+        self.shell_variables.setdefault('multilinks', base_extractors.MultiLinkExtractor)
+        self.shell_variables.setdefault('table', base_extractors.TableExtractor)
 
         # Pass the project setttings
         self.shell_variables.setdefault('settings', global_settings)

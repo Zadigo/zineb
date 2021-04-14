@@ -85,7 +85,8 @@ class Utility:
 
     def _parse_incoming_commands(self, args: list):
         if len(args) <= 1:
-            raise ValueError('You called manage.py without specifying any commands')
+            raise ValueError(('You called manage.py or python -m zineb '
+            'without specifying any commands to run.'))
         name = args[0]
         remaining_tokens = args[1:]
         return name, remaining_tokens
@@ -108,12 +109,15 @@ class Utility:
         command_name = tokens.pop(0)
         command_instance = self.commands_registry.get(command_name, None)
         if command_instance is None:
-            raise Exception(f'Command {command_name} does not exist')
+            raise Exception(f'Command {command_name} does not exist.')
 
         parser = command_instance.create_parser()
         namespace = parser.parse_args()
 
         command_called = namespace.command
+        # TODO: Pass the namespace directly
+        # to the execute() function regardless
+        # of what is beeing called
         if command_called == 'shell':
             command_instance.execute(url=namespace.url)            
         else:
@@ -122,14 +126,14 @@ class Utility:
         return command_instance
 
 
-def execute_command_inline(arg):
+def execute_command_inline(argv):
     """
     Execute a command using `python manage.py`
 
     Parameters
     ----------
 
-        arg (List): a list where [command name, value]
+        argv (List): a list where [command name, value]
     """
     utility = Utility()
-    utility.call_command(arg)
+    utility.call_command(argv)
