@@ -5,8 +5,6 @@ from importlib import import_module
 from os.path import basename
 from typing import Type, Union
 
-from zineb.settings import settings as global_settings
-
 
 def collect_commands():
     """
@@ -19,7 +17,8 @@ def collect_commands():
 
         Iterator [Iterator]: the paths of each commands in the directory
     """
-    commands_path = list(os.walk(os.path.join(global_settings.PROJECT_PATH, 'management', 'commands')))
+    from zineb.settings import settings as global_settings
+    commands_path = list(os.walk(os.path.join(global_settings.GLOBAL_ZINEB_PATH, 'management', 'commands')))
     files = commands_path[0][-1]
     complete_paths = map(lambda filename: os.path.join(commands_path[0][0], filename), files)
     return complete_paths
@@ -113,7 +112,6 @@ class Utility:
 
         parser = command_instance.create_parser()
         namespace = parser.parse_args()
-
         command_called = namespace.command
         # TODO: Pass the namespace directly
         # to the execute() function regardless
