@@ -39,7 +39,7 @@ ENSURE_HTTPS = False
 
 LOG_TO_FILE = True
 
-LOG_FILE = os.path.join(PROJECT_PATH, 'zineb.log')
+LOG_FILE = None
 
 LOG_FORMAT = '%(asctime)s [%(name)s] %(levelname)s: %(message)s'
 
