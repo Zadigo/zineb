@@ -12,10 +12,12 @@ USER_SETTINGS_ENV_VARIABLE_NAME = 'ZINEB_SPIDER_PROJECT'
 class UserSettings:
     SETTINGS_MODULE = None
 
-    def __init__(self, user_settings_module: str):
+    def __init__(self, user_settings_module: str):        
         self.configured  = False
         if user_settings_module is None:
-            warnings.warn('Using global settings as user did not define project settings', Warning)
+            # warnings.warn((f"[{self.__class__.__name__}]: Using initial Zineb "
+            # "settings as user did not define project settings"))
+            pass
         else:
             module = importlib.import_module(user_settings_module)
             for key in dir(module):
