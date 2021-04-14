@@ -1,6 +1,4 @@
 import os
-import stat
-import shutil
 
 from zineb.management.base import BaseCommand
 from zineb.settings import settings as global_settings
@@ -59,9 +57,3 @@ class Command(BaseCommand):
                     os.path.join(full_project_path_dir, os.path.basename(full_path)),
                     project_path=full_project_path_dir,
                 )
-
-# from collections import namedtuple
-
-# namespace = namedtuple('Namespace', ['project'])
-
-# Command().execute(namespace('test_google_project'))
