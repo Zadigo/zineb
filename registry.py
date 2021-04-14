@@ -96,13 +96,10 @@ class Registry:
     def populate(self, project_module):
         from zineb.settings import lazy_settings, settings
 
-        # TODO: Force the loading of the settings with
-        # the user settings because the settings are
-        # loaded before the all this code is run aka
-        # zineb.settings.__init__. In that scenario,
-        # the user settgins are not implemented
-        settings(REGISTRY=None)
-        lazy_settings.cached_object(REGISTRY=None)
+        # Update the settings with a REGISTRY
+        # that contains the fully loaded spiders
+        # which is the class itself
+        setattr(settings, 'REGISTRY', None)
         for spider in settings.SPIDERS:
             config = SpiderConfig(spider, project_module)
             self.spiders[spider] = config
@@ -114,7 +111,7 @@ class Registry:
         middlewares = Middleware(settings=settings)
         middlewares._load
 
-        signal.send(dispatcher.Any, self, spiders=self.spiders)
+        signal.send(dispatcher.Any, self, spiders=self)
 
     def run_all_spiders(self):
         spiders = self.get_spiders()
