@@ -230,7 +230,7 @@ class TextExtractor(Extractor):
 
     @cached_property
     def _stop_words(self):
-        stop_words_path = os.path.join(global_settings.PROJECT_PATH, 'extractors', 'stop_words')
+        stop_words_path = os.path.join(global_settings.GLOBAL_ZINEB_PATH, 'extractors', 'stop_words')
         with open(stop_words_path, mode='r') as f:
             data = f.readlines()
             words = data.copy()

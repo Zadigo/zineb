@@ -5,8 +5,13 @@ Default Zineb settings
 import os
 import logging
 
+# Global path that stores the path to the Zineb
+# main directory. This is useful for functionalities
+# that require using this for various tasks
 
-PROJECT_PATH = os.path.dirname(os.path.dirname(__file__))
+GLOBAL_ZINEB_PATH = os.path.dirname(os.path.dirname(__file__))
+
+PROJECT_PATH = None
 
 
 # Register all your spiders from your
