@@ -18,11 +18,26 @@ def start(self, response, **kwargs):
 
 # Getting started
 
-All your interractions with Zineb will be made trough the management commands that are executed through `python manage.py` from your project's directory.
-
 ## Creating a project
 
-To create a project do `python manage.py startproject <project name>` which will create a directory which will have the following structure.
+To create a project do `python -m zineb startproject <project name>` which will create a directory which will have the following structure.
+
+.myproject
+|
+|--media
+|
+|-- models
+      |-- base.py
+|
+|-- __init__.py
+|
+|-- manage.py
+|
+|-- settings.py
+|
+|-- spiders.py
+
+Once the project folder is created, all your interractions with Zineb will be made trough the management commands that are executed through `python manage.py` from your project's directory.
 
 The models directory allows you to place the elements that will help structure the data that you have scrapped from from the internet.
 
@@ -34,7 +49,7 @@ Finally, the spiders module will contain all the spiders for your project.
 
 On startup, Zineb implements a set of basic settings (`zineb.settings.base`) that will get overrided by the values that you would have defined in your `settings.py` located in your project.
 
-You can readd more about this in the [settings section of this file](#Settings).
+You can read more about this in the [settings section of this file](#Settings).
 
 ## Creating a spider
 
@@ -48,7 +63,7 @@ class Celebrities(Zineb):
         # Do something here
 ```
 
-Once the Celibrities class is called, each request is passed through the `start` method. In other words the `zineb.response.HTTPResponse`,  `zineb.request.HTTPRequest` and the `BeautifulSoup` HTML page object and sent through the function.
+Once the Celibrities class is called, each request is passed through the `start` method. In other words the `zineb.http.responses.HTMLResponse`,  `zineb.http.request.HTTPRequest` and the `BeautifulSoup` HTML page object are sent through the function.
 
 You are not required to use all these parameters at once. They're just for convinience.
 
@@ -89,33 +104,86 @@ Triggers the execution of all the spiders present in the given the project. This
 
 #### Shell
 
-Start a iPython shell on which you can test various elements on the HTML page, the HTTP request
+Start a iPython shell on which you can test various elements on the HTML page.
+
+When the shell is started, the `zineb.http.HTTPRequest`, the `zineb.response.HTMLResponse`, and the BeautifulSoup instance of the page are all injected in the shell.
+
+Extractors are passed using aliases:
+
+* `links`: LinkExtractor
+* `images`: ImageExtractor
+* `multilinks`: MultiLinkExtractor
+* `tables`: TableExtractor
+
+
+The extractors are also all passed within the shell in addition to the project settings.
+
+In that regards, the shell becomes a interesting place where you can test various querying on an HTML page before using it in your project. For example, using the shell with http://example.com.
+
+We can get a simple url :
+
+```
+IPython 7.19.0
+
+In [1]: response.find("a")
+Out[1]: <a href="https://www.iana.org/domains/example">More information...</a>
+```
+
+We can find all urls on the page:
+
+```
+IPython 7.19.0
+
+In [2]: extractor = links()
+In [3]: extractor.resolve(response)
+In [4]: str(extrator)
+Out [4]: [Link(url=https://www.iana.org/domains/example, valid=True)]
+
+In [5]: response.links
+Out [5]: [Link(url=https://www.iana.org/domains/example, valid=True)]
+```
+
+Or simply get the page title:
+
+```
+IPython 7.19.0
+
+In [6]: response.page_title
+Out [6]: 'Example Domain'
+```
+
+Remember that in addition to the custom functions created for the class, all the rest called on `zineb.response.HTMLResponse` are BeautifulSoup functions (find, find_all, find_next...)
 
 ## Queries on the page
 
-Like said previously, the majority of your interactions with the HTML page will be done through the ``HTMLResponse`` object or the `zineb.http.responses.HTMLResponse` class.
+Like said previously, the majority of your interactions with the HTML page will be done through the `HTMLResponse` object or `zineb.http.responses.HTMLResponse` class.
 
-This class will implement some very basic general functionnalities that you can use through the course of your project. To illustrate this, let's create a basic Zineb HTTP response:
+This class will implement some very basic general functionnalities that you can use through the course of your project. To illustrate this, let's create a basic Zineb HTTP response from a request:
 
 ```
 from zineb.http.requests import HTTPRequest
 
-request = HTTPRequest("http://example.co")
+request = HTTPRequest("http://example.com")
 ```
 
 Requests, when created a not sent [or resolved] automatically if the `_send` function is not called. In that case, they are marked as being unresolved ex. `HTTPRequest("http://example.co", resolved=False)`.
 
-Once the `_send` method is called, by using the By using the `html_page` attribute or calling any BeautifulSoup function on the class, you can do all the classic querying on the page e.g. find, findall...
+Once the `_send` method is called, by using the `html_page` attribute or calling any BeautifulSoup function on the class, you can do all the classic querying on the page e.g. find, find_all...
 
 ```
 request._send()
+
+request.html_response
+
+    -> Zineb HTMLResponse object
+
 request.html_response.html_page
 
     -> BeautifulSoup object
 
-request.html_response.find("a")
-    -> BeautifulSoup Tag 
+request.find("a")
 
+    -> BeautifulSoup Tag
 ```
 
 If you do not know about BeautifulSoup please read [the documentation here](https://www.crummy.com/software/BeautifulSoup/bs4/doc/).
@@ -130,9 +198,11 @@ class MySpider(Zineb):
 
     def start(self, response=None, request=None, soup=None, **kwargs):
         link = response.find("a")
+
         # Or, you can also use this tehnic through
         # the request object
         link = request.html_response.find("a")
+
         # Or you can directly use the soup
         # object as so
         link = soup.find("a")
@@ -140,12 +210,14 @@ class MySpider(Zineb):
 
 In order to understand what the `Link`, `Image` and `Table` objects represents, please read the [following section]() of this page.
 
+Zineb HTTPRequest objects are better explained in the following section.
+
 ### Getting all the links
 
 ```
 request.html_response.links
 
-    -> [Link(url='http://example.com')]
+    -> [Link(url=http://example.com valid=True)]
 ```
 
 ### Getting all the images
@@ -153,7 +225,7 @@ request.html_response.links
 ```
 request.html_response.images
 
-    -> [Image(url='https://example.com/1.jpg')]
+    -> [Image(url=https://example.com/1.jpg")]
 ```
 
 ### Getting all the tables
@@ -161,12 +233,18 @@ request.html_response.images
 ```
 request.html_response.tables
 
-    -> [Table(url='https://example.com/1')]
+    -> [Table(url=https://example.com/1")]
 ```
 
 ### Getting all the text
 
 Finally you can retrieve all the text of the web page at once.
+
+```
+request.html_response.text
+
+    -> '\n\n\nExample Domain\n\n\n\n\n\n\n\nExample Domain\nThis domain is for use in   illustrative examples in documents. You may use this\n    domain in literature without prior coordination or asking for permission.\nMore information...\n\n\n\n'
+```
 
 # Models
 
@@ -479,7 +557,7 @@ extractor.finalize(response.html_response)
 There might be times where the extracted links are relative paths. This can cause an issue for running additional requests. In which case, use the `base_url` parameter:
 
 ```
-extractor = LinkExtractor(base_url="http://example.com")
+extractor = LinkExtractor(base_url=http://example.com)
 extractor.finalize(response.html_response)
 
 # Instead of getting this result which would also
@@ -526,6 +604,30 @@ Extract all the text on an HTML page.
 First, the text is retrieved as a raw value then tokenized and vectorized using `nltk.tokenize.PunktSentenceTokenizer` and `nltk.tokenize.WordPunctTokenizer`.
 
 To know more about NLKT, [please read the following documentation](https://www.nltk.org/).
+
+# Zineb special wrappers
+
+# HTTPRequest
+
+Zineb uses a special built-in HTTPRequest class which wraps the following for better cohesion:
+
+* The `requests.Request` response class
+* The `bs4.BeautifulSoup` object
+
+In general, you will not need to interact with this class that much because it's just an interface for implement additional functionnalities especially to the Request class.
+
+* `follow`: create a new instance of the class whose resposne will be the one of a new url
+* `follow_all`: create new instances of the class who responses will tbe the ones of the new urls
+* `urljoin`: join a path the domain
+
+# HTMLResponse
+
+It wraps the BeautifulSoup object in order to implement some small additional functionalities:
+
+* `page_title`: return the page's title
+* `links`: return all the links of the page
+* `images`: return all the images of the page
+* `tables`: return all the tables of the page
 
 # Signals
 
@@ -664,9 +766,23 @@ request.urljoin("/kendall-jenner")
 
 This section will talk about all the available settings that are available for your project and how to use them for web scrapping.
 
+**PROJECT_PATH**
+
+Represents the current path for your project. This setting is not be changed.
+
+**SPIDERS**
+
+In order for your spider to be executed, every created spider should be registered here. The name of the class should serve as the name of the spider to be used.
+
+```
+SPIDERS = [
+    "MySpider"
+]
+```
+
 **DOMAINS**
 
-You can restrict your project to use only to a specific set of domains.
+You can restrict your project to use only to a specific set of domains by ensuring that no request is sent if it matches one of the domains within this list.
 
 ```
 DOMAINS = [
@@ -676,26 +792,54 @@ DOMAINS = [
 
 **ENSURE_HTTPS**
 
-Enforce that every link in your project is a secured HTTPS link.
+Enforce that every link in your project is a secured HTTPS link. This setting is set to False by default.
 
 **MIDDLEWARES**
 
-Middlewares are functions/classes that are executed before the main the main logic of your spider is executed. Middlewares implement extra functionnalities to a given project.
+Middlewares are functions/classes that are executed when a signal is sent from any part of the project. Middlewares implement extra functionnalities without affecting the core parts of the project. They can then be disabled safely if you do not need them.
 
 ```
 MIDDLEWARES = [
     "zineb.middlewares.handlers.Handler",
-    "project.middlewares.MyMiddleware"
+    "myproject.middlewares.MyMiddleware"
 ]
 ```
 
-**PROJECT_PATH**
+The main Zineb middlewares are the following:
 
-This variable stores the absolute path for your project
+* zineb.middlewares.referer.Referer
+* zineb.middlewares.handlers.Handler
+* zineb.middlewares.automation.Automation
+* zineb.middlewares.history.History
+* zineb.middlewares.statistics.GeneralStatistics
+* zineb.middlewares.wireframe.WireFrame
+
+
+**USER_AGENTS**
+
+A user agent is a characteristic string that lets servers and network peers identify the application, operating system, vendor, and/or version of the requesting [MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent).
+
+Implement additional sets of user agents to your projects in addition to those that were already created.
+
+**RANDOMIZE_USER_AGENTS**
+
+Specifies whether to use one user agent for every request or to randomize user agents on every request. This setting is set to to False by default.
+
+
+**DEFAULT_REQUEST_HEADERS**
+
+Specify additional default headers to use for each requests.
+
+The default initial headers are:
+
+* `Accept-Language` - en
+* `Accept` - text/html,application/json,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+* Referrer - None
+
 
 **PROXIES**
 
-Use a set of proxies within your project. When a request in sent, a random proxy is selected and implemented with the request.
+Use a set of proxies for each request. When a request in sent, a random proxy is selected and implemented with the request.
 
 ```
 PROXIES = [
@@ -704,16 +848,15 @@ PROXIES = [
 ]
 ```
 
-**SPIDERS**
+**RETRY**
 
-In order to run your spiders, every created spider should be registered here. The name of the class should serve as the name of the spider to be used.
+Specifies the retry policy. This is set to False by default. In other words, the request silently fails and never retries.
 
-```
-SPIDERS = [
-    "MySpider"
-]
-```
+**RETRY_TIMES**
 
-**USER_AGENTS**
+Specificies the amount of times the the request is sent before eventually failing.
 
-A user agent is a characteristic string that lets servers and network peers identify the application, operating system, vendor, and/or version of the requesting [MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent). You can add a list of user agents to use within your project with this constant.
+**RETRY_HTTP_CODES**
+
+Indicates which status codes should trigger a retry. By default, the following codes: 500, 502, 503, 504, 522, 524, 408 and 429 will trigger it.
+
