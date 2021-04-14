@@ -3,6 +3,9 @@ import hmac
 import re
 import secrets
 
+from urllib.parse import urlparse
+from zineb import global_logger
+
 
 def create_new_name(length=5):
     return secrets.token_hex(nbytes=length)
@@ -53,3 +56,16 @@ ALLOWED_CHARACTERS = (
 
 def random_string(length=15):
     return ''.join(secrets.choice(ALLOWED_CHARACTERS) for _ in range(length))
+
+
+def url_is_secure(url:str):
+    parsed_url = urlparse(url)
+    return parsed_url.scheme == 'https'
+
+
+def check_url_again_domain(url:str, domain:str):
+    if domain.startswith('http'):
+        global_logger.logger.warn(f'Domain {domain} is not valid.')
+        return False
+    parsed_url = urlparse(url)
+    return parsed_url.netloc == domain

@@ -32,7 +32,7 @@ def is_path(path):
     return False
 
 
-def decode_email(value):
+def decode_email(value: str):
     """
     Decodes a protected email from an HTML
     response. Generally, this is a x bits
@@ -40,16 +40,20 @@ def decode_email(value):
     some websites put in place prevent
     people from scrapping the emails
 
-    Args:
-        value ([type]): [description]
+    Parameters
+    ----------
 
-    Returns:
-        [type]: [description]
+        value (str): a bits length string
+
+    Returns
+    -------
+
+        str: the decoded email
     """
-    de = ''
+    decoded_elements = ''
+
     k = int(value[:2], 16)
+    for i in range(2, len(value) - 1, 2):
+        decoded_elements += chr(int(value[i:i+2], 16) ^ k)
 
-    for i in range(2, len(value)-1, 2):
-        de += chr(int(value[i:i+2], 16) ^ k)
-
-    return de
+    return decoded_elements
