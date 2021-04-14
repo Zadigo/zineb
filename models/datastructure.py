@@ -9,7 +9,6 @@ from bs4.element import ResultSet, Tag
 from pydispatch import dispatcher
 from zineb.exceptions import FieldError, ParserError
 from zineb.http.responses import HTMLResponse
-from zineb.models._expressions import Expressions
 from zineb.models.fields import Field
 from zineb.signals import signal
 
