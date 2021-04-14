@@ -1,4 +1,5 @@
 import os
+import re
 
 from zineb.management.base import BaseCommand
 from zineb.settings import settings as global_settings
@@ -14,11 +15,15 @@ class Command(BaseCommand):
             name_or_path = name_or_path.removesuffix('_tpl')
         return f'{os.path.basename(name_or_path)}.py'
 
-    def _create_new_file(self, source, destination, project_path=None):
+    def _create_new_file(self, source, destination, project_path=None, **kwargs):
         with open(source, mode='rb') as f:
             base_name = self._clean_file_name(source)
             file_to_create = os.path.join(destination, base_name)
             content = f.read().decode('utf-8')
+
+            # if base_name == 'manage.py':
+            #     content = re.sub(r'(\$project_name)\.', kwargs.get('project_name', None), content)
+
             with open(file_to_create, mode='wb') as d:
                 d.write(content.encode('utf-8'))
     
@@ -32,7 +37,10 @@ class Command(BaseCommand):
         current_dir = os.path.abspath(os.curdir)
         full_project_path_dir = os.path.join(current_dir, project_name)
 
-        zineb_templates_dir_path = os.path.join(global_settings.PROJECT_PATH, 'templates/project')
+        zineb_templates_dir_path = os.path.join(
+            global_settings.GLOBAL_ZINEB_PATH,
+            'templates/project'
+        )
         zineb_template_items = list(os.walk(zineb_templates_dir_path))
         root_path, folders, root_files = zineb_template_items.pop(0)
 
@@ -44,7 +52,8 @@ class Command(BaseCommand):
         for file in root_files:
             self._create_new_file(
                 os.path.join(root_path, file),
-                full_project_path_dir
+                full_project_path_dir,
+                project_name=project_name
             )
 
         # Now once the main root elements were

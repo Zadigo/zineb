@@ -1,21 +1,24 @@
 import os
 from importlib import import_module
 
+from zineb import global_logger
 from zineb.checks.core import checks_registry
-from zineb.logger import create_logger
 from zineb.management.base import BaseCommand
 from zineb.registry import registry
-from zineb.settings import USER_SETTINGS_ENV_VARIABLE_NAME
-
-logger = create_logger('Start', to_file=False)
 
 
 class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('--name', '-n', required=False, type=str)
 
-    def execute(self, namespace=None):
-        checks_registry.run()
+    def execute(self, namespace):
+        project = os.environ.get('ZINEB_SPIDER_PROJECT')
+        project_name, _ = project.rsplit('.', maxsplit=1)
+        # Rettriger the settings files in order to counteract
+        # the first initial __init__ of the class with sets
+        # values such as PROJECT_PATH to None because the
+        # environ ZINEB_PROJECT_SPIDER is not set (for
+        # whatever reasons)
         # HACK: In order to load the correct settings
         # as per what the user has entered, we
         # have to reinstantiate the class which
@@ -27,15 +30,23 @@ class Command(BaseCommand):
         # the time to place the project's settings in the
         # Windows environment and therefore load the settings
         # file of the project
-        # reloaded_settings = settings(LOADED_SPIDERS=[])
-        project = os.environ.get(USER_SETTINGS_ENV_VARIABLE_NAME)
-        project_name, _ = project.rsplit('.', maxsplit=1)
+        from zineb.settings import settings
+        attrs = {
+            'project_name': project_name, 
+            'python_path': project,
+            'spiders_path': f'{project_name}.spiders'
+        }
+        settings(_project_meta=attrs)
         
+        checks_registry.run()
+
         try:
             # Load the spiders module e.g. project.spiders
-            spiders_module = import_module(f'{project_name}.spiders')
+            spiders_module = import_module(
+                settings._project_meta['spiders_path']
+            )
         except Exception as e:
-            logger.error(e.args, stack_info=True)
+            global_logger.error(e.args, stack_info=True)
             raise
         except:
             raise ImportError((f"The command was executed outside "
