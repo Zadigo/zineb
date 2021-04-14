@@ -1,7 +1,7 @@
 """ 
 Implement all the settings for your project here.
 To check all available settings for your project
-consult: 
+visit https://github.com/Zadigo/zineb#settings
 """
 
 import os
@@ -10,19 +10,19 @@ import os
 PROJECT_PATH = os.path.dirname(__file__)
 
 
-# Register all your spiders from your
-# project here
+# Register all your spiders created in your
+# spiders.py module here. Spiders that are
+# not registerd on project startup will not
+# be executed
 
-SPIDERS = [
-    'MySpider'
-]
+SPIDERS = []
 
 
-# A set of codes that will be executed before or after
-# certain specific actions within the application
+# A set of codes that will be executed when a signal
+# is sent from a an application. To register a middleware,
+# use the python from your project 
+# ex. myproject.middlewares.MyMiddleware
+# To read more about middlewares, please read:
+# https://github.com/Zadigo/zineb#middlewares
 
-MIDDLEWARES = [
-    'zineb.middlewares.handlers.Handler',
-    'zineb.middlewares.history.History',
-    'zineb.middlewares.statistics.GeneralStatistics'
-]
+MIDDLEWARES = []
