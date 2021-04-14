@@ -113,14 +113,7 @@ class Utility:
         parser = command_instance.create_parser()
         namespace = parser.parse_args()
         command_called = namespace.command
-        # TODO: Pass the namespace directly
-        # to the execute() function regardless
-        # of what is beeing called
-        if command_called == 'shell':
-            command_instance.execute(url=namespace.url)            
-        else:
-            command_instance.execute(namespace=namespace)
-
+        command_instance.execute(namespace)
         return command_instance
 
 
