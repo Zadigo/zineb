@@ -4,10 +4,8 @@ import warnings
 
 from pydispatch import dispatcher
 from zineb._functionnal import LazyObject
-from zineb.settings import base as global_settings
+from zineb.settings import base as initial_project_settings
 from zineb.signals import signal
-
-USER_SETTINGS_ENV_VARIABLE_NAME = 'ZINEB_SPIDER_PROJECT'
 
 class UserSettings:
     SETTINGS_MODULE = None
