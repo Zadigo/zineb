@@ -78,7 +78,9 @@ class Settings:
         return self.__dict__
 
     def __repr__(self):
-        return f"<{self.__class__.__name__} ''>"
+        if self._user_settings.configured:
+            return f"<{self.__class__.__name__} [{self._user_settings.__repr__()}]>"
+        return f"<{self.__class__.__name__}>"
 
     def __getitem__(self, key):
         return self.__dict__[key]
