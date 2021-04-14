@@ -8,16 +8,11 @@ from requests.models import Response
 from requests.sessions import Request, Session
 from w3lib.url import (is_url, safe_download_url, safe_url_string, urljoin,
                        urlparse)
-from zineb.extractors.base import Extractor
-from zineb.http.headers import ResponseHeaders
+from zineb import _logger
 from zineb.http.responses import HTMLResponse, JsonResponse
 from zineb.http.user_agent import UserAgent
-# from zineb.logger import create_logger
 from zineb.signals import signal
 from zineb.tags import ImageTag, Link
-from zineb import _logger
-
-# logger = create_logger('BaseRequest', to_file=True)
 
 
 class BaseRequest:
