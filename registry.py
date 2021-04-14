@@ -7,7 +7,7 @@ from typing import Type
 
 from pydispatch import dispatcher
 
-from zineb import _logger
+from zineb import global_logger
 from zineb.middleware import Middleware
 from zineb.signals import signal
 
@@ -126,7 +126,7 @@ class Registry:
                     spider_config.run()
                 except Exception:
                     # raise TypeError(f"Could not start {spider_config}. Is the configuration correct?")
-                    new_logger = _logger(name=self.__class__.__name__, to_file=True)
+                    new_logger = global_logger(name=self.__class__.__name__, to_file=True)
                     new_logger.error(f"Could not start {spider_config}. Did you use the correct class name?")
                 else:
                     # Send a signal to all applications that might

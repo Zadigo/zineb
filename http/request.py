@@ -8,7 +8,7 @@ from requests.models import Response
 from requests.sessions import Request, Session
 from w3lib.url import (is_url, safe_download_url, safe_url_string, urljoin,
                        urlparse)
-from zineb import _logger
+from zineb import global_logger
 from zineb.http.responses import HTMLResponse, JsonResponse
 from zineb.http.user_agent import UserAgent
 from zineb.signals import signal
@@ -137,7 +137,7 @@ class BaseRequest:
         """
         if not is_url(url):
             message = f"The url that was provided is not valid. Got: {url}"
-            _logger.error(message, stack_info=True)
+            global_logger.error(message, stack_info=True)
             raise requests.exceptions.InvalidURL(message)
 
         parsed_url = urlparse(url)
@@ -147,12 +147,12 @@ class BaseRequest:
 
         if self.only_secured_requests:
             if scheme != 'https' or scheme != 'ftps':
-                _logger.critical(f"{url} is not secured. No HTTPS scheme is present")
+                global_logger.critical(f"{url} is not secured. No HTTPS scheme is present")
                 self.can_be_sent = False
 
         if self.only_domains:
             if netloc in self.only_domains:
-                _logger.critical(f"{url} is not part of the restricted domains list and will not be able to be sent")
+                global_logger.critical(f"{url} is not part of the restricted domains list and will not be able to be sent")
                 self.can_be_sent = False
             
         return safe_url_string(url)
@@ -172,7 +172,7 @@ class BaseRequest:
         try:
             response = self.session.send(self.prepared_request)
         except requests.exceptions.HTTPError as e:
-            _logger.error(f"An error occured while processing request for {self.prepared_request}", stack_info=True)
+            global_logger.error(f"An error occured while processing request for {self.prepared_request}", stack_info=True)
             self.errors.append([e.args])
         except Exception as e:
             self.errors.extend([e.args])
@@ -276,14 +276,14 @@ class HTTPRequest(BaseRequest):
         http_response = super()._send()
         if http_response is not None:
             if http_response.ok:
-                _logger.info(f'Sent request for {self.url}')
+                global_logger.info(f'Sent request for {self.url}')
                 self._http_response = http_response
                 self.html_response = HTMLResponse(
                     http_response, url=self.url, headers=http_response.headers
                 )
                 self.session.close()
         else:
-            _logger.error(f'An error occured on this request: {self.url}')
+            global_logger.error(f'An error occured on this request: {self.url}')
 
     @classmethod
     def follow(cls, url: Union[str, Link]):
@@ -319,7 +319,7 @@ class JsonRequest(BaseRequest):
         response = super()._send()
         if response.ok:
             self._http_response = response
-            _logger.info(f'Sent request for {self.url}')
+            global_logger.info(f'Sent request for {self.url}')
             self.json_response = JsonResponse(response, url=self.url)
             self.resolved = True
             self.session.close()

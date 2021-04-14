@@ -1,3 +1,3 @@
 from zineb.logger import Logger
 
-_logger = Logger(name='Zineb')
+global_logger = Logger(name='Zineb')

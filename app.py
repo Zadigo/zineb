@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 from pydispatch import dispatcher
 
 # from xml.etree import ElementTree
-from zineb import _logger
+from zineb import global_logger
 # from zineb.http.pipelines import CallBack
 from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
@@ -85,8 +85,8 @@ class Spider(metaclass=BaseSpider):
     start_urls = []
 
     def __init__(self, **kwargs):
-        _logger.info(f'Starting {self.__class__.__name__}')
-        _logger.info(f"{self.__class__.__name__} contains {self.__len__()} request(s)")
+        global_logger.info(f'Starting {self.__class__.__name__}')
+        global_logger.info(f"{self.__class__.__name__} contains {self.__len__()} request(s)")
         
         # Tell all middlewares and signals registered
         # to receive Any that the Spider is ready
