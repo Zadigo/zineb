@@ -353,9 +353,13 @@ class LinkExtractor(Extractor):
                 else:
                     yield tag, tag.attrs
 
-    def _recompose_path(self, path):
+    def _recompose_path(self, path: str):
         if path.startswith('/'):
-            return urljoin(self.base_url, path)
+            path = path.removeprefix('/')
+        # urljoin does not care that the base
+        # url is None. It just returns the path
+        # as is. That's why we do not care here.
+        return urljoin(self.base_url, path)
         return path
 
     def resolve(self, soup: BeautifulSoup):
