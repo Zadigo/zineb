@@ -400,7 +400,7 @@ class LinkExtractor(Extractor):
 class MultiLinkExtractor(LinkExtractor):
     """
     Extract all links using a BeautifulSoup object
-    (including emails)
+    and inluding emails as well
 
     Parameters
     ----------
