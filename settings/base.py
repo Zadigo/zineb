@@ -111,7 +111,10 @@ RETRY_HTTP_CODES = [500, 502, 503, 504, 522, 524, 408, 429]
 
 # AWS_STORAGE_URL = 'https://example.com'
 
-# MEDIA_FOLDER = os.path.join(PROJECT_PATH, 'media')
+# The main folder of storing downloaded data
+# or files that are being saved
+
+MEDIA_FOLDER = None
 
 
 # Specify a default storage area for content
