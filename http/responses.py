@@ -13,16 +13,18 @@ from PIL import Image
 from requests.models import Response
 from w3lib.html import strip_html5_whitespace
 from w3lib.url import is_url
-from zineb.extractors.base import ImageExtractor, LinkExtractor
+from zineb.extractors.base import (ImageExtractor, LinkExtractor,
+                                   MultiTablesExtractor)
 from zineb.http.headers import ResponseHeaders
-from zineb.utils.general import create_new_name
+from zineb.signals import signal
+from zineb.utils.general import create_new_name, random_string
 
 
 class BaseResponse:
     def __init__(self, response: Response):
         self.cached_response = response
         self.headers = ResponseHeaders(response.headers)
-    
+
 
 class HTMLResponse(BaseResponse):
     """
@@ -35,13 +37,14 @@ class HTMLResponse(BaseResponse):
     Parameters
     ----------
 
-            response (type): an HTTP response object
+            response (Response): an HTTP response object
 
     Example
     -------
             
             wrapped_response = HTMLResponse(response)
             wrapped_response.html_page -> BeautifulSoup object
+            wrapped_response.find("a") -> BeautifulSoup object
     """
     def __init__(self, response: Response, **kwargs):
         super().__init__(response)
@@ -57,7 +60,9 @@ class HTMLResponse(BaseResponse):
             self.html_page = self._get_soup(response.cached_response.text)
             self.cached_response = response.cached_response
         else:
-            raise ValueError(f"Response should be either an html string, a zineb.requests.HTTPRequest object or a zineb.responses.HTMLResponse instance. Instead got {response}")
+            raise ValueError((f"Response should be either an html string, "
+            "a zineb.requests.HTTPRequest object or a zineb.responses.HTMLResponse "
+            "instance. Instead got {response}"))
 
         self.kwargs = kwargs.copy()
         # Indicates whether the request was completed
