@@ -92,6 +92,21 @@ class Registry:
     def get_spider(self, spider_name: str) -> Type[SpiderConfig]:
         self.check_spiders_ready()
         return self.spiders[spider_name]
+        except KeyError:
+            global_logger.logger.error((f"The spider with the name '{spider_name}' does not "
+            f"exist in the registry. Available spiders are {', '.join(self.spiders.keys())}. "
+            f"If you forgot to register {spider_name}, check your settings file."), stack_info=True)
+            raise
+
+    def populate(self, project_spiders_module):
+        """
+        Definition that populates the registry
+        with the spiders that were registered
+        in the `SPIDERS` variable in the
+        settings.py file
+
+        Parameter
+        ---------
 
     def populate(self, project_module):
         from zineb.settings import lazy_settings, settings
