@@ -2,8 +2,9 @@ import hashlib
 import hmac
 import re
 import secrets
-
+from typing import Callable, Iterable
 from urllib.parse import urlparse
+
 from zineb import global_logger
 
 
@@ -63,9 +64,29 @@ def url_is_secure(url:str):
     return parsed_url.scheme == 'https'
 
 
-def check_url_again_domain(url:str, domain:str):
+def check_url_against_domain(url:str, domain:str):
     if domain.startswith('http'):
         global_logger.logger.warn(f'Domain {domain} is not valid.')
         return False
     parsed_url = urlparse(url)
     return parsed_url.netloc == domain
+
+
+def keep_while(func: Callable, values: Iterable):
+    for value in values:
+        result = func(value)
+        if result:
+            yield value
+
+
+def drop_while(func: Callable, values: Iterable):
+    for value in values:
+        result = func(value)
+        if not result:
+            yield value
+
+
+def split_while(func: Callable, values: Iterable):
+    a = [value for value in values if func(value)]
+    b = [value for value in values if not func(value)]
+    return a, b
