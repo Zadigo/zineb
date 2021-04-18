@@ -84,7 +84,8 @@ class Registry:
 
     def check_spiders_ready(self):
         if not self.spiders:
-            raise ValueError('Spiders are not loaded yet')
+            raise ValueError(("Spiders are not yet loaded or "
+            "there are no registered ones."))
 
     def check_spider_exists(self, name):
         return name in self.spiders.keys()
