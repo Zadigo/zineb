@@ -117,8 +117,14 @@ class Spider(metaclass=BaseSpider):
 
     def _resolve_requests(self, debug=False):
         """
-        Send each requests and pass the response in
-        the start method of the class
+        Call `_send` each requests and pass the response in
+        the start method of the same class
+
+        Parameters
+        ----------
+
+            debug (Bool): determines whether to send the 
+            requests or not. Defaults to False.
         """
         if self._prepared_requests:
             if not debug:
@@ -187,11 +193,10 @@ class FileCrawler:
     This is a kind of spider that can crawl files locally and then eventually
     perform requests to the web in order to implement additional data.
 
-    In order to use this spider efficiently, you need a set of local HTML
+    In order to use this spider efficiently, you need a have local HTML
     files that will be be opened sequentially and then parsed according to
     the logic provided in the `start` function
     """
-    settings = global_settings
     start_files = []
     root_dir = None
 
