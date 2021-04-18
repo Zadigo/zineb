@@ -92,7 +92,8 @@ class Registry:
 
     def get_spider(self, spider_name: str) -> Type[SpiderConfig]:
         self.check_spiders_ready()
-        return self.spiders[spider_name]
+        try:
+            return self.spiders[spider_name]
         except KeyError:
             global_logger.logger.error((f"The spider with the name '{spider_name}' does not "
             f"exist in the registry. Available spiders are {', '.join(self.spiders.keys())}. "
