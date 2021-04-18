@@ -41,7 +41,8 @@ class Command(BaseCommand):
         checks_registry.run()
 
         try:
-            # Load the spiders module e.g. project.spiders
+            # Load the spiders module 
+            # e.g. project.spiders
             spiders_module = import_module(
                 settings._project_meta['spiders_path']
             )
