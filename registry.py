@@ -59,9 +59,9 @@ class SpiderConfig:
 
 class Registry:
     """
-    Registry that keeps in mind all the spiders
-    that are created by the user and their
-    configurations
+    Registry that keeps in memory all the spiders
+    that are created within a project and their
+    current settings
     """
     def __init__(self, spiders={}):
         self.spiders = OrderedDict(**spiders)
