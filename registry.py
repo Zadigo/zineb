@@ -133,7 +133,9 @@ class Registry:
     def run_all_spiders(self):
         spiders = self.get_spiders()
         if not spiders:
-            warnings.warn("There are no registered spiders in your project. If you created spiders, register them within the SPIDERS variable of your settings.py file.", Warning, stacklevel=0)
+            warnings.warn(("There are no registered spiders in your project. If you created spiders, "
+            "register them within the SPIDERS variable of your "
+            "settings.py file."), Warning, stacklevel=0)
         else:
             for spider_config in spiders:
                 try:
@@ -141,7 +143,9 @@ class Registry:
                 except Exception:
                     # raise TypeError(f"Could not start {spider_config}. Is the configuration correct?")
                     new_logger = global_logger(name=self.__class__.__name__, to_file=True)
-                    new_logger.error(f"Could not start {spider_config}. Did you use the correct class name?")
+                    new_logger.error((f"Could not start {spider_config}. "
+                    "Did you use the correct class name?"), stack_info=True)
+                    raise
                 else:
                     # Send a signal to all applications that might
                     # be interested that the spiders have started
