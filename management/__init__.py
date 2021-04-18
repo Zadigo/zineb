@@ -75,7 +75,7 @@ class Utility:
 
         for path in modules_paths:
             module_name = basename(path)
-            true_name, ext = module_name.split('.')
+            true_name, _ = module_name.split('.')
             try:
                 module_obj = import_module(f'zineb.management.commands.{true_name}')
             except Exception as e:
