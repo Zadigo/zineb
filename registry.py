@@ -110,15 +110,12 @@ class Registry:
         Parameter
         ---------
 
-    def populate(self, project_module):
+            project_spiders_module (Module): the `spiders.py` module of the project
+        """
         from zineb.settings import lazy_settings, settings
 
-        # Update the settings with a REGISTRY
-        # that contains the fully loaded spiders
-        # which is the class itself
-        setattr(settings, 'REGISTRY', None)
         for spider in settings.SPIDERS:
-            config = SpiderConfig(spider, project_module)
+            config = SpiderConfig(spider, project_spiders_module)
             self.spiders[spider] = config
 
         settings.REGISTRY = self
