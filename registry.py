@@ -82,6 +82,9 @@ class Registry:
     def get_spiders(self):
         return self.spiders.values()
 
+    def has_spider(self, name):
+        return self.__contains__(name)
+
     def check_spiders_ready(self):
         if not self.spiders:
             raise ValueError(("Spiders are not yet loaded or "
