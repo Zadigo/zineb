@@ -25,19 +25,20 @@ class BaseSpider(type):
         if not bases:
             return create_new(cls, name, bases, attrs)
 
-        # if 'Meta' in attrs:
-        #     _meta = attrs.pop('Meta')
-        #     options = _meta.__dict__
+        spider_options = OrderedDict()
+        if 'Meta' in attrs:
+            _meta = attrs.pop('Meta')
+            options = _meta.__dict__
 
-        #     valid_options = OrderedDict()
-        #     allowed_options = ['domains']
-        #     for key, option in options.items():
-        #         if not key.startswith('__'):
-        #             if key in allowed_options:
-        #                 valid_options.setdefault(key, option)
-        #                 attrs.update({'_meta': valid_options})
-        #             else:
-        #                 raise TypeError(f"Meta received an invalid option: {key}. Authorized options are {', '.join(valid_options)}")
+            allowed_options = ['domains', 'base_url', 'verbose_name', 'sorting', 'limit_requests_to']
+            for key, option in options.items():
+                if not key.startswith('__'):
+                    if key in allowed_options:
+                        spider_options.setdefault(key, option)
+                    else:
+                        raise ValueError((f"Meta received an invalid option: '{key}'. "
+                        f"Authorized options are {', '.join(allowed_options)}"))
+        attrs.update({'_meta': spider_options})
 
         if 'start_urls' in attrs:            
             new_class = create_new(cls, name, bases, attrs)
