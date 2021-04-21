@@ -47,7 +47,6 @@ class Link(HTMLTag):
     ----------
 
         tag (src): a BeautifulSoup image object
-        index (int):
     """
     def __init__(self, tag: Tag, **kwargs):
         self.tag = tag
@@ -97,17 +96,18 @@ class Link(HTMLTag):
         if self.href is not None:
             logic_to_test.extend([value_to_test in self.href])
 
-        if self.attrs:
-            element_class = self.attrs.get('class')
-            element_id = self.attrs.get('id')
-            if element_class is not None:
-                logic_to_test.extend([value_to_test in element_class])
+        # if self.attrs:
+        #     element_class = self.attrs.get('class')
+        #     element_id = self.attrs.get('id')
+        #     if element_class is not None:
+        #         logic_to_test.extend([value_to_test in element_class])
 
-            if element_id is not None:
-                logic_to_test.extend([value_to_test in element_id])
+        #     if element_id is not None:
+        #         logic_to_test.extend([value_to_test in element_id])
 
         if logic_to_test:
             return any(logic_to_test)
+            
         return False
 
     def __str__(self):
