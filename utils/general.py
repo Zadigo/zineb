@@ -90,3 +90,14 @@ def split_while(func: Callable, values: Iterable):
     a = [value for value in values if func(value)]
     b = [value for value in values if not func(value)]
     return a, b
+
+
+def transform_to_bytes(content: str):
+    if isinstance(content, bytes):
+        return content
+
+    if isinstance(content, str):
+        return content.encode(encoding='utf-8')
+    else:
+        raise ValueError(("In order to transform the object to bytes "
+        "you need to provide a string."))
