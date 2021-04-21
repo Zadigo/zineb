@@ -48,14 +48,12 @@ class BaseSpider(type):
                 warnings.warn("No start urls were provided for the project", Warning, stacklevel=0)
 
             prepared_requests = attrs.get('_prepared_requests', [])
-            if start_urls:
-                if len(start_urls) > 0:
-                    prepared_requests = []
-                    for index, link in enumerate(start_urls):
-                        request = HTTPRequest(link, counter=index, settings=cls.settings)
-                        request.only_secured_requests = cls.settings.get('ENSURE_HTTPS')
-                        prepared_requests.append(request)
-                    setattr(new_class, '_prepared_requests', prepared_requests)
+            prepared_requests = []
+            for index, link in enumerate(start_urls):
+                request = HTTPRequest(link, counter=index, settings=cls.settings, _meta=new_class._meta)
+                request.only_secured_requests = cls.settings.get('ENSURE_HTTPS')
+                prepared_requests.append(request)
+            setattr(new_class, '_prepared_requests', prepared_requests)
             return new_class
         return create_new(cls, name, bases, attrs)
 
@@ -128,11 +126,15 @@ class Spider(metaclass=BaseSpider):
         """
         if self._prepared_requests:
             if not debug:
-                return_values_container = deque()
-                for request in self._prepared_requests:
+                # return_values_container = deque()
+                limit_requests_to = self._meta.get('limit_requests_to', len(self._prepared_requests))
+                # for request in self._prepared_requests:
+                for i in range(0, limit_requests_to):
+                    request = self._prepared_requests[i]
                     request._send()
 
-                    return_value = self.start(
+                    # return_value = self.start(
+                    self.start(
                         request.html_response,
                         request=request,
                         soup=request.html_response.html_page
@@ -145,7 +147,7 @@ class Spider(metaclass=BaseSpider):
                 signal.send(dispatcher.Any, self, tag='Post.Initial.Requests', urls=self._prepared_requests)
                 # return self._resolve_return_containers(return_values_container)
             else:
-                self.logger.warn(f'You are using {self.__class__.__name__} in DEBUG mode')
+                global_logger.logger.warn(f'You are using {self.__class__.__name__} in DEBUG mode')
 
     def start(self, response: Union[HTMLResponse, JsonResponse, XMLResponse], request: HTTPRequest=None, **kwargs):
         """
@@ -203,8 +205,15 @@ class FileCrawler:
     def __init__(self):
         self.buffers = []
 
-        # full_paths = map(lambda x: os.path.join(self.root_dir, x), self.start_files)
-        
+        if self.root_dir is not None:
+            start_files = map(lambda p: os.path.join(self.root_dir, p), self.start_files)
+            for start_file in start_files:
+                if not self._check_path(start_file):
+                    raise TypeError(f"{start_file} is not a valid file.")
+            self.start_files = start_files
+
+        # Search for the files in the current
+        # actual directory.
         for file in self.start_files:
             opened_file = open(file, mode='r', encoding='utf-8')
             buffer = StringIO(opened_file.read())
@@ -218,5 +227,13 @@ class FileCrawler:
         for buffer in self.buffers:
             buffer.close()
 
-    def start(self, soup: BeautifulSoup, **kwargs):
+    @staticmethod
+    def _check_path(path: str):
+        checks = [
+            os.path.isfile(path),
+            path.endswith('.html')
+        ]
+        return all(checks)
+
+    def start(self, soup: BeautifulSoup):
         pass
