@@ -1,8 +1,11 @@
+import json
 import random
 from collections import OrderedDict
 from typing import Union
+from urllib import parse
 
 import requests
+from bs4 import BeautifulSoup
 from pydispatch import dispatcher
 from requests.models import Response
 from requests.sessions import Request, Session
@@ -11,8 +14,10 @@ from w3lib.url import (is_url, safe_download_url, safe_url_string, urljoin,
 from zineb import global_logger
 from zineb.http.responses import HTMLResponse, JsonResponse
 from zineb.http.user_agent import UserAgent
+from zineb.settings import settings as global_settings
 from zineb.signals import signal
 from zineb.tags import ImageTag, Link
+from zineb.utils.general import random_string, transform_to_bytes
 
 
 class BaseRequest:
@@ -47,11 +52,12 @@ class BaseRequest:
         # that represent the url such as Link or ImageTag
         url = str(url)
 
-        self.project_settings = kwargs.get('settings', {})
+        # self.project_settings = kwargs.get('settings', {})
 
         session = Session()
-        proxies = self.project_settings.get('proxies')
-        if proxies is not None:
+        # proxies = self.project_settings.get('proxies')
+        proxies = global_settings.PROXIES
+        if proxies:
             http_proxies = list(filter(lambda x: 'http' in x, proxies))
             https_proxies = list(filter(lambda x: 'https' in x, proxies))
             proxy_map = {
@@ -63,15 +69,17 @@ class BaseRequest:
             if https_proxies:
                 proxy_map.update({'https': random.choice(https_proxies)})
 
-        self.only_domains = self.project_settings.get('DOMAINS')
-        self.only_secured_requests = self.project_settings.get('ENSURE_HTTPS')
+        self.only_domains = global_settings.DOMAINS
+        self.only_secured_requests = global_settings.get('ENSURE_HTTPS', False)
         self.retries = {
-            'retry': self.project_settings.get('RETRY', False),
-            'retry_times': self.project_settings.get('RETRY_TIMES', 2),
-            'retry_http_codes': self.project_settings.get('RETRY_HTTP_CODES', [])
+            'retry': global_settings.get('RETRY', False),
+            'retry_times': global_settings.get('RETRY_TIMES', 2),
+            'retry_http_codes': global_settings.get('RETRY_HTTP_CODES', [])
         }
 
+        self._url_meta = None
         self.url = self._precheck_url(url)
+
         request = Request(method=method, url=self.url)
         self._unprepared_request = self._set_headers(request, **kwargs.get('headers', {}))
 
@@ -99,7 +107,8 @@ class BaseRequest:
         self.resolved = False
         self._http_response = None
 
-        self.domain = None
+        self.domain = self._url_meta.netloc
+        self.root_url = None
 
     def __repr__(self):
         return f"{self.__class__.__name__}(url={self.url}, resolved={self.resolved})"
@@ -110,11 +119,7 @@ class BaseRequest:
         # to call the HTTPRequest class without
         # having to pass or use the full project
         # settings
-        if self.project_settings:
-            headers = self.project_settings.DEFAULT_REQUEST_HEADERS
-        else:
-            from zineb.settings import settings as global_settings
-            headers = global_settings.get('DEFAULT_REQUEST_HEADERS', {})
+        headers = global_settings.get('DEFAULT_REQUEST_HEADERS', {})
         headers.update({'User-Agent': user_agent.get_random_agent()})
         extra_headers.update(headers)
         request.headers = headers
@@ -136,23 +141,25 @@ class BaseRequest:
                 str: a safe url string
         """
         if not is_url(url):
-            message = f"The url that was provided is not valid. Got: {url}"
+            message = ("The url that was provided is not valid. "
+            f"Got: {type(url)} instead of a string.")
             global_logger.error(message, stack_info=True)
             raise requests.exceptions.InvalidURL(message)
 
         parsed_url = urlparse(url)
-
-        scheme = parsed_url[0]
-        netloc = parsed_url[1]
+        self._url_meta = parsed_url
 
         if self.only_secured_requests:
-            if scheme != 'https' or scheme != 'ftps':
-                global_logger.critical(f"{url} is not secured. No HTTPS scheme is present")
+            if (parsed_url.scheme != 'https' or 
+                    parsed_url.scheme != 'ftps'):
+                global_logger.critical(f"{url} is not secured. No HTTPS scheme is present.")
                 self.can_be_sent = False
 
         if self.only_domains:
-            if netloc in self.only_domains:
-                global_logger.critical(f"{url} is not part of the restricted domains list and will not be able to be sent")
+            if parsed_url.netloc in self.only_domains:
+                global_logger.critical((f"{url} is part of the restricted domains "
+                "list and will not be able to be sent. Adjust your settings if you "
+                "want to prevent this security check."))
                 self.can_be_sent = False
             
         return safe_url_string(url)
@@ -177,15 +184,22 @@ class BaseRequest:
         except Exception as e:
             self.errors.extend([e.args])
         else:
-            retry = self.retries.get('retry', False)
-            if retry:
-                retry_http_status_codes = self.retries.get('retry_http_status_codes', [])
-                if response.status_code in retry_http_status_codes:
-                    # TODO: Might create an error
-                    response = self._retry()
+            retry_codes = global_settings.RETRY_HTTP_CODES
+            test_if_retry = [
+                response.status_code in retry_codes,
+                global_settings.RETRY
+            ]
+            if all(test_if_retry):
+                response = self._retry()
+            # retry = self.retries.get('retry', False)
+            # if retry:
+            #     retry_http_status_codes = self.retries.get('retry_http_status_codes', [])
+            #     if response.status_code in retry_http_status_codes:
+            #         # TODO: Might create an error
+            #         response = self._retry()
 
-            if response.status_code == 200:
-                self.resolved = True
+            # if response.status_code == 200:
+            #     self.resolved = True
 
         signal.send(
             dispatcher.Any,
@@ -197,7 +211,7 @@ class BaseRequest:
         # policy = response.headers.get('Referer-Policy', 'origin')
 
         parsed_url = urlparse(response.url)
-        self._domain = f"{parsed_url.scheme}://{parsed_url.netloc}"
+        self.root_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
 
         return response
 
@@ -205,7 +219,6 @@ class BaseRequest:
         retry_responses = []
         retry_times = self.retries.get('retry_times')
         for _ in range(0, retry_times + 2):
-            # return self.session.send(self.prepared_request)
             response = self.session.send(self.prepared_request)
             retry_responses.extend([(response.status_code, response)])
         sorted_responses = sorted(retry_responses)
@@ -292,11 +305,8 @@ class HTTPRequest(BaseRequest):
         return instance.html_response
 
     @classmethod
-    def follow_all(cls, *urls: Union[str, Link]):
+    def follow_all(cls, urls: Union[str, Link]):
         for url in urls:
-            # instance = cls(url)
-            # instance._send()
-            # yield instance.html_response
             yield cls.follow(url)
 
     def urljoin(self, path: str, use_domain=False):
@@ -306,25 +316,68 @@ class HTTPRequest(BaseRequest):
         relative path 
         """
         if use_domain:
-            return urljoin(self._domain, str(path))
+            return urljoin(self.root_url, str(path))
         return urljoin(self._http_response.url, str(path))
 
 
-class JsonRequest(BaseRequest):
-    def __init__(self, url: Union[str, Link], **kwargs):
-        super().__init__(url, **kwargs)
-        self.json_response = None
+# class JsonRequest(BaseRequest):
+#     def __init__(self, url: Union[str, Link], data: dict, **kwargs):
+#         self.prepared_request.headers['Content-Type'] = 'application/json'
+#         self.headers.setdefault['Accept'] = 'application/json, text/javascript, */*; q=0.01'
+#         data = json.dumps(data)
+#         super().__init__(url, **kwargs)
 
-    def _send(self):
-        response = super()._send()
-        if response.ok:
-            self._http_response = response
-            global_logger.info(f'Sent request for {self.url}')
-            self.json_response = JsonResponse(response, url=self.url)
-            self.resolved = True
-            self.session.close()
+#         self.json_response = None
+
+#     def _send(self):
+#         response = super()._send()
+#         if response.ok:
+#             self._http_response = response
+#             global_logger.info(f'Sent request for {self.url}')
+#             self.json_response = JsonResponse(response, url=self.url)
+#             self.resolved = True
+#             self.session.close()
             
 
 class FormRequest(BaseRequest):
-    def __init__(self, url: Union[Link, str], **attrs):
-        super().__init__(url, method='POST')
+    def __init__(self, url: Union[Link, str], data: dict, method='POST', **attrs):
+        super().__init__(url, method=method)
+        encoded_data = parse.urlencode(data, encoding='utf-8')
+        if method == 'POST':
+            self.prepared_request.headers.setdefault(b'Content-Type', b'application/x-www-form-urlencoded')
+            self.prepared_request.body = transform_to_bytes(encoded_data)
+        elif method == 'GET':
+            url_to_get = self.prepared_request.url
+            if url.endswith('?'):
+                self.prepared_request.url = f"{url_to_get}{encoded_data}"
+            else:
+                self.prepared_request.url = f"{url_to_get}?{encoded_data}"
+
+
+class FormRequestFromResponse(FormRequest):
+    fields = []
+
+    def __init__(self, form: BeautifulSoup, url: Union[Link, str], 
+                 data: dict, method='POST', **attrs):
+        if form.name != 'form':
+            form = form.get('form')
+
+        self._names = set()
+
+        fields = form.find_all('input')
+        for field in fields:
+            keys = field.attrs.keys()
+            self._names.add(field.attrs['name'])
+            base = {}
+            for key in keys:
+                base.setdefault(key, field.attrs[key])
+
+        valid_data = {}
+        for key, value in data.items():
+            if self._has_key(key):
+                valid_data.setdefault(key, value)
+
+        super().__init__(url, valid_data, method=method, **attrs)
+
+    def _has_key(self, key):
+        return key in self._names
