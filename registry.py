@@ -14,23 +14,25 @@ from zineb.signals import signal
 
 class SpiderConfig:
     """
-    Class that represents a spider and the different
-    characteristics that it holds
+    Class that represents a spider and stores all the different
+    settings that it holds via the `_meta` attribute.
     """
 
     def __init__(self, name: str, project_module):
         self.name = name
         
         # The root module of the project
-        # ex. myproject.spiders
-        self.module = project_module
+        # ex. myproject.spiders that contains
+        # the spiders that we need to grab
+        # when the get_spider is called
+        self.MODULE = project_module
 
         if not hasattr(self, 'label'):
             self.label = self.name.rpartition('.')[2]
 
-        paths = list(getattr(self.module, '__path__', []))
+        paths = list(getattr(self.MODULE, '__path__', []))
         if not paths:
-            filename = getattr(self.module, '__file__', None)
+            filename = getattr(self.MODULE, '__file__', None)
             if filename is not None:
                 paths = [os.path.dirname(filename)]
 
@@ -50,8 +52,9 @@ class SpiderConfig:
     def __repr__(self):
         return self.__str__()
 
+    @lru_cache(maxsize=5)
     def get_spider(self, name):
-        return getattr(self.module, name)
+        return getattr(self.MODULE, name)
 
     def run(self):
         self.get_spider(self.label)()
@@ -140,8 +143,7 @@ class Registry:
             for spider_config in spiders:
                 try:
                     spider_config.run()
-                except Exception:
-                    # raise TypeError(f"Could not start {spider_config}. Is the configuration correct?")
+                except Exception as e:
                     new_logger = global_logger(name=self.__class__.__name__, to_file=True)
                     new_logger.error((f"Could not start {spider_config}. "
                     "Did you use the correct class name?"), stack_info=True)
