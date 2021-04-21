@@ -37,7 +37,20 @@ class Command(BaseCommand):
             'spiders_path': f'{project_name}.spiders'
         }
         settings(_project_meta=attrs)
-        
+
+        # Update the settings with a REGISTRY
+        # that contains the fully loaded spiders
+        # which is the class itself
+        setattr(settings, 'REGISTRY', None)
+
+        # If the user did not explicitly set the path
+        # to a MEDIA_FOLDER, we will be doing it
+        # autmatically here
+        media_folder = getattr(settings, 'MEDIA_FOLDER')
+        if media_folder is None:
+            project_path = os.path.join(getattr(settings, 'PROJECT_PATH'))
+            setattr(settings, 'MEDIA_FOLDER', project_path, 'media')
+
         checks_registry.run()
 
         try:
