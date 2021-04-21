@@ -333,7 +333,7 @@ class Model(DataStructure):
 
             custom_model = MyCustommodel()
             custom_model.add_value('name', 'p')
-            custom_modem.resolve_fields()
+            custom_model.resolve_fields()
 
             -> pandas.DataFrame
     """
