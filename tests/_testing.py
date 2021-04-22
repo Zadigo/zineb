@@ -1,15 +1,14 @@
-from zineb.models.fields import DecimalField, Field, IntegerField, NameField, TextField, UrlField, CharField
-from zineb.models.datastructure import Model
+from zineb.extractors.base import TableExtractor
+from zineb.tests import file_opener
+
+def delete_blank(value, **kwargs):
+    if value == '':
+        return None
+    return value
 
 
-class SomeModel(Model):
-    name = CharField()
-    age = IntegerField(min_value=18)
+soup = file_opener('tests/html/tables3.html')
 
-
-player = SomeModel()
-player.add_value('name', 'Kendall')
-player.add_value('age', 9)
-print(player)
-# field = CharField()
-# print(field, isinstance(field, Field), issubclass(field.__class__, Field))
+extractor = TableExtractor(class_or_id_name='third-table')
+extractor.resolve(soup, include_links=True)
+print(extractor.values)

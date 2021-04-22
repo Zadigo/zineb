@@ -41,37 +41,6 @@ class TestImagesExtractor(unittest.TestCase):
         self.assertIn('Alessandra-Ambrosio-Booty-in-Bikini-901.jpg', filtered_images[0])
 
 
-class TestRowsExtractor(unittest.TestCase):
-    def setUp(self):
-        self.extractor = TableExtractor(has_headers=True)
-
-    def test_resolution(self):
-        result = self.extractor.resolve(soup2)
-        self.assertIsInstance(result, list)
-
-    def test_using_specific_table(self):
-        rows = self.extractor.resolve(tables[10])
-        self.assertIsInstance(rows, list)
-        self.assertIsInstance(rows[-1], list)
-        self.assertIn('Erika', rows[2])
-
-    def test_processors(self):
-        def replace_empty_values(value, row=None):
-            if value is None or value == '':
-                return None
-            else:
-                return value
-
-        extractor = TableExtractor(has_headers=True, processors=[replace_empty_values])
-        rows = extractor.resolve(player_table)
-        self.assertNotIn('', rows[2])
-
-    def test_pandas_resolution(self):
-        extractor = TableExtractor(has_headers=True)
-        df = extractor.resolve_to_dataframe(soup2)
-        self.assertIsInstance(df, pandas.DataFrame)
-
-
 class TestLinkExactor(unittest.TestCase):
     def setUp(self):
         extractor = LinkExtractor()
