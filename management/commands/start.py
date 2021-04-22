@@ -49,7 +49,7 @@ class Command(BaseCommand):
         media_folder = getattr(settings, 'MEDIA_FOLDER')
         if media_folder is None:
             project_path = os.path.join(getattr(settings, 'PROJECT_PATH'))
-            setattr(settings, 'MEDIA_FOLDER', project_path, 'media')
+            setattr(settings, 'MEDIA_FOLDER', os.path.join(project_path, 'media'))
 
         checks_registry.run()
 
