@@ -101,9 +101,7 @@ class BaseRequest:
             self.errors.extend([e.args])
         except Exception as e:
             self.errors.extend([e.args])
-
-        # Whether the request was
-        # sent or not
+            
         self.resolved = False
         self._http_response = None
 
@@ -191,6 +189,7 @@ class BaseRequest:
             ]
             if all(test_if_retry):
                 response = self._retry()
+
             # retry = self.retries.get('retry', False)
             # if retry:
             #     retry_http_status_codes = self.retries.get('retry_http_status_codes', [])
@@ -198,8 +197,8 @@ class BaseRequest:
             #         # TODO: Might create an error
             #         response = self._retry()
 
-            # if response.status_code == 200:
-            #     self.resolved = True
+        if response.status_code == 200:
+            self.resolved = True
 
         signal.send(
             dispatcher.Any,
