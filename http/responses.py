@@ -73,10 +73,12 @@ class HTMLResponse(BaseResponse):
         soup_attributes = dir(self.html_page)
         if name in soup_attributes:
             return getattr(self.html_page, name)
-        elif name not in soup_attributes:
-            raise AttributeError(f"{self.__class__.__name__} does not have an attribute {name}. Please read https://www.crummy.com/software/BeautifulSoup/bs4/doc/ for available BeautifulSoup functionnalities.")
-        else:
-            return super().__getattribute__(name)
+        return name
+            # try:
+            #     print(name)
+            #     return super().__getattr__(name)
+            # except:
+            #     raise AttributeError(f"{self.__class__.__name__} does not have an attribute {name}. Please read https://www.crummy.com/software/BeautifulSoup/bs4/doc/ for available BeautifulSoup functionnalities.")
 
     def __repr__(self):
         return f"{self.__class__.__name__}(title={self.page_title})"
@@ -116,17 +118,31 @@ class HTMLResponse(BaseResponse):
 
     @cached_property
     def tables(self):
-        return self.html_page.find_all('table')
+        extractor = MultiTablesExtractor(
+            has_headers=True, filter_empty_rows=True
+        )
+        extractor.resolve(self.html_page)
+        return extractor
 
     @staticmethod
     def _get_soup(obj):
         return BeautifulSoup(obj, 'html.parser')
 
+    @staticmethod
+    def _writer(content):
+        name = f"{random_string(length=5)}.html"
+        # result = signal.send('Storage', self, filename=name)
+        with open(name, mode='w', encoding='utf-8') as f:
+            f.write(content)
+
     def urljoin(self, path):
-        try:
-            return urljoin(self.cached_response.url, str(path))
-        except:
-            return None
+        return urljoin(self.cached_response.url, str(path))
+
+    def download_html_page(self):
+        self._writer(self.html_page.find('html').html)
+
+    def download_html_page_text(self):
+        self._writer(self.html_page.find('html').text)
 
 
 class ImageResponse(BaseResponse):
