@@ -8,106 +8,106 @@ from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
 
 
 
-# class Pipeline:
-#     def __init__(self):
-#         self.errors = []
+class Pipeline:
+    def __init__(self):
+        self.errors = []
 
-#     def _warn_user(self, message, using):
-#         warnings.warn(message, UserWarning, stacklevel=6)
+    def _warn_user(self, message, using):
+        warnings.warn(message, UserWarning, stacklevel=6)
 
 
-# class ResponsesPipeline(Pipeline):
-#     """
-#     Treats a set of HTTP Responses through a set of functions
+class ResponsesPipeline(Pipeline):
+    """
+    Treats a set of HTTP Responses through a set of functions
 
-#     This pipeline is ideal for working with multiple responses
-#     at once in order to do something with them and do multiple 
-#     things at a time with a same response
+    This pipeline is ideal for working with multiple responses
+    at once in order to do something with them and do multiple 
+    things at a time with a same response
 
-#     Example
-#     -------
+    Example
+    -------
 
-#         Suppose you have a set of urls that you want to request for
-#         and get all the responses, in your start function you would
-#         have something like this:
+        Suppose you have a set of urls that you want to request for
+        and get all the responses, in your start function you would
+        have something like this:
             
-#             class MySpider(Zineb):
-#                 start_urls = []
+            class MySpider(Zineb):
+                start_urls = []
 
-#                 def start(self, response, request=None, **kwargs):
-#                     urls = [http://example.com, http://example.com]
-#                     responses = request.follow_all(urls)
-#                     RequestPipeline(responses, [self.do_something_with_each_response])
+                def start(self, response, request=None, **kwargs):
+                    urls = [http://example.com, http://example.com]
+                    responses = request.follow_all(urls)
+                    RequestPipeline(responses, [self.do_something_with_each_response])
 
-#                     # Continue my code here
+                    # Continue my code here
 
-#                 def do_something_with_each_response(self, response, **kwargs):
-#                     link = response.html_page.find("a")
+                def do_something_with_each_response(self, response, **kwargs):
+                    link = response.html_page.find("a")
 
-#         Once the class is completed, the code resumes normally.
+        Once the class is completed, the code resumes normally.
 
-#     Parameters
-#     ----------
+    Parameters
+    ----------
 
-#             responses (list): a list of HTMLResponse objects (instances)
-#             functions (list): a list of functions to call
-#             parameters (dict): things you want to pass to each method called
-#             options (dict): extra options for the class
-#     """
-#     def __init__(self, responses:list, functions:list, 
-#                  parameters:dict={}, **options):
-#         super().__init__()
-#         self.responses = responses
+            responses (list): a list of HTMLResponse objects (instances)
+            functions (list): a list of functions to call
+            parameters (dict): things you want to pass to each method called
+            options (dict): extra options for the class
+    """
+    def __init__(self, responses:list, functions:list, 
+                 parameters:dict={}, **options):
+        super().__init__()
+        self.responses = responses
 
-#         types = []
-#         for function in functions:
-#             if type(function) == 'class':
-#                 types.append(function)
+        types = []
+        for function in functions:
+            if type(function) == 'class':
+                types.append(function)
 
-#         results = []
+        results = []
 
-#         async def coordinator(response):
-#             for function in functions:
-#                 if isinstance(response, HTTPRequest):
-#                     if response.resolved:
-#                         response = response._http_response
-#                     else:
-#                         self.errors.append(f"{response} is not resolved")
+        async def coordinator(response):
+            for function in functions:
+                if isinstance(response, HTTPRequest):
+                    if response.resolved:
+                        response = response._http_response
+                    else:
+                        self.errors.append(f"{response} is not resolved")
 
-#                 try:
-#                     result = function(
-#                         response,
-#                         soup=response.html_page,
-#                         **parameters
-#                     )
-#                     # if parameters:
-#                     # else:
-#                     #     return await function(response)
-#                 except Exception as e:
-#                     print(e.args)
-#                     # self.errors.append(f"An error occured within the Pipe. {e.args}")
-#                     raise 
-#                 else:
-#                     if result is not None:
-#                         return await result
-#                 finally:
-#                     if self.errors:
-#                         for error in self.errors:
-#                             self._warn_user(error, UserWarning)
+                try:
+                    result = function(
+                        response,
+                        soup=response.html_page,
+                        **parameters
+                    )
+                    # if parameters:
+                    # else:
+                    #     return await function(response)
+                except Exception as e:
+                    print(e.args)
+                    # self.errors.append(f"An error occured within the Pipe. {e.args}")
+                    raise 
+                else:
+                    if result is not None:
+                        return await result
+                finally:
+                    if self.errors:
+                        for error in self.errors:
+                            self._warn_user(error, UserWarning)
         
-#         async def main():
-#             for response in responses:
-#                 result = await coordinator(response)
-#                 if result or result is not None:
-#                     results.extend([result])
+        async def main():
+            for response in responses:
+                result = await coordinator(response)
+                if result or result is not None:
+                    results.extend([result])
 
-#         asyncio.run(main())
+        asyncio.run(main())
 
-#     def __repr__(self):
-#         return f"{self.__class__.__name__}({self.responses})"
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.responses})"
 
-#     def __str__(self):
-#         return str(self.responses)
+    def __str__(self):
+        return str(self.responses)
         
 
 # class HTTPPipeline:
@@ -212,46 +212,46 @@ from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
 #         return False
         
 
-class Callback:
-    """
-    The CallBack class allows you to run a callback function
-    once each url is processed and passed through the main start 
-    function of your spider.
+# class Callback:
+#     """
+#     The CallBack class allows you to run a callback function
+#     once each url is processed and passed through the main start 
+#     function of your spider.
 
-    Parameters
-    ----------
+#     Parameters
+#     ----------
     
-        request_or_url (Union[HTTPRequest, str]): [description]
-        func (Callable[[Union[HTMLResponse, JsonResponse, XMLResponse], HTTPRequest, Optional[dict]], None]): [description]
-        model (Type[Model], optional): [description]. Defaults to None.
+#         request_or_url (Union[HTTPRequest, str]): [description]
+#         func (Callable[[Union[HTMLResponse, JsonResponse, XMLResponse], HTTPRequest, Optional[dict]], None]): [description]
+#         model (Type[Model], optional): [description]. Defaults to None.
 
-    Raises
-    ------
+#     Raises
+#     ------
 
-        TypeError: [description]
-    """
-    def __init__(self, request_or_url: Union[HTTPRequest, str], 
-                 func: Callable[[Union[HTMLResponse, JsonResponse, XMLResponse], HTTPRequest, Optional[dict]], None], 
-                 model: Type[Model]=None):
-        if not callable(func):
-            raise TypeError('Func should be a callable function')
+#         TypeError: [description]
+#     """
+#     def __init__(self, request_or_url: Union[HTTPRequest, str], 
+#                  func: Callable[[Union[HTMLResponse, JsonResponse, XMLResponse], HTTPRequest, Optional[dict]], None], 
+#                  model: Type[Model]=None):
+#         if not callable(func):
+#             raise TypeError('Func should be a callable function')
 
-        self.func = func
-        self.model = model
+#         self.func = func
+#         self.model = model
 
-        # TODO: Restructure this section
-        request = request_or_url
-        if isinstance(request_or_url, str):
-            request = HTTPRequest(request_or_url)
-        request._send()
+#         # TODO: Restructure this section
+#         request = request_or_url
+#         if isinstance(request_or_url, str):
+#             request = HTTPRequest(request_or_url)
+#         request._send()
 
-        self.html = request.html_response
-        self.request = request
-        self._response = None
+#         self.html = request.html_response
+#         self.request = request
+#         self._response = None
 
-    def __call__(self, request_or_url, func):
-        return self.__init__(request_or_url, func)
+#     def __call__(self, request_or_url, func):
+#         return self.__init__(request_or_url, func)
 
-    def _run_function(self):
-        kwargs = {'model': self.model}
-        self.func(self._response, request=self.request, **kwargs)
+#     def _run_function(self):
+#         kwargs = {'model': self.model}
+#         self.func(self._response, request=self.request, **kwargs)
