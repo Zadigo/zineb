@@ -2,10 +2,9 @@ from collections import OrderedDict
 from functools import cached_property
 from importlib import import_module
 
-from zineb.logger import create_logger
+from zineb import global_logger
 from zineb.signals import signal
 
-logger = create_logger('Middleware', to_file=True)
 
 class Middleware:
     """
@@ -42,7 +41,7 @@ class Middleware:
                     except Exception as e:
                         raise TypeError(f"{obj} was not loaded. {e.args[0]}")
                     self.loaded_middlewares.setdefault(key, obj_instance)
-                    logger.info(f"Loaded middleware: {middleware}")
+                    global_logger.info(f"Loaded middleware: {middleware}")
 
                     signal.connect(obj_instance)
 
