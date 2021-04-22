@@ -1,9 +1,8 @@
 import os
 import re
-from collections import deque
+from collections import OrderedDict
 from functools import cached_property
-from typing import Any, Callable, List, NoReturn, Optional, Sequence, Union
-import typing
+from typing import Dict, Generator, List, NoReturn, Tuple, Union
 
 import pandas
 from bs4 import BeautifulSoup
@@ -14,7 +13,7 @@ from w3lib.html import safe_url_string
 from w3lib.url import is_url, urljoin
 from zineb.extractors._mixins import MultipleRowsMixin
 from zineb.settings import settings as global_settings
-from zineb.utils._html import deep_clean, is_path
+from zineb.utils._html import decode_email, deep_clean, is_path
 
 
 class Extractor:
@@ -42,7 +41,8 @@ class TableExtractor(Extractor):
     """
     Quickly extract a table from an HTML page.
     
-    By default this class retrieves the first table of the page
+    By default this class retrieves the first table of the page if no
+    additional information is provided on which table to extract.
 
     Parameters
     ----------
@@ -55,16 +55,17 @@ class TableExtractor(Extractor):
         Example
         -------
 
-            extractor = RowExtractor()
+            extractor = TableExtractor()
             extractor.resolve(BeautifulSoup Object)
 
                 -> [[a, b, c], [d, ...]]
 
-            By indicating if the table has a header, the heder values will be dropped
-            from the final result
+            By indicating if the table has a header, the header values 
+            which generally corresponds to the first row will be dropped
+            from the final result.
 
             Finally, you can also pass a set of processors that will modifiy the values
-            of each rows according to the logic of said processor:
+            of each rows according to the logic you would have implemented.
 
             def drop_empty_values(value):
                 if value != '':
@@ -74,36 +75,44 @@ class TableExtractor(Extractor):
             extractor.resolve(BeautifulSoup Object)
     """
 
-    def __init__(self, class_name=None, has_headers=False, 
-                 filter_empty_rows=False, processors: List = []):
+    def __init__(self, class_or_id_name=None, has_headers=False, 
+                 processors: List=[]):
         self._table = None
-        self._rows = None
+        self._raw_rows = []
+        self.values = []
         self.headers = None
 
-        self.class_name = class_name
+        self.class_or_id_name = class_or_id_name
         self.attrs = None
         self.has_headers = has_headers
         self.processors = processors
-        self.filter_empty_rows = filter_empty_rows
+        # self.filter_empty_rows = filter_empty_rows
 
     def __iter__(self):
-        return iter(self._rows)
+        return iter(self.values)
 
     def __repr__(self):
-        return f"<{self.__class__.__name__}>"
+        return f"{self.__class__.__name__}({self.values})"
 
-    # def __add__(self, b):
-    #     return 
+    def __call__(self, **kwargs):
+        self.__init__(**kwargs)
+        return self
+
+    def __getitem__(self, index):
+        return self.values[index]
 
     # @cached_property
     def _compose(self, include_links=False):
-        if self._rows is not None:
+        if self._raw_rows is not None:
             rows = []
-            for row in self._rows:
+            for row in self._raw_rows:
                 new_row = []
                 for column in row:
                     if column != '\n':
-                        new_row.append(deep_clean(column.text))
+                        try:
+                            new_row.append(deep_clean(column.text))
+                        except:
+                            new_row.append(None)
 
                         # Find the first link in the column
                         # so that it can be included in the
@@ -129,7 +138,7 @@ class TableExtractor(Extractor):
                 self.headers = rows.pop(0)
             return rows
         else:
-            return self._rows
+            return self._raw_rows
 
     def _run_processors(self, rows):
         if self.processors:
@@ -145,14 +154,14 @@ class TableExtractor(Extractor):
 
     @property
     def first(self) -> Union[Tag, None]:
-        return self._rows[0]
+        return self._raw_rows[0]
 
     def _get_rows(self, element):
         return element.find_all('tr')
 
-    def get_row(self, index):
+    def get_row(self, index) -> Tag:
         try:
-            return self._rows[index]
+            return self._raw_rows[index]
         except IndexError:
             return None
 
@@ -177,35 +186,106 @@ class TableExtractor(Extractor):
                 if soup.name == 'table':
                     self._table = soup
                 else:
-                    return self._rows
+                    return self._raw_rows
 
         self.attrs = self._table.attrs
-        if self.class_name is not None and self.attrs:
-            table_class = self.attrs.get('class', [])
-            if self.class_name not in table_class:
+        if self.class_or_id_name is not None and self.attrs:
+            # table_class = self.attrs.get('class', [])
+            table_class = self._table.get_attribute_list('class', [])
+            table_class.extend(self._table.get_attribute_list('id', []))
+            
+            if self.class_or_id_name not in table_class:
                 self._table = self._table.find_next('table')
                 if self._table is None:
-                    return self._rows
+                    return self._raw_rows
                 self.resolve(self._table)
 
         if not self._table.is_empty_element:
             tbody = self._table.find('tbody')
             if tbody is None:
-                self._rows = self._get_rows(self._table)
+                self._raw_rows = self._get_rows(self._table)
             else:
                 if tbody.is_empty_element:
-                    self._rows = self._get_rows(self._table)
+                    self._raw_rows = self._get_rows(self._table)
                 else:
-                    self._rows = self._get_rows(tbody)
+                    self._raw_rows = self._get_rows(tbody)
             
-            return self._run_processors(self._compose(include_links=include_links))
+            self.values = self._run_processors(self._compose(include_links=include_links))
+            return self.values
 
     def resolve_to_dataframe(self, soup: BeautifulSoup, columns: dict={}):
         df = pandas.DataFrame(data=self.resolve(soup))
-        # df = pandas.DataFrame(data=self._compose())
         if columns:
             return df.rename(columns=columns)
         return df
+
+    @classmethod
+    def as_instance(cls, soup, **kwargs):
+        instance = cls()
+        instance.resolve(soup, **kwargs)
+        return instance
+
+
+class MultiTablesExtractor:
+    def __init__(self, with_attrs: list=[], has_headers=False, 
+                 processors: list=[]):
+        self.with_attrs = with_attrs
+        self.tables_list = OrderedDict()
+        self._raw_tables = None
+
+    def __iter__(self):
+        return iter(self.tables_list.values())
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(count={len(self.tables_list.keys())})"
+
+    def __getitem__(self, key):
+        return self.tables_list[key]
+
+    # def __add__(self, obj):
+    #     if isinstance(obj, MultiTablesExtractor):
+    #         keys = obj.tables_list.keys()
+    #         this_tables_list_keys = self.tables_list.keys()
+    #         last_key = this_tables_list_keys[-1]
+    #         if keys[-1] == this_tables_list_keys[-1]:
+    #             last_key = last_key + 1
+    #         for i in range(last_key + 1, len(keys)):
+    #             self.tables_list.setdefault(i, obj[])
+
+    @staticmethod
+    def _filter_tables(tables, with_attrs):
+        def utility(table):
+            for attr_value in table.attrs.values():
+                if attr_value in with_attrs:
+                    return True
+                else:
+                    return False
+        return filter(utility, tables)
+
+    def get_table_as_tag(self, index) -> Tag:
+        return self._raw_tables[index]
+
+    def get_table_parsed_values(self, key: int) -> List:
+        return self.tables_list[key].values
+
+    def get_table_class(self, key: int) -> TableExtractor:
+        return self.tables_list[key]
+
+    def resolve(self, soup: BeautifulSoup, include_links=False, 
+                limit_to_columns=[]):
+        tables = soup.find_all('table')
+        self._raw_tables = tables
+        if self.with_attrs:
+            tables = self._filter_tables(tables, self.with_attrs)
+
+        extractor = TableExtractor()
+        for i, table in enumerate(tables):
+            instance = extractor.as_instance(table, include_links=include_links, limit_to_columns=limit_to_columns)
+            self.tables_list.update({i: instance})
+
+    def resolve_to_dataframe(self, soup, table_index=0, columns: dict={}):
+        self.resolve(soup)
+        return pandas.DataFrame(self.get_table_parsed_values(table_index), columns=columns)
 
 
 class TextExtractor(Extractor):
@@ -327,7 +407,7 @@ class LinkExtractor(Extractor):
             soup = soup.html_page
         return soup.find_all('a')
 
-    def _link_iterator(self, soup):
+    def _link_iterator(self, soup) -> Generator[Tuple[Tag, Dict], None, None]:
         """
         Iterate on link BeautifulSoup ResultSet
 
@@ -360,7 +440,6 @@ class LinkExtractor(Extractor):
         # url is None. It just returns the path
         # as is. That's why we do not care here.
         return urljoin(self.base_url, path)
-        return path
 
     def resolve(self, soup: BeautifulSoup):
         """
@@ -368,11 +447,6 @@ class LinkExtractor(Extractor):
         ----------
 
                 soup (type): BeautifulSoup object
-
-        Returns
-        -------
-
-                list: complete list of links
         """
         from zineb.tags import Link
         if soup is None:
@@ -387,9 +461,9 @@ class LinkExtractor(Extractor):
             self.validated_links.append(Link(element, attrs=attrs))
 
         if self.unique:
-            self.validated_links = {
-                link for link in self.validated_links
-            }
+            self.validated_links = list(
+                {link for link in self.validated_links}
+            )
 
         if self.only_valid_links:
             self.validated_links = list(
@@ -422,6 +496,19 @@ class MultiLinkExtractor(LinkExtractor):
             is_match = regex.search(token)
             if is_match:
                 yield is_match.group(1)
+
+    def _analyze_tags(self, soup):
+        # Certain websites implemnent special tags
+        # to prevent spamming. We have to carefully
+        # analyze these tags to specifically resolve
+        # their values to an email address
+        for tag in self._document_links(self):
+            attrs = tag.attrs
+            if '' in attrs:
+                data_encoded_email_value = attrs.get('data-')
+                decoded_email = decode_email(data_encoded_email_value)
+                self.validated_links.extend([decoded_email])
+        return self.validated_links
 
     def resolve_emails(self, soup: BeautifulSoup):
         super().resolve(soup)
