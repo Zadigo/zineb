@@ -281,7 +281,7 @@ player.add_value('name', 'Kendall Jenner')
 Addind expression based values requires a BeautifulSoup HTML page object. You can add one value at a time.
 
 ````
-player.add_expression("name", "a", attrs={"class": "title"})
+player.add_using_expression("name", "a", attrs={"class": "title"})
 ````
 
 #### Adding multiple values with expressions
