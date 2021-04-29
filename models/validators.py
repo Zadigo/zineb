@@ -99,7 +99,7 @@ class LengthValidator:
     def should_return_result(self, value, state, expected):
         if state != expected:
             message = self.error_message['length_error']
-            raise ValueError(message %  {'value': value, 'validator': self.__class__.__name__})
+            raise ValidationError(message %  {'value': value, 'validator': self.__class__.__name__})
 
 
 class MinLengthValidator(LengthValidator):
