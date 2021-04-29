@@ -546,7 +546,8 @@ class RegexField(Field):
                 if isinstance(self.output_field, Field):
                     self._cached_result = self.output_field.resolve(true_value)
                 else:
-                    raise TypeError(f"Output field should be a instance of zineb.fields.Field. Got: {self.output_field}")
+                    raise TypeError((f"Output field should be a instance of " 
+                    "zineb.fields.Field. Got: {self.output_field}"))
             else:
                 self._cached_result = super().resolve(true_value)
 
