@@ -128,6 +128,14 @@ class Field:
 
         return value
 
+    def _convert_to_type(self, value, t=None):
+        try:
+            return t(value) if t is not None else self._dtype(value)
+        except Exception:
+            raise ValueError((f"The value {value} does not match"
+            f" the type provided in {self._dtype}. Got {type(value)}"
+            f"instead of {self._dtype}"))
+
     def resolve(self, value: Any):
         """
         Resolves a given value by cleaning it and calling
@@ -158,9 +166,7 @@ class Field:
         # rest of the process -;
         # deal with that here
         if value is None:
-            if self.default is not None:
-                return self.default
-            return value
+            return self._true_value_or_default(value)
         
         # To simplify the whole process,
         # make sure we are dealing with 
@@ -282,7 +288,7 @@ class ImageField(UrlField):
             as_thumbnail (bool, optional): download as a thumnail. Defaults to False
             download_to (str, optional): download image to a specific path. Defaults to None
     """
-    field_name = 'image'
+    name = 'image'
 
     def __init__(self, download=False, as_thumnail=False, download_to: str=None):
         super().__init__()
@@ -315,7 +321,7 @@ class IntegerField(Field):
     name = 'integer'
     _dtype = numpy.int
 
-    def __init__(self, default: Any = None, min_value: int = None, max_value: int = None):
+    def __init__(self, default: Any=None, min_value: int=None, max_value: int=None):
         super().__init__(default=default)
         if min_value is not None:
             self._validators.add(model_validators.MinLengthValidator(min_value))
@@ -324,14 +330,15 @@ class IntegerField(Field):
             self._validators.add(model_validators.MaxLengthValidator(max_value))
 
     def resolve(self, value):
-        self._cached_result = super().resolve(value)
-        self._cached_result = self._check_or_convert_to_type(
-            self._cached_result,
-            int,
-            'Value should be an integer',
-            force_conversion=True,
-            use_default=True
-        )
+        result = super().resolve(value)
+        self._cached_result = self._convert_to_type(result)
+        # self._cached_result = self._check_or_convert_to_type(
+        #     self._cached_result,
+        #     int,
+        #     'Value should be an integer',
+        #     force_conversion=True,
+        #     use_default=True
+        # )
 
 
 class DecimalField(Field):
@@ -350,28 +357,27 @@ class DecimalField(Field):
 
     def resolve(self, value):
         result = super().resolve(value)
-        self._cached_result = self._check_or_convert_to_type(
-            result, float, 'Value should be a float/decimial', force_conversion=True
-        )
+        self._cached_result = self._convert_to_type(result)
+        # self._cached_result = self._check_or_convert_to_type(
+        #     result, float, 'Value should be a float/decimial', force_conversion=True
+        # )
 
 
 class DateField(Field):
     name = 'date'
 
-    def __init__(self, date_format: str, default: Any = None, tz_info = None):
+    def __init__(self, date_format: str, 
+                 default: Any=None, tz_info=None):
         super().__init__(default=default)
         self.date_format = date_format
         if tz_info is None:
             tz_info = pytz.UTC
         self.tz_info = tz_info
-
-    def __str__(self):
-        return str(self._cached_result.date())
     
-    def resolve(self, date):
+    def resolve(self, date: str):
         result = super().resolve(date)
         self._cached_result = datetime.datetime.strptime(
-            date, self.date_format
+            result, self.date_format
         )
 
 
@@ -379,8 +385,11 @@ class AgeField(DateField):
     name = 'age'
     _dtype = numpy.int
 
-    def __str__(self):
-        return str(self._cached_result)
+    def __init__(self, date_format: str,
+                 default: Any = None, tz_info=None):
+        super().__init__(date_format=date_format, 
+                         default=default, tz_info=tz_info)
+        self._cached_date = None
 
     def _substract(self) -> int:
         current_date = datetime.datetime.now()
@@ -388,7 +397,8 @@ class AgeField(DateField):
 
     def resolve(self, date):
         super().resolve(date)
-        self._cached_result = self._substract()
+        self._cached_date = self._cached_result
+        self._cached_result = self._convert_to_type(self._substract())
 
 
 class FunctionField(Field):
@@ -465,57 +475,46 @@ class ObjectFieldMixins:
 
 class ArrayField(ObjectFieldMixins, Field):
     name = 'list'
-    _dytpe = numpy.object
+    _dytpe = numpy.array
 
-    def __init__(self, output_field: Field, default: Any = None, validators = []):
+    def __init__(self, default: Any = None, 
+                 validators = []):
         super().__init__(default=default, validators=validators)
-        self.output_field = output_field
-        
-        if output_field is not None and not isinstance(output_field, Field):
-            raise TypeError("The output field should be one of zineb.models.fields. Did you forget to instantiate the field?")
 
-    def resolve(self, value) -> numpy.array:
+    def resolve(self, value) -> pandas.Series:
         if isinstance(value, str):
             value = self._detect_object_in_string(value)
 
-        result = self._check_or_convert_to_type(
-            value, list, 'Value should be of type list'
-        )
+        result = self._convert_to_type(value, t=list)
 
-        def get_output_resolution(value):
-            self.output_field.resolve(value)
-            return self.output_field._cached_result
-        resolved_values = map(get_output_resolution, result)
-
-        self._cached_result = numpy.array(list(resolved_values))
+        self._cached_result = pandas.Series(result)
         return self._cached_result
 
 
 class JsonField(ObjectFieldMixins, Field):
+    def __init__(self, validators=[]):
+        super().__init__(validators=validators)
+
     def resolve(self, value):
-        if isinstance(value, str):
-            value = self._detect_object_in_string(value)
-        self._cached_result = super().resolve(value)
+        result = super().resolve(value)
+        if isinstance(result, str):
+            result = self._detect_object_in_string(result)
+
+        if not isinstance(result, dict):
+            raise ValueError(f"JsonField should receive a dict as value.")
+
+        self._cached_result = json.dumps(result)
 
 
 class CommaSeperatedField(Field):
     name = 'comma_separated'
-    _dtype = numpy.str
 
     def __init__(self, max_length: int = None):
         super().__init__(max_length=max_length)
 
-    def resolve(self, values: Union[List[Any], Tuple[Any]]):
-        self._check_or_convert_to_type(
-            values, list, 'Values should of type list', force_conversion=True
-        )
-
-        output_values_as = CharField()
-        resolved_values = []
-        for value in values:
-            output_values_as.resolve(value)
-            resolved_values.append(output_values_as._cached_result)
-
+    def resolve(self, values: Union[List[Any]]):
+        values = self._convert_to_type(values, t=list)
+        resolved_values = map(lambda x: str(x), values)
         self._cached_result = ','.join(resolved_values)
 
 
