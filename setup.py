@@ -57,7 +57,7 @@ install_requires = [
 setuptools.setup(
     name='zineb-scrapper',
     # packages: [],
-    version='1.0.1',
+    version='1.0.2',
     author='John Pendenque',
     author_email='pendenquejohn@gmail.com',
     classifiers=classifiers,
@@ -68,5 +68,5 @@ setuptools.setup(
     long_description=read_files('README.md'),
     long_description_content_type='text/markdown',
     python_requires='>=3.9',
-    url='https://github.com/Zadigo/zineb/releases/tag/2.0.0-alpha'
+    url='https://github.com/Zadigo/zineb/releases/tag/v1.0.2'
 )
