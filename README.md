@@ -671,7 +671,7 @@ Internally signals are sent on the following events:
 - Before the model downloads anything
 - After the model has downloaded something
 
-### Creating a custom signal
+## Creating a custom signal
 
 To create custom signal, you need to mark a method as being a receiver for any incoming signals. For example, if you want to create a signal to intercept one of the events above, you should do:
 
