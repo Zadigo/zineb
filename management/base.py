@@ -1,12 +1,9 @@
 import os
 from argparse import ArgumentParser, Namespace
 from collections import OrderedDict
-from importlib import import_module
 from typing import Any
 
-from zineb.logger import create_logger
 
-logger = create_logger('Command', to_file=True)
 
 class BaseCommand:
     """
