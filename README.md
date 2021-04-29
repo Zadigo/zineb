@@ -276,25 +276,16 @@ The first method consists of adding values through the `add_value` method. This 
 player.add_value('name', 'Kendall Jenner')
 ```
 
-#### Adding an expression based value
+#### Adding a value based on an expression
 
-Addind expression based values requires a BeautifulSoup HTML page object. You can add one value at a time or multiple values.
+Addind expression based values requires a BeautifulSoup HTML page object. You can add one value at a time.
 
 ````
-player.add_expression("name", "a#kendall__text", many=True)
+player.add_expression("name", "a", attrs={"class": "title"})
 ````
 
-By using the `many` parameter, you can add the all the tags with a specific name and/or attributes to your model at once.
+#### Adding multiple values with expressions
 
-Here is a list of expressions that you can use for this field:
-
-
-| expression | interpretation | tag |
-| - | - | - |
-| a.kendall | Link with class kendall | <a class="kendall"> |
-| a#kendall | Lind with ID Kendall | <a id="kendall"> |
-
-By default, if a pseudo is not provided, `__text` pseudo is appended in order to always retrieve the inner text element of the tag.
 
 ## Meta options
 
