@@ -343,7 +343,7 @@ The CharField represents the normal character element on an HTML page. You const
 
 ### TextField
 
-The text field is longer allows you to add paragraphs of text.
+The text field is longer which allows you then to add paragraphs of text.
 
 ### NameField
 
@@ -353,6 +353,8 @@ The name field allows to implement names in your model. The `title` method is ca
 
 The email field represents emails. The default validator, `validators.validate_email`, is automatically called on the resolve function fo the class in order to ensure that that the value is indeed an email.
 
+- `limit_to_domains`: Check if email corresponds to the list of specified domains
+
 ### UrlField
 
 The url field is specific for urls. Just like the email field, the default validator, `validators.validate_url` is called in order to validate the url.
@@ -361,6 +363,10 @@ The url field is specific for urls. Just like the email field, the default valid
 
 The image field holds the url of an image exactly like the UrlField with the sole difference that you can download the image directly when the field is evaluated.
 
+- `download`: Download the image to your media folder while the scrapping is performed
+- `as_thumnail`: Download image as a thumbnail
+- `download_to`: Download image to a specific path
+
 ```
 class MyModel(Model):
     avatar = ImageField(download=True, download_to="/this/path")
@@ -368,11 +374,29 @@ class MyModel(Model):
 
 ### IntegerField
 
+This field allows you to pass an integer into your model.
+
+- `default`: Default value if None
+- `max_value`: Implements a maximum value constraint
+- `min_value`: Implements a minimum value constraint
+
 ### DecimalField
+
+This field allows you to pass a float value into your model.
+
+- `default`: Default value if None
+- `max_value`: Implements a maximum value constraint
+- `min_value`: Implements a minimum value constraint
+
 
 ### DateField
 
 The date field allows you to pass dates to your model. In order to use this field, you have to pass a date format so that the field can know how to resolve the value.
+
+- `date_format`: Indicates how to parse the incoming data value
+- `default`: Default value if None
+- `tz_info`: Timezone information
+
 
 ```
 class MyModel(Model):
@@ -381,7 +405,11 @@ class MyModel(Model):
 
 ### AgeField
 
-The age field works likes the DateField but instead of returning the date, it will return the difference between the date and the current date which is an age.
+The age field works likes the DateField but instead of returning the date, it will return the difference between the date and the current date which corresponds to the age.
+
+- `date_format`: Indicates how to parse the incoming data value
+- `default`: Default value if None
+- `tz_info`: Timezone information
 
 ### FunctionField
 
@@ -389,13 +417,14 @@ The function field is a special field that you can use when you have a set of fu
 
 ```
 def strip_middle_letter(value):
-    return
+    # Do something here
+    return value
 
 class MyModel(Model):
-    name = FunctionField(strip_middle_letter, output_field=CharField(), )
+    name = FunctionField(strip_middle_letter, output_field=CharField())
 ```
 
-Every time the resolve function will be called on this field, the methods provided will be passed on the value.
+Every time the resolve function will be called on this field, the methods provided will be passed on the value sequentially. Each method should return the new value.
 
 An output field is not compulsory but if not provided, each value will be returned as a character.
 
@@ -403,7 +432,13 @@ An output field is not compulsory but if not provided, each value will be return
 
 An array field will store an array of values that are all evalutated to an output field that you would have specified.
 
+__N.B.__ Note that the value of an ArrayField is implemented as is in the final DataFrame. Make sure you are using this field correctly in order to avoid unwanted results.
+
 ### CommaSeperatedField
+
+Create a comma separated field in your model.
+
+__N.B.__ Note that the value of a CommaSeperatedField is implemented as is in the final DataFrame. Make sure you are using this field correctly in order to avoid unwanted results.
 
 ### Creating your own field
 
@@ -413,23 +448,25 @@ You an also create a custom field by suclassing `zineb.models.fields.Field`. Whe
 class MyCustomField(Field):
     def resolve(self, value):
         initial_result = super().resolve(value)
+
+        # Rest of your code here
 ```
 
-If you want to use the custom cleaning functionalities on your resolve function before running yours, make sure to call super.
+If you want to use the cleaning functionalities from the super class in your own resolve function, make sure to call super beforehand as indicated above.
 
-## Validators
 
-Validators make sure that the value that was passed respects the constraints that were implemented as a keyword arguments on the field class. There are five basic validations:
+## Validators [initial validators]
 
-- Maximum length
-- Uniqueness
-- Nullity
-- Defaultness
-- Validity (validators)
+Validators make sure that the value that was passed respects the constraints that were implemented as a keyword arguments on the field class. There are five basic validations that could possibly run if you specify a constraint for them:
+
+- Maximum length (`max_length`)
+- Nullity (`null`)
+- Defaultness (`default`)
+- Validity (`validators`)
 
 ### Maximum or Minimum length
 
-The maximum length check ensures that the value does not exceed a certain length using `zineb.models.validators.max_length_validator` or `zineb.models.validators.min_length_validator` which are encapsulated and used within the `zineb.models.validators.MinLengthValidator` or `zineb.models.validators.MaxLengthValidator` class.
+The maximum or minimum length check ensures that the value does not exceed a certain length using `zineb.models.validators.max_length_validator` or `zineb.models.validators.min_length_validator` which are encapsulated and used within the `zineb.models.validators.MinLengthValidator` or `zineb.models.validators.MaxLengthValidator` class.
 
 ### Nullity
 
@@ -481,7 +518,7 @@ class Player(Model):
     age = IntegerField(validators=[custom_validator])
 ```
 
-It is important to understand that the result of the regex compiler is reinjected into your custom validator on which you can then do various other checks.
+IN this specific situation, it is important to understand that the result of the regex compiler is reinjected into your custom validator on which you can then do various other checks.
 
 #### Field resolution
 
