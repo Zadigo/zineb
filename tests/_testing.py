@@ -1,14 +1,12 @@
-from zineb.extractors.base import TableExtractor
-from zineb.tests import file_opener
+from zineb.models.datastructure import Model
+from zineb.models.fields import CharField
+from bs4 import BeautifulSoup
 
-def delete_blank(value, **kwargs):
-    if value == '':
-        return None
-    return value
+class TestModel(Model):
+    name = CharField()
 
-
-soup = file_opener('tests/html/tables3.html')
-
-extractor = TableExtractor(class_or_id_name='third-table')
-extractor.resolve(soup, include_links=True)
-print(extractor.values)
+with open('tests/html/test_links.html') as f:
+    soup = BeautifulSoup(f, 'html.parser')
+    model = TestModel(html_document=soup)
+    model.add_using_expression('name', 'a', attrs={'class': 'title'})
+    print(model.save(commit=False))
