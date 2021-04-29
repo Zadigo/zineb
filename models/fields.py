@@ -10,12 +10,9 @@ import pytz
 from bs4.element import Tag as beautiful_soup_tag
 from w3lib import html
 from w3lib.url import canonicalize_url, safe_download_url
-from zineb.http.request import HTTPRequest
 from zineb.models import validators as model_validators
 from zineb.utils._html import deep_clean
 from zineb.utils.images import download_image_from_url
-
-Number = Union[int, float]
 
 
 
@@ -41,10 +38,6 @@ class Field:
                  validators = []):
         self.max_length = max_length
         self.null = null
-        # self._validators = validators
-
-        # if self._default_validators:
-        #     self._validators = self._validators + self._default_validators
 
         self._validators = set(validators)
         if self._default_validators:
@@ -61,11 +54,9 @@ class Field:
         # creates an array containing the same
         # validator
         if self.max_length is not None:
-            # self._validators.append(MaxLengthValidator(self.max_length))
             self._validators.add(model_validators.MaxLengthValidator(self.max_length))
 
         if not self.null:
-            # self._validators.append(validators.validate_is_not_null)
             self._validators.add(model_validators.validate_is_not_null)
 
     def _true_value_or_default(self, value):
@@ -75,18 +66,19 @@ class Field:
 
     def _run_validation(self, value):
         # Default values should be validated
-        # too ? Otherwise the use might enter
+        # too ? Otherwise the user might enter
         # anykind of none validated value ??
 
-        validators_result = None
+        validator_return_value = None
         for validator in self._validators:
             if not callable(validator):
-                raise TypeError('Validator should be a callable')
-            if validators_result is None:
-                validators_result = validator(value)
+                raise TypeError('A Validator should be a callable.')
+
+            if validator_return_value is None:
+                validator_return_value = validator(value)
             else:
-                validators_result = validator(validators_result)
-        return validators_result or value
+                validator_return_value = validator(validator_return_value)
+        return validator_return_value or value
 
     def _check_or_convert_to_type(self, value, object_to_check_against,
                                   message, enforce=True, force_conversion=False,
@@ -174,7 +166,6 @@ class Field:
         # make sure we are dealing with 
         # a string even though it's an
         # integer, float etc.
-        # true_value = self._true_value_or_default(str(value))
         true_value = str(value)
 
         # Ensure the value to work with
@@ -200,7 +191,6 @@ class Field:
                 clean_value = float(clean_value)
             
         true_value = self._run_validation(clean_value)
-        # self._cached_result = true_value
         self._cached_result = self._true_value_or_default(true_value)
         return self._cached_result
 
