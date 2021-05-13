@@ -16,3 +16,14 @@ class ParserError(Exception):
             "object to the model in order to resolve fields with a "
             "value from the HTML document")
         super().__init__(msg)
+
+
+class CommandRequiresProjectError(Exception):
+    def __init__(self, command):
+        msg = (f"'{command}' was called outside of a project scope.")
+        super().__init__(msg)
+
+
+class ProjectExistsError(FileExistsError):
+    def __init__(self):
+        super().__init__('The project path does not exist.')
