@@ -1,7 +1,9 @@
+import os
+import warnings
 from collections import OrderedDict, deque
 from importlib import import_module
 from typing import Callable
-
+from zineb.exceptions import ProjectExistsError
 from zineb.settings import settings as global_settings
 
 
@@ -39,14 +41,13 @@ class ApplicationChecks(GlobalMixins):
             if new_errors:
                 self._errors.extend(new_errors)
 
-        if self._errors:
-            pass
+        for error in self._errors:
+            warnings.warn(error, stacklevel=1)
 
     def check_settings_integrity(self):
         """
-        Verifies that certain values are present
-        in the project before starting the project
-
+        Verifies that certain base values are present
+        in the project before starting the project.
 
         Raises:
             ValueError: [description]
@@ -69,6 +70,13 @@ class ApplicationChecks(GlobalMixins):
         if PROJECT_PATH is None:
             raise ValueError(("PROJECT_PATH is empty. If you are using "
             "Zineb outside of a project, call .configure(**kwargs)"))
+        
+        # Also make sure that the path is one that really
+        # exists in case the use changes this variable
+        # to a 'string' path [...] thus breaking the
+        # whole thing
+        if not os.path.exists(PROJECT_PATH):
+            raise ProjectExistsError()
 
     def register(self, tag: str = None):
         def inner(func: Callable):
