@@ -82,11 +82,12 @@ class Settings:
         # is set to true
         LOG_FILE = getattr(self, 'LOG_FILE')
         if LOG_FILE is None:
-            try:
-                log_file_path = os.path.join(getattr(self, 'PROJECT_PATH'), 'zineb.log')
-            except:
-                log_file_path = os.path.join(getattr(self, 'GLOBAL_ZINEB_PATH'), 'zineb.log')
-        setattr(self, 'LOG_FILE', log_file_path)
+            project_path = (
+                getattr(self, 'PROJECT_PATH') or 
+                getattr(self, 'GLOBAL_ZINEB_PATH')
+            )
+            log_file_path = os.path.join(project_path, 'zineb.log')
+            setattr(self, 'LOG_FILE', log_file_path)
 
     def __call__(self, **kwargs):
         self.__init__()
