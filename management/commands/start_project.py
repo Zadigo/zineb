@@ -20,9 +20,9 @@ class Command(BaseCommand):
             base_name = self._clean_file_name(source)
             file_to_create = os.path.join(destination, base_name)
             content = f.read().decode('utf-8')
-
-            # if base_name == 'manage.py':
-            #     content = re.sub(r'(\$project_name)\.', kwargs.get('project_name', None), content)
+            if base_name == 'manage.py':
+                project_name = kwargs.get('project_name', None)
+                content = re.sub(r'(project)', project_name, content)
 
             with open(file_to_create, mode='wb') as d:
                 d.write(content.encode('utf-8'))
