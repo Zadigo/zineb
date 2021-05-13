@@ -1,3 +1,5 @@
+import unittest
+
 class SpiderMeta(Zineb):
     start_urls = [
         'http://example.com'
