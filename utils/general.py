@@ -93,6 +93,24 @@ def split_while(func: Callable, values: Iterable):
 
 
 def transform_to_bytes(content: str):
+    """
+    Transform a string to bytes
+
+    Parameters
+    ----------
+
+        - content (str): The string to convert
+
+    Raises
+    ------
+
+        ValueError: the string is not valid
+
+    Returns
+    -------
+
+        - bytes: the converted string in bytes
+    """
     if isinstance(content, bytes):
         return content
 
