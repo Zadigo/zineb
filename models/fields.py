@@ -2,7 +2,7 @@ import ast
 import datetime
 import json
 import re
-from typing import Any, Callable, List, Tuple, Union
+from typing import Any, Callable, Iterable, List, Tuple, Union
 
 import numpy
 import pandas
@@ -14,19 +14,14 @@ from zineb.models import validators as model_validators
 from zineb.utils._html import deep_clean
 from zineb.utils.images import download_image_from_url
 
+TYPING_DEFAULTS = Union[str, int, float]
+
+TYPING_VALIDATORS = Iterable[Callable[[Union[str, int, float]], Any]]
 
 
 class Field:
     """
     This is the base class for all field classes
-
-    Raises:
-        TypeError: [description]
-        an: [description]
-        TypeError: [description]
-
-    Returns:
-        [type]: [description]
     """
 
     name = None
@@ -34,8 +29,8 @@ class Field:
     _default_validators = []
     _dtype = numpy.str
 
-    def __init__(self, max_length: int=None, null=True, default: Any = None, 
-                 validators = []):
+    def __init__(self, max_length: int=None, null=True, 
+                 default: TYPING_DEFAULTS=None, validators: TYPING_VALIDATORS=[]):
         self.max_length = max_length
         self.null = null
 
@@ -95,11 +90,11 @@ class Field:
         Parameters
         ----------
 
-                value (str, int, type): value to test
-                object_to_check_against (type): int, str, type
-                message (str): message to display
-                enforce (bool, optional): whether to raise an error. Defaults to True
-                force_conversion (bool, optional): try to convert the value to obj. Defaults to False
+            - value (str, int, type): value to test
+            - object_to_check_against (type): int, str, type
+            - message (str): message to display
+            - enforce (bool, optional): whether to raise an error. Defaults to True
+            - force_conversion (bool, optional): try to convert the value to obj. Defaults to False
 
         Raises
         ------
@@ -205,11 +200,13 @@ class CharField(Field):
     """
     Field for text
 
-    Args:
-        max_length (int, optional): [description]. Defaults to None.
-        null (bool, optional): [description]. Defaults to True.
-        default (Any, optional): [description]. Defaults to None.
-        validators (Union[List[Callable[[Any], Any], Tuple[Callable[[Any], Any]]]], optional): [description]. Defaults to [].
+    Parameters
+    ----------
+    
+        - max_length (int, optional): [description]. Defaults to None.
+        - null (bool, optional): [description]. Defaults to True.
+        - default (Any, optional): [description]. Defaults to None.
+        - validators (): [description]. Defaults to [].
     """
     name = 'char'
 
