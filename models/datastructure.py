@@ -1,7 +1,7 @@
 import re
 import secrets
 from collections import OrderedDict
-from typing import Any
+from typing import Any, List, Union
 
 import pandas
 from bs4 import BeautifulSoup
@@ -13,7 +13,36 @@ from zineb.models.fields import Field
 from zineb.signals import signal
 
 
-class FieldDescripor:
+class ModelRegistry:
+    """
+    This class is a convienience class that remembers
+    the models that were created and in which order.
+    """
+    counter = 0
+    registry = OrderedDict()
+
+    def __getitem__(self, name: str):
+        return self.registry[name]
+
+    def __iter__(self):
+        return iter(self.models)
+
+    @property
+    def models(self):
+        return list(self.registry.values())
+
+    def add(self, name: str, model: type):
+        self.counter = self.counter + 1
+        return self.registry.setdefault(name, model)
+
+    def get_model(self, name: str):
+        return self.registry[name]()
+
+    def has_model(self, name: str):
+        return name in self.registry
+
+
+class FieldDescriptor:
     cached_fields = OrderedDict()
     
     def __getitem__(self, key) -> Field:
@@ -24,7 +53,7 @@ class FieldDescripor:
 
 
 class ModelOptions:
-    def __init__(self, options):
+    def __init__(self, options: Union[List[tuple[str]], dict]):
         self.cached_options = OrderedDict(options)
 
         self.ordering_field_names = set()
@@ -52,6 +81,10 @@ class ModelOptions:
                 return True
             self.ordering_booleans = list(map(convert_to_boolean, ordering))
 
+    def __call__(self, options):
+        self.__init__(options)
+        return self
+
     def __getitem__(self, name):
         return self.cached_options[name]
 
@@ -63,6 +96,8 @@ class ModelOptions:
 
 
 class Base(type):
+    model_registry = ModelRegistry()
+
     def __new__(cls, name, bases, attrs):
         super_new = super().__new__
         parents = [b for b in bases if isinstance(b, Base)]
@@ -72,26 +107,16 @@ class Base(type):
 
         if name != 'Model':
             # Normally, we should have all the fields
-            # anad/or remaining methods of the class
+            # and/or remaining methods of the class
             declared_fields = []
             for key, value in attrs.items():
                 if isinstance(value, Field):
                     declared_fields.append((key, value))
 
-            descriptor = FieldDescripor()
+            descriptor = FieldDescriptor()
             descriptor.cached_fields = OrderedDict(declared_fields)
-            # descriptor.cached_fields.update(**attrs)
-            # new_attrs.update(
-            #     {
-            #         '_meta': descriptor, 
-            #         '__module__': class_module, 
-            #         '__qualname__': class_qualname
-            #     }
-            # )
-            # new_class = super_new(cls, name, bases, new_attrs)
-            # setattr(new_class, '_fields', fields)
 
-            meta = None
+            meta = ModelOptions([])
             if 'Meta' in attrs:
                 meta_dict = attrs.pop('Meta').__dict__
                 authorized_options = ['ordering']
@@ -108,25 +133,18 @@ class Base(type):
 
                 options = list(filter(check_option, meta_dict.items()))
                 if non_authorized_options:
-                    raise ValueError(f"Meta received an illegal options: {', '.join(non_authorized_options)}")
-                meta = ModelOptions(options=options)
-            else:
-                meta = ModelOptions(options=[])
+                    raise ValueError("Meta received an illegal "
+                    f"option. Valid options are: {', '.join(non_authorized_options)}")
+                meta = meta(options)
 
             new_class = super_new(cls, name, bases, attrs)
             setattr(new_class, '_fields', descriptor)
             setattr(new_class, '_meta', meta)
+
+            cls.model_registry.add(name, new_class)
             return new_class
 
         return super_new(cls, name, bases, attrs)
-
-
-class Registry:
-    def _create_base_dict(self):
-        base = {}
-        for field in self._fields:
-            base.setdefault(field)
-        return base
 
 
 class DataStructure(metaclass=Base):
@@ -147,7 +165,7 @@ class DataStructure(metaclass=Base):
         Parameters
         ----------
 
-            name (str): the field name to get
+            - name (str): the field name to get
 
         Raises
         ------
@@ -157,7 +175,7 @@ class DataStructure(metaclass=Base):
         Returns
         -------
 
-            type: returns zineb.fields.Field object
+            Field: returns zineb.fields.Field object
         """
         try:
             return self._fields.cached_fields[name]
@@ -171,19 +189,20 @@ class DataStructure(metaclass=Base):
         if self.response is not None:
             if not isinstance(self.response, HTMLResponse):
                 raise TypeError(('The request object should be a '
-                'zineb.response.HTMLResponse object'))
+                'zineb.response.HTMLResponse object.'))
             return self.response.html_page
 
-    def add_using_expression(self, name, tag, attrs: dict):
+    def add_using_expression(self, name: str, tag: str, attrs: dict):
         """
-        Adds a value to your Model object using an expression
+        Adds a value to your Model object using an expression. Using this
+        method requires that you pass and BeautifulSoup object to your model.
 
         Parameters
         ----------
 
-                name (str): the name of field on which to add a given value
-                tag (str): a tag to get on the HTML document
-                attrs (dict): attributes related to the element's tag on the page
+                - name (str): the name of field on which to add a given value
+                - tag (str): a tag to get on the HTML document
+                - attrs (dict): attributes related to the element's tag on the page
         """
         obj = self._get_field_by_name(name)
         tag_value = self.parser.find(name=tag, attrs=attrs)
@@ -199,14 +218,13 @@ class DataStructure(metaclass=Base):
 
     def add_value(self, name: str, value: Any):
         """
-        Adds a value to your Model object. This definition does not
-        require a BeautifulSoup object
+        Adds a value to your Model object.
 
         Parameters
         ----------
 
-                field_name (str): the name of field on which to add a given value
-                value (str): the value to add to the model
+            - field_name (str): the name of field on which to add a given value
+            - value (str): the value to add to the model
         """
         obj = self._get_field_by_name(name)
         obj.resolve(value)
@@ -240,11 +258,16 @@ class DataStructure(metaclass=Base):
         self._cached_result.update({name: cached_field})
 
     def add_expression(self, **expressions):
+        """
+        Add multiple values to your model using a
+        set of expressions.
+        """
         pass
 
     def resolve_fields(self):
         """
-        Translate the data to a pandas DataFrame
+        Implement the data into a Pandas
+        Dataframe
         """
         df = pandas.DataFrame(
             self._cached_result, 
@@ -252,6 +275,9 @@ class DataStructure(metaclass=Base):
         )
 
         if self._meta.has_option('ordering'):
+            # if self._meta.ordering_field_names and not self._meta.ordering_booleans:
+            #     number_of_fields = len(self._meta.ordering_field_names):
+            #     self._meta.ordering_booleans = [True for _ in range(0, number_of_fields)]
             df = df.sort_values(
                 by=self._meta.ordering_field_names,
                 ascending=self._meta.ordering_booleans
@@ -280,6 +306,8 @@ class Model(DataStructure):
 
             -> pandas.DataFrame
     """
+    _cached_dataframe = None
+
     def __str__(self) -> str:
         return str(self._cached_result)
         
@@ -292,18 +320,18 @@ class Model(DataStructure):
     def __setitem__(self, field, value):
         self.add_value(field, value)
 
-    # def clean(self, dataframe: pandas.DataFrame, **kwargs):
-    #     """
-    #     Put all additional functionnalities that you wish to
-    #     run on the DataFrame here before calling the save
-    #     function on your model.
+    def clean(self, dataframe: pandas.DataFrame, **kwargs):
+        """
+        Put all additional functionnalities that you wish to
+        run on the DataFrame here before calling the save
+        function on your model.
 
-    #     Parameters
-    #     ----------
+        Parameters
+        ----------
 
-    #         dataframe (pandas.DataFrame): [description]
-    #     """
-    #     pass
+            dataframe (pandas.DataFrame): [description]
+        """
+        self._cached_dataframe = dataframe
         
     def save(self, commit=True, filename=None, **kwargs):
         """
@@ -324,9 +352,9 @@ class Model(DataStructure):
             dataframe: pandas dataframe object
         """
         signal.send(dispatcher.Any, self, tag='Pre.Save')
-        df = self.resolve_fields()
+        dataframe = self.resolve_fields()
 
-        # self.clean(dataframe=df)
+        self.clean(dataframe=dataframe)
 
         if commit:
             if filename is None:
@@ -336,5 +364,5 @@ class Model(DataStructure):
                     filename = f'{filename}.json'
 
             signal.send(dispatcher.Any, self, tag='Post.Save')
-            return df.to_json(filename, orient='records')
-        return df.copy()    
+            return self._cached_dataframe.to_json(filename, orient='records')
+        return self._cached_dataframe.copy()    
