@@ -58,7 +58,7 @@ class TestBaseRequest(unittest.TestCase):
         self.assertIsInstance(_request.html_response.headers, ResponseHeaders)
 
 
-class TestHTMLRequest(unittest.TestCase):
+class TestHTTPRequest(unittest.TestCase):
     def test_cached_response(self):
         self.assertIsInstance(_request.html_response.cached_response, Response)
 
