@@ -93,7 +93,8 @@ class LengthValidator:
             value_length = self._get_string_length(value_length)
         return value_length
 
-    def _get_string_length(self, value):
+    @staticmethod
+    def _get_string_length(value):
         return len(value)
 
     def should_return_result(self, value, state, expected):
