@@ -15,5 +15,3 @@ class CharField(Field):
 
 class IntegerField(Field):
     field_type = 'INTEGER'
-
-
