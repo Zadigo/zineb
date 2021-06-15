@@ -29,7 +29,7 @@ class Field:
     _default_validators = []
     _dtype = numpy.str
 
-    def __init__(self, max_length: int=None, null=True, 
+    def __init__(self, max_length: int=None, null: bool=True, 
                  default: TYPING_DEFAULTS=None, validators: TYPING_VALIDATORS=[]):
         self.max_length = max_length
         self.null = null

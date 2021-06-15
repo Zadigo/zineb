@@ -33,10 +33,13 @@ def validate_email(email) -> str:
 
 
 def validate_is_not_null(value: Any):
+    message = ('{prefix} values are not '
+    'permitted on this field')
+    
     if value is None:
-        raise TypeError('None values are not permitted')
+        raise TypeError(message.format(prefix='None'))
     if value == '':
-        raise ValueError('Empty values are not permitted')
+        raise ValueError(message.format(prefix='Empty'))
     return value
 
 
@@ -98,6 +101,18 @@ class LengthValidator:
         return len(value)
 
     def should_return_result(self, value, state, expected):
+        """
+        Based on an expected value, raise an error if the
+        state is not equals to the expected one
+
+        Args:
+            value (Any): [description]
+            state (Any): [description]
+            expected (Any): [description]
+
+        Raises:
+            ValidationError: [description]
+        """
         if state != expected:
             message = self.error_message['length_error']
             raise ValidationError(message %  {'value': value, 'validator': self.__class__.__name__})
