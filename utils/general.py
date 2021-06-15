@@ -24,7 +24,7 @@ def reconstruct_url(url, pattern=None, func=None):
     return None
 
 
-def replace_urls_suffix(urls:list, suffix, replace_with):
+def replace_urls_suffix(urls:list, suffix: str, replace_with: str):
     """
     Replace the end part of each url by a string
     
