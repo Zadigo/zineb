@@ -48,11 +48,6 @@ def load_command_class(name: str) -> Type:
         return module.Command()
 
 
-@lru_cache(maxsize=1)
-def available_commands():
-    pass
-
-
 class Utility:
     """
     This is the main class that encapsulates the logic
