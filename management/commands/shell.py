@@ -52,9 +52,6 @@ class Shell:
 
     def start(self, url, use_settings=None):
         from zineb.settings import settings as global_settings
-        # Force reload to take into account
-        # the user's settings. See related issue.
-        global_settings()
 
         request = HTTPRequest(url)
         request.project_settings = use_settings or global_settings
@@ -65,7 +62,7 @@ class Shell:
         self.shell_variables.setdefault('html_page', request.html_response.html_page)
 
         # Pass the extractors in the shell
-        self.shell_variables.setdefault('base', base_extractors)
+        self.shell_variables.setdefault('extractors', base_extractors)
         self.shell_variables.setdefault('images', base_extractors.ImageExtractor)
         self.shell_variables.setdefault('links', base_extractors.LinkExtractor)
         self.shell_variables.setdefault('multilinks', base_extractors.MultiLinkExtractor)
@@ -81,9 +78,11 @@ class Command(BaseCommand):
         parser.add_argument('--url', type=str, help='Url to use for testing')
 
     def execute(self, namespace):
+        configured_settings = self.preconfigure_project()
+
         shell = Shell()
         url = namespace.url
         if url is None:
             raise ValueError(("Did you provide a url when calling shell? "
             "ex. python manage.py shell --url http://"))
-        shell.start(url=url)
+        shell.start(url=url, use_settings=configured_settings)

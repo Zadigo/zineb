@@ -21,12 +21,14 @@ This in turn calls the `add_arguments` including therefore all other
 additional commands that can be used with that very specific command.
 """
 
+import os
+import subprocess
 import sys
 import unittest
-import subprocess
-from management import Utility, load_command_class
-from zineb.management import collect_commands
+
+from zineb.management import Utility, collect_commands, load_command_class
 from zineb.management.base import BaseCommand
+
 
 class TestCommandCollection(unittest.TestCase):
     def test_has_paths(self):
@@ -57,5 +59,20 @@ class TestUtility(unittest.TestCase):
         # subprocess.call(['python', 'tests/testproject/manage.py'], stderr=subprocess.STDOUT)
 
 
+ARGUMENTS = ['python', os.path.join(os.path.dirname(__file__), 'testproject/manage.py')]
+
+COMMANDS = ['create_spider']
+
+class TestCommands(unittest.TestCase):
+    def test_create_spider(self):
+        ARGUMENTS.extend(['create_spider', 'Google'])
+        subprocess.call(ARGUMENTS, stderr=subprocess.STDOUT)
+
+
 if __name__ == '__main__':
-    unittest.main()
+    # unittest.main()
+
+    runner = unittest.TextTestRunner()
+    suite = unittest.TestSuite()
+    suite.addTest(TestCommands('test_create_spider'))
+    runner.run(suite)

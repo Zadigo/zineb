@@ -12,45 +12,45 @@ class Command(BaseCommand):
         parser.add_argument('--name', '-n', required=False, type=str)
 
     def execute(self, namespace):
-        project = os.environ.get('ZINEB_SPIDER_PROJECT')
-        project_name, _ = project.rsplit('.', maxsplit=1)
-        # Rettriger the settings files in order to counteract
-        # the first initial __init__ of the class with sets
-        # values such as PROJECT_PATH to None because the
-        # environ ZINEB_PROJECT_SPIDER is not set (for
-        # whatever reasons)
-        # HACK: In order to load the correct settings
-        # as per what the user has entered, we
-        # have to reinstantiate the class which
-        # will force an update --; the problem is
-        # the settings file is loaded before the command
-        # (since it is placed in the __init__) and in that
-        # situation, only the global settings are loaded.
-        # By forcing and reinstantiation, the command has
-        # the time to place the project's settings in the
-        # Windows environment and therefore load the settings
-        # file of the project
-        from zineb.settings import settings
-        attrs = {
-            'project_name': project_name, 
-            'python_path': project,
-            'spiders_path': f'{project_name}.spiders'
-        }
-        settings(_project_meta=attrs)
+        # project = os.environ.get('ZINEB_SPIDER_PROJECT')
+        # project_name, _ = project.rsplit('.', maxsplit=1)
+        # # Rettriger the settings files in order to counteract
+        # # the first initial __init__ of the class with sets
+        # # values such as PROJECT_PATH to None because the
+        # # environ ZINEB_PROJECT_SPIDER is not set (for
+        # # whatever reasons)
+        # # HACK: In order to load the correct settings
+        # # as per what the user has entered, we
+        # # have to reinstantiate the class which
+        # # will force an update --; the problem is
+        # # the settings file is loaded before the command
+        # # (since it is placed in the __init__) and in that
+        # # situation, only the global settings are loaded.
+        # # By forcing and reinstantiation, the command has
+        # # the time to place the project's settings in the
+        # # Windows environment and therefore load the settings
+        # # file of the project
+        # from zineb.settings import settings
+        # attrs = {
+        #     'project_name': project_name, 
+        #     'python_path': project,
+        #     'spiders_path': f'{project_name}.spiders'
+        # }
+        # settings(_project_meta=attrs)
 
-        # Update the settings with a REGISTRY
-        # that contains the fully loaded spiders
-        # which is the class itself
-        setattr(settings, 'REGISTRY', None)
+        # # Update the settings with a REGISTRY
+        # # that contains the fully loaded spiders
+        # # which is the class itself
+        # setattr(settings, 'REGISTRY', None)
 
-        # If the user did not explicitly set the path
-        # to a MEDIA_FOLDER, we will be doing it
-        # autmatically here
-        media_folder = getattr(settings, 'MEDIA_FOLDER')
-        if media_folder is None:
-            project_path = os.path.join(getattr(settings, 'PROJECT_PATH'))
-            setattr(settings, 'MEDIA_FOLDER', os.path.join(project_path, 'media'))
-
+        # # If the user did not explicitly set the path
+        # # to a MEDIA_FOLDER, we will be doing it
+        # # autmatically here
+        # media_folder = getattr(settings, 'MEDIA_FOLDER')
+        # if media_folder is None:
+        #     project_path = os.path.join(getattr(settings, 'PROJECT_PATH'))
+        #     setattr(settings, 'MEDIA_FOLDER', os.path.join(project_path, 'media'))
+        project_name, settings = self.preconfigure_project()
         checks_registry.run()
 
         try:
