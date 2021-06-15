@@ -192,7 +192,7 @@ class DataStructure(metaclass=Base):
                 'zineb.response.HTMLResponse object.'))
             return self.response.html_page
 
-    def add_using_expression(self, name: str, tag: str, attrs: dict):
+    def add_using_expression(self, name: str, tag: str, attrs: dict={}):
         """
         Adds a value to your Model object using an expression. Using this
         method requires that you pass and BeautifulSoup object to your model.
@@ -202,9 +202,15 @@ class DataStructure(metaclass=Base):
 
                 - name (str): the name of field on which to add a given value
                 - tag (str): a tag to get on the HTML document
-                - attrs (dict): attributes related to the element's tag on the page
+                - attrs (dict, Optional): attributes related to the element's tag on the page. Defaults to {}
         """
         obj = self._get_field_by_name(name)
+        if self.parser is None:
+            raise ValueError(('No valid parser could be user. '
+            'Make sure you pass a BeautifulSoup '
+            'or an HTTPRespsone object to your model that can be used '
+            'to resolve the expression'))
+
         tag_value = self.parser.find(name=tag, attrs=attrs)
         obj.resolve(tag_value.string)
         resolved_value = obj._cached_result
