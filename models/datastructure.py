@@ -134,7 +134,7 @@ class Base(type):
                 options = list(filter(check_option, meta_dict.items()))
                 if non_authorized_options:
                     raise ValueError("Meta received an illegal "
-                    f"option. Valid options are: {', '.join(non_authorized_options)}")
+                    f"option. Valid options are: {', '.join(authorized_options)}")
                 meta = meta(options)
 
             new_class = super_new(cls, name, bases, attrs)
