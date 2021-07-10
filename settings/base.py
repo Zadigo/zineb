@@ -124,3 +124,18 @@ MEDIA_FOLDER = None
 STORAGE = 'zineb.storages.core.LocalStorage'
 
 STORAGES = []
+
+
+# Specific settings for Google sheet.
+# Check https://developers.google.com/sheets/api/quickstart/python
+# for additonal settings that can be used.
+
+GOOGLE_SHEET_SCOPES = [
+    'https://www.googleapis.com/auth/spreadsheets.readonly'
+]
+
+GOOGLE_SHEET_ID = None
+
+GOOGLE_SHEET_RANGE_NAME = None
+
+GOOGLE_SHEET_CREDENTIALS = None
