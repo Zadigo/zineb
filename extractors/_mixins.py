@@ -2,10 +2,10 @@ from typing import List
 
 
 class MultipleRowsMixin:
-    def __init__(self, class_name=None, processors: List = []):
+    def __init__(self, class_or_id_name=None, processors: List = []):
         self._rows = []
 
-        self.class_name = None
+        self.class_or_id_name = class_or_id_name
         self.attrs = dict()
         
         if not isinstance(processors, list):

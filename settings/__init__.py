@@ -54,6 +54,9 @@ class Settings:
         # settings with what the user has defined
         settings_containing_data = ['RETRY_HTTP_CODES', 'MIDDLEWARES', 'DEFAULT_REQUEST_HEADERS']
         
+        # This is the section that implements the settings that
+        # the user modified or implemented to the global settings
+        # object
         user_settings_module = os.environ.get('ZINEB_SPIDER_PROJECT')
         self._user_settings = UserSettings(user_settings_module)
         for key in self._user_settings.__dict__.keys():
@@ -62,8 +65,9 @@ class Settings:
                     setattr(self, key, getattr(self._user_settings, key))
                 else:
                     # In order to ensure that both the user setting
-                    # and the global setting are used, we have to collide
-                    # both of these elements together
+                    # and the global setting are used simultanuously, 
+                    # when when dealing with tuples, lits...we have to 
+                    # collide/extend these elements
                     user_setting = getattr(self._user_settings, key)
                     global_setting = getattr(self, key)
                     

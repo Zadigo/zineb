@@ -47,9 +47,9 @@ class TableExtractor(Extractor):
     Parameters
     ----------
 
-        class_name (str, Optionnal): the class name of the table. Defaults to None
-        has_headrs (bool, Optionnal): indicates if the table has headers. Defaults to False
-        processors (func, Optionnal): list of functions to process the final result. Defaults to None
+        - class_or_id_name (str, Optionnal): the class name of the table. Defaults to None
+        - has_headers (bool, Optionnal): indicates if the table has headers. Defaults to False
+        - processors (func, Optionnal): list of functions to process the final result. Defaults to None
 
     
         Example
@@ -101,7 +101,6 @@ class TableExtractor(Extractor):
     def __getitem__(self, index):
         return self.values[index]
 
-    # @cached_property
     def _compose(self, include_links=False):
         if self._raw_rows is not None:
             rows = []
@@ -612,15 +611,15 @@ class ImageExtractor(Extractor):
 
 
 class ListExtractor(MultipleRowsMixin, Extractor):
-    def __init__(self, class_name=None, processors: List=[]):
-        super().__init__(class_name=class_name, processors=processors)
-        self.class_name = class_name
+    def __init__(self, class_or_id_name=None, processors: List=[]):
+        super().__init__(class_or_id_name=class_or_id_name, processors=processors)
+        self.class_or_id_name = class_or_id_name
 
     def resolve(self, soup):
         attrs = {}
         # list_items = []
-        if self.class_name is not None:
-            attrs['class'] = self.class_name
+        if self.class_or_id_name is not None:
+            attrs['class'] = self.class_or_id_name
 
         soup = self._check_response(soup)
 

@@ -121,4 +121,6 @@ MEDIA_FOLDER = None
 # that is downloaded from the internet or files
 # that were created with the model
 
-# STORAGE = 'zineb.storages.FileFinder'
+STORAGE = 'zineb.storages.core.LocalStorage'
+
+STORAGES = []

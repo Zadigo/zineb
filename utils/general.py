@@ -24,7 +24,7 @@ def reconstruct_url(url, pattern=None, func=None):
     return None
 
 
-def replace_urls_suffix(urls:list, suffix, replace_with):
+def replace_urls_suffix(urls:list, suffix: str, replace_with: str):
     """
     Replace the end part of each url by a string
     
@@ -93,6 +93,24 @@ def split_while(func: Callable, values: Iterable):
 
 
 def transform_to_bytes(content: str):
+    """
+    Transform a string to bytes
+
+    Parameters
+    ----------
+
+        - content (str): The string to convert
+
+    Raises
+    ------
+
+        ValueError: the string is not valid
+
+    Returns
+    -------
+
+        - bytes: the converted string in bytes
+    """
     if isinstance(content, bytes):
         return content
 

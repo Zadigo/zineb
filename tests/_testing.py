@@ -1,12 +1,18 @@
-from zineb.models.datastructure import Model
-from zineb.models.fields import CharField
-from bs4 import BeautifulSoup
+cache = {'a': [], 'b': []}
 
-class TestModel(Model):
-    name = CharField()
+def add_value(name, value):
+    cache[name].append(value)
+    lengths = [[key, len(values)] for key, values in cache.items()]
+    for i in range(0, len(lengths)):
+        x = i + 1
+        if x >= len(lengths):
+            break
+        if lengths[x][1] < lengths[i][1]:
+            cache[lengths[x][0]].append(None)
+        if lengths[x][1] == lengths[i][1]:
+            cache[lengths[i][0]].insert(x, value)
 
-with open('tests/html/test_links.html') as f:
-    soup = BeautifulSoup(f, 'html.parser')
-    model = TestModel(html_document=soup)
-    model.add_using_expression('name', 'a', attrs={'class': 'title'})
-    print(model.save(commit=False))
+add_value('a', 1)
+add_value('a', 2)
+add_value('b', 3)
+print(cache)

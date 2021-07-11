@@ -37,12 +37,12 @@ class SpiderConfig:
                 paths = [os.path.dirname(filename)]
 
         if len(paths) > 1:
-            raise ValueError(
-                "There are multiple modules trying to start spiders")
+            raise ValueError("There are multiple modules "
+            "trying to start spiders")
 
         if not paths:
-            raise ValueError(
-                "No spiders module within your project. Please create a 'spiders.py' module.")
+            raise ValueError("No spiders module within your project. "
+            "Please create a 'spiders.py' module.")
 
         self.path = paths[0]
 

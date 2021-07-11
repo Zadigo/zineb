@@ -1,5 +1,3 @@
-from typing import Type
-from zineb.http.request import HTTPRequest
 import pandas
 from zineb.models.datastructure import Model
 

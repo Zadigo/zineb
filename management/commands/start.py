@@ -70,7 +70,7 @@ class Command(BaseCommand):
             registry.populate(spiders_module)
 
         if namespace.name is not None:
-            spider_config = registry.get_spider(namespace.name)
-            spider_config.run()
+            spider = registry.get_spider(namespace.name)
+            spider.run()
         else:
             registry.run_all_spiders()

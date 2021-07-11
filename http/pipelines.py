@@ -18,11 +18,8 @@ class Pipeline:
 
 class ResponsesPipeline(Pipeline):
     """
-    Treats a set of HTTP Responses through a set of functions
-
-    This pipeline is ideal for working with multiple responses
-    at once in order to do something with them and do multiple 
-    things at a time with a same response
+    Treat multiple responses at once, passing each response
+    through a custom function.
 
     Example
     -------
@@ -37,7 +34,7 @@ class ResponsesPipeline(Pipeline):
                 def start(self, response, request=None, **kwargs):
                     urls = [http://example.com, http://example.com]
                     responses = request.follow_all(urls)
-                    RequestPipeline(responses, [self.do_something_with_each_response])
+                    ResponsesPipeline(responses, [self.do_something_with_each_response])
 
                     # Continue my code here
 
@@ -50,12 +47,12 @@ class ResponsesPipeline(Pipeline):
     ----------
 
             responses (list): a list of HTMLResponse objects (instances)
-            functions (list): a list of functions to call
-            parameters (dict): things you want to pass to each method called
-            options (dict): extra options for the class
+            functions (list): a list of functions to call on each iteration
+            parameters (dict, Optional): things you want to pass to each method called. Defaults to {}
+            options (dict, Optional): extra options for the class. Defaults to {}
     """
-    def __init__(self, responses:list, functions:list, 
-                 parameters:dict={}, **options):
+    def __init__(self, responses: list, functions: list, 
+                 parameters: dict={}, **options):
         super().__init__()
         self.responses = responses
 
