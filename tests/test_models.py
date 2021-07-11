@@ -2,9 +2,7 @@ import unittest
 from collections import OrderedDict
 
 import pandas
-from models.fields import (AgeField, CharField, DateField, Field,
-                           FunctionField, ImageField, IntegerField, NameField,
-                           UrlField)
+from models import fields
 from zineb.http.request import HTTPRequest
 from zineb.models.datastructure import Model
 
@@ -12,7 +10,7 @@ request = HTTPRequest('http://example.com')
 request._send()
 
 class Player(Model):
-    name = NameField()
+    name = fields.NameField()
 
 
 def custom_function(value):
@@ -20,20 +18,20 @@ def custom_function(value):
 
 
 class Celebrity(Model):
-    firstname = NameField()
-    lastname = CharField()
-    birthdate = DateField('%d/%m/%Y')
-    age = AgeField('%d/%m/%Y')
-    url = UrlField()
-    height = IntegerField()
-    weight = IntegerField()
-    spike = FunctionField(
+    firstname = fields.NameField()
+    lastname = fields.CharField()
+    birthdate = fields.DateField('%d/%m/%Y')
+    age = fields.AgeField('%d/%m/%Y')
+    url = fields.UrlField()
+    height = fields.IntegerField()
+    weight = fields.IntegerField()
+    spike = fields.FunctionField(
         custom_function,
-        output_field=IntegerField(),
+        output_field=fields.IntegerField(),
     )
-    block = FunctionField(
+    block = fields.FunctionField(
         custom_function,
-        output_field=IntegerField()
+        output_field=fields.IntegerField()
     )
     
 
@@ -43,6 +41,7 @@ class TestModel(unittest.TestCase):
 
     def test_fields(self):
         self.assertIsInstance(self.player._fields.cached_fields, OrderedDict)
+        self.assertTrue(self.player._fields.cached_fields)
         self.assertIn('name', self.player._fields.cached_fields)
 
     def test_adding_value(self):
@@ -82,7 +81,7 @@ class TestModel(unittest.TestCase):
 
     def test_field_type(self):
         name_instance = self.player._get_field_by_name('name')
-        self.assertIsInstance(name_instance, Field)
+        self.assertIsInstance(name_instance, fields.Field)
 
     def test_field_cache(self):
         self.assertEqual(len(self.player._fields.cached_fields), 1)

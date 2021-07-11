@@ -1,13 +1,11 @@
-import re
 import secrets
 from collections import OrderedDict
 from typing import Any, List, Union
 
 import pandas
 from bs4 import BeautifulSoup
-from bs4.element import ResultSet, Tag
 from pydispatch import dispatcher
-from zineb.exceptions import FieldError, ParserError
+from zineb.exceptions import FieldError
 from zineb.http.responses import HTMLResponse
 from zineb.models.fields import Field
 from zineb.signals import signal
@@ -43,6 +41,9 @@ class ModelRegistry:
 
 
 class FieldDescriptor:
+    """A class that contains and stores
+    all the given fields of a model"""
+
     cached_fields = OrderedDict()
     
     def __getitem__(self, key) -> Field:
@@ -53,6 +54,9 @@ class FieldDescriptor:
 
 
 class ModelOptions:
+    """A class that stores all the options
+    of a given model"""
+
     def __init__(self, options: Union[List[tuple[str]], dict]):
         self.cached_options = OrderedDict(options)
 
@@ -75,6 +79,10 @@ class ModelOptions:
                     if field.startswith('-')
             ]
 
+            # Convert each ordering field on the
+            # model Booleans. This is what a
+            # DataFrame accepts in or to order
+            # the data
             def convert_to_boolean(value):
                 if value.startswith('-'):
                     return False
@@ -118,6 +126,9 @@ class Base(type):
 
             meta = ModelOptions([])
             if 'Meta' in attrs:
+                # TODO: If the user does not pass
+                # a 'class Meta', this could be a
+                # serious issue and break
                 meta_dict = attrs.pop('Meta').__dict__
                 authorized_options = ['ordering']
                 non_authorized_options = []
@@ -126,8 +137,10 @@ class Base(type):
                     key, _ = item
                     if key.startswith('__'):
                         return False
+
                     if key in authorized_options:
                         return True
+                    
                     non_authorized_options.append(key)
                     return False
 
@@ -175,7 +188,7 @@ class DataStructure(metaclass=Base):
         Returns
         -------
 
-            Field: returns zineb.fields.Field object
+            Field (type): returns zineb.fields.Field object
         """
         try:
             return self._fields.cached_fields[name]
@@ -273,21 +286,28 @@ class DataStructure(metaclass=Base):
     def resolve_fields(self):
         """
         Implement the data into a Pandas
-        Dataframe
+        Dataframe and return the result
         """
+        # TODO: Before doing anything with
+        # the data, we either need to check
+        # that the lists are of same length
+        # or ensure that everytime an element
+        # is added to one the arrays and not
+        # in the other, to put a None value
         df = pandas.DataFrame(
             self._cached_result, 
             columns=self._fields.field_names(),
         )
 
         if self._meta.has_option('ordering'):
-            # if self._meta.ordering_field_names and not self._meta.ordering_booleans:
-            #     number_of_fields = len(self._meta.ordering_field_names):
-            #     self._meta.ordering_booleans = [True for _ in range(0, number_of_fields)]
-            df = df.sort_values(
-                by=self._meta.ordering_field_names,
-                ascending=self._meta.ordering_booleans
-            )
+            try:
+                df = df.sort_values(
+                    by=self._meta.ordering_field_names,
+                    ascending=self._meta.ordering_booleans
+                )
+            except KeyError:
+                raise KeyError(("Looks like a field is not part of your model."
+                "Please check your ordering fields."))
         return df
 
 
@@ -300,15 +320,15 @@ class Model(DataStructure):
     base Model class and implement a set of fields
     from zineb.models.fields. For example:
 
-            class MyCustomModel(Model):
+            class MyModel(Model):
                 name = CharField()
 
     Once you've created the model, you can then use
     it within your project like so:
 
-            custom_model = MyCustommodel()
+            custom_model = MyModel()
             custom_model.add_value('name', 'p')
-            custom_model.resolve_fields()
+            custom_model.save()
 
             -> pandas.DataFrame
     """
@@ -341,15 +361,18 @@ class Model(DataStructure):
         
     def save(self, commit=True, filename=None, **kwargs):
         """
-        Save the model's dataframe to a file.
+        Transform the collected data to a DataFrame which
+        in turn will be saved to a JSON file.
 
         By setting commit to False, you will get a copy of the
         dataframe in order to run additional actions on it
+        otherwise, the default behaviour will be to output
+        to a file within your project.
 
         Parameters
         ----------
 
-            commit (bool, optional): save immediately. Defaults to True.
+            commit (bool, optional): save to json file. Defaults to True.
             filename (str, optional): the file name to use. Defaults to None.
 
         Returns

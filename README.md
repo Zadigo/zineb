@@ -27,7 +27,7 @@ To create a project do `python -m zineb startproject <project name>` which will 
 |--media
 |
 |-- models
-      |-- base.py
+|-- base.py
 |
 |-- __init__.py
 |
@@ -94,7 +94,7 @@ This option limits a spider to a very specific set of domains.
 
 #### Verbose name
 
-This option writter as `verbose_name` will specific a different name to your spider.
+This option writer as `verbose_name` will specific a different name to your spider.
 
 ## Running commands
 
@@ -114,7 +114,6 @@ Extractors are passed using aliases:
 * `images`: ImageExtractor
 * `multilinks`: MultiLinkExtractor
 * `tables`: TableExtractor
-
 
 The extractors are also all passed within the shell in addition to the project settings.
 
@@ -286,7 +285,6 @@ player.add_using_expression("name", "a", attrs={"class": "title"})
 
 #### Adding multiple values with expressions
 
-
 ## Meta options
 
 By adding a Meta to your model, you can pass custom behaviours.
@@ -297,6 +295,8 @@ By adding a Meta to your model, you can pass custom behaviours.
 ### Indexes
 
 ### Ordering
+
+Order your data in a specific way based on certain fields before saving your model.
 
 ## Fields
 
@@ -379,7 +379,6 @@ This field allows you to pass a float value into your model.
 - `max_value`: Implements a maximum value constraint
 - `min_value`: Implements a minimum value constraint
 
-
 ### DateField
 
 The date field allows you to pass dates to your model. In order to use this field, you have to pass a date format so that the field can know how to resolve the value.
@@ -387,7 +386,6 @@ The date field allows you to pass dates to your model. In order to use this fiel
 - `date_format`: Indicates how to parse the incoming data value
 - `default`: Default value if None
 - `tz_info`: Timezone information
-
 
 ```
 class MyModel(Model):
@@ -444,7 +442,6 @@ class MyCustomField(Field):
 ```
 
 If you want to use the cleaning functionalities from the super class in your own resolve function, make sure to call super beforehand as indicated above.
-
 
 ## Validators [initial validators]
 
@@ -842,7 +839,6 @@ The main Zineb middlewares are the following:
 * zineb.middlewares.statistics.GeneralStatistics
 * zineb.middlewares.wireframe.WireFrame
 
-
 **USER_AGENTS**
 
 A user agent is a characteristic string that lets servers and network peers identify the application, operating system, vendor, and/or version of the requesting [MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent).
@@ -853,7 +849,6 @@ Implement additional sets of user agents to your projects in addition to those t
 
 Specifies whether to use one user agent for every request or to randomize user agents on every request. This setting is set to to False by default.
 
-
 **DEFAULT_REQUEST_HEADERS**
 
 Specify additional default headers to use for each requests.
@@ -863,7 +858,6 @@ The default initial headers are:
 * `Accept-Language` - en
 * `Accept` - text/html,application/json,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
 * Referrer - None
-
 
 **PROXIES**
 
@@ -887,4 +881,3 @@ Specificies the amount of times the the request is sent before eventually failin
 **RETRY_HTTP_CODES**
 
 Indicates which status codes should trigger a retry. By default, the following codes: 500, 502, 503, 504, 522, 524, 408 and 429 will trigger it.
-
