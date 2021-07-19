@@ -96,7 +96,7 @@ class Registry:
     def check_spider_exists(self, name):
         return name in self.spiders.keys()
 
-    def get_spider(self, spider_name: str) -> Type[SpiderConfig]:
+    def get_spider(self, spider_name: str) -> SpiderConfig:
         self.check_spiders_ready()
         try:
             return self.spiders[spider_name]
@@ -121,8 +121,8 @@ class Registry:
         from zineb.settings import lazy_settings, settings
 
         for spider in settings.SPIDERS:
-            config = SpiderConfig(spider, project_spiders_module)
-            self.spiders[spider] = config
+            spider_config = SpiderConfig(spider, project_spiders_module)
+            self.spiders[spider] = spider_config
 
         settings.REGISTRY = self
 

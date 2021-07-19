@@ -84,7 +84,7 @@ class HTMLResponse(BaseResponse):
         return f"{self.__class__.__name__}(title={self.page_title})"
 
     @property
-    def page_title(self):
+    def page_title(self) -> str:
         return strip_html5_whitespace(
             self.html_page.find('title').text
         )
@@ -97,7 +97,7 @@ class HTMLResponse(BaseResponse):
         Returns
         -------
 
-            list: list of valid and invalid links
+            (list): list of valid and invalid links
         """
         extractor = LinkExtractor()
         extractor.resolve(self.html_page)
