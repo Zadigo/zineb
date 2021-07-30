@@ -49,3 +49,4 @@ class Middleware:
         if not self.loaded_middlewares:
             raise ValueError('Settings is not yet loaded')
         return self.loaded_middlewares.get(name, None)
+        
