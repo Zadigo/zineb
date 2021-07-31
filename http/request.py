@@ -214,6 +214,9 @@ class BaseRequest:
         except Exception as e:
             self.errors.extend([e.args])
         else:
+            global_logger.logger.error(f"The server response "
+            f"returned code {response.status_code}. Will attempt "
+            "retries if eneabled in settings file.")
             retry_codes = global_settings.RETRY_HTTP_CODES
             test_if_retry = [
                 response.status_code in retry_codes,
@@ -322,9 +325,13 @@ class HTTPRequest(BaseRequest):
                 global_logger.info(f'Sent request for {self.url}')
                 self._http_response = http_response
                 self.html_response = HTMLResponse(
-                    http_response, url=self.url, headers=http_response.headers
+                    http_response,
+                    url=self.url,
+                    headers=http_response.headers
                 )
                 self.session.close()
+            else:
+                global_logger.logger.error('Response failed.')
         else:
             global_logger.error(f'An error occured on this request: {self.url}')
 
