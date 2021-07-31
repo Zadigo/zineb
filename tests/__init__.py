@@ -11,12 +11,6 @@ def create_test_request() -> HTTPRequest:
     return request
 
 
-# def create_test_json_request() -> JsonRequest:
-#     request = JsonRequest('https://jsonplaceholder.typicode.com/comments')
-#     request._send()
-#     return request
-
-
 def create_test_image_request() -> HTTPRequest:
     request = HTTPRequest('https://picsum.photos/200')
     request._send()
