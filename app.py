@@ -207,6 +207,7 @@ class FileCrawler:
 
         self.buffers = []
 
+        start_files = []
         if self.root_dir is not None:
             def full_path(path):
                 return os.path.join(settings.PROJECT_PATH, self.root_dir, path)
