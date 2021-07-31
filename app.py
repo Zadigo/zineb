@@ -203,6 +203,8 @@ class FileCrawler:
     root_dir = None
 
     def __init__(self):
+        from zineb.settings import settings
+
         self.buffers = []
 
         if self.root_dir is not None:
