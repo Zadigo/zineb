@@ -206,7 +206,9 @@ class FileCrawler:
         self.buffers = []
 
         if self.root_dir is not None:
-            start_files = map(lambda p: os.path.join(self.root_dir, p), self.start_files)
+            def full_path(path):
+                return os.path.join(settings.PROJECT_PATH, self.root_dir, path)
+            start_files = list(map(full_path, self.start_files))
             for start_file in start_files:
                 if not self._check_path(start_file):
                     raise TypeError(f"{start_file} is not a valid file.")
