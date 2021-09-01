@@ -1,5 +1,5 @@
 import secrets
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict, deque
 from typing import Any, List, Union
 
 import pandas
@@ -129,9 +129,14 @@ class FieldDescriptor:
 
 
 class ModelOptions:
-    """A class that stores all the options
-    of a given model"""
+    """A container that stores all the options
+    of a given model
 
+    Parameters
+    ----------
+
+        - options (Union[List[tuple[str]], dict]): list of options
+    """
     def __init__(self, options: Union[List[tuple[str]], dict]):
         self.cached_options = OrderedDict(options)
 
@@ -142,9 +147,13 @@ class ModelOptions:
         
         if self.has_option('ordering'):
             ordering = self.get_option_by_name('ordering')
-            self.ordering_field_names = list({
-                field.removeprefix('-') for field in ordering
-            })
+            # self.ordering_field_names = list({
+            #     field.removeprefix('-') for field in ordering
+            # })
+            for field in ordering:
+                self.ordering_field_names.add(
+                    field.removeprefix('-')
+                )
             self.ascending_fields = [
                 field for field in ordering 
                     if not field.startswith('-')
@@ -179,8 +188,6 @@ class ModelOptions:
 
 
 class Base(type):
-    model_registry = ModelRegistry()
-
     def __new__(cls, name, bases, attrs):
         super_new = super().__new__
         parents = [b for b in bases if isinstance(b, Base)]
