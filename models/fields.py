@@ -322,16 +322,19 @@ class IntegerField(Field):
     """
     Field for numbers
 
-    Args:
-        default (Any, optional): [description]. Defaults to None.
-        min_value (int, optional): [description]. Defaults to None.
-        max_value (int, optional): [description]. Defaults to None.
+    Parameters
+    ----------
+
+        - default (Any, optional): Default value if None. Defaults to None.
+        - min_value (int, optional): Minimum value. Defaults to None.
+        - max_value (int, optional): Maximum value. Defaults to None.
     """
     name = 'integer'
     _dtype = numpy.int
 
     def __init__(self, default: Any=None, min_value: int=None, max_value: int=None):
         super().__init__(default=default)
+
         if min_value is not None:
             self._validators.add(model_validators.MinLengthValidator(min_value))
 
@@ -341,21 +344,14 @@ class IntegerField(Field):
     def resolve(self, value):
         result = super().resolve(value)
         self._cached_result = self._convert_to_type(result)
-        # self._cached_result = self._check_or_convert_to_type(
-        #     self._cached_result,
-        #     int,
-        #     'Value should be an integer',
-        #     force_conversion=True,
-        #     use_default=True
-        # )
 
 
 class DecimalField(Field):
     name = 'float'
-    _dtype = numpy.float
+    _dtype = float
 
-    def __init__(self, default: Any = None, 
-                 min_value: int = None, max_value: int = None):
+    def __init__(self, default: Any=None, 
+                 min_value: int=None, max_value: int=None):
         if min_value is not None:
             self._validators.add(model_validators.MinLengthValidator)
 
@@ -367,9 +363,6 @@ class DecimalField(Field):
     def resolve(self, value):
         result = super().resolve(value)
         self._cached_result = self._convert_to_type(result)
-        # self._cached_result = self._check_or_convert_to_type(
-        #     result, float, 'Value should be a float/decimial', force_conversion=True
-        # )
 
 
 class DateField(Field):
