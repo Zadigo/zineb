@@ -278,11 +278,12 @@ class UrlField(Field):
     def resolve(self, url):
         # TODO: This can be simplified into a single
         # unified check ????
-        result = self._check_or_convert_to_type(
-            url, str, 'Link should be of type string', force_conversion=True
-        )
-        url = super().resolve(result)
-        self._cached_result = safe_download_url(canonicalize_url(url))
+        # result = self._check_or_convert_to_type(
+        #     url, str, 'Link should be of type string', force_conversion=True
+        # )
+        url = super().resolve(url)
+        if url is not None:
+            self._cached_result = safe_download_url(canonicalize_url(url))
 
 
 class ImageField(UrlField):
