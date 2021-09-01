@@ -39,3 +39,8 @@ class ModelNotImplementedError(Exception):
     def __init__(self, message: str=None):
         super().__init__(("Conditional (When), aggregate (Add, Substract, Multiply, Divide)"
         f" functions should point to a model. {message}"))
+
+
+class ModelExistsError(Exception):
+    def __init__(self, name: str):
+        super().__init__((f"Model '{name}' is already registered."))
