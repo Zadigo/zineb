@@ -154,7 +154,7 @@ class Base(type):
             setattr(new_class, '_fields', descriptor)
             setattr(new_class, '_meta', meta)
 
-            cls.model_registry.add(name, new_class)
+            model_registry.add(name, new_class)
             return new_class
 
         return super_new(cls, name, bases, attrs)
@@ -183,12 +183,12 @@ class DataStructure(metaclass=Base):
         Raises
         ------
 
-            KeyError: When the field is absent
+            - KeyError: When the field is absent
 
         Returns
         -------
 
-            Field (type): returns zineb.fields.Field object
+            - Field (type): returns zineb.fields.Field object
         """
         try:
             return self._fields.cached_fields[name]
@@ -213,9 +213,9 @@ class DataStructure(metaclass=Base):
         Parameters
         ----------
 
-                - name (str): the name of field on which to add a given value
-                - tag (str): a tag to get on the HTML document
-                - attrs (dict, Optional): attributes related to the element's tag on the page. Defaults to {}
+            - name (str): the name of field on which to add a given value
+            - tag (str): a tag to get on the HTML document
+            - attrs (dict, Optional): attributes related to the element's tag on the page. Defaults to {}
         """
         obj = self._get_field_by_name(name)
         if self.parser is None:
@@ -242,8 +242,8 @@ class DataStructure(metaclass=Base):
         Parameters
         ----------
 
-            - field_name (str): the name of field on which to add a given value
-            - value (str): the value to add to the model
+            - name (str): the name of field on which to add a given value
+            - value (Any): the value to add to the model
         """
         obj = self._get_field_by_name(name)
         obj.resolve(value)
@@ -258,23 +258,12 @@ class DataStructure(metaclass=Base):
             # user might get something unexpected
             resolved_value = str(obj._cached_result.date())
         
-        cached_field = self._cached_result.get(name, None)            
-        if cached_field is None:
-            self._cached_result.setdefault(name, [])
-            cached_field = self._cached_result.get(name)
-        cached_field.append(resolved_value)
-        # ?? To prevent unbalanced columns for example
-        # when the user adds a value to field but not
-        # to another, maybe add a None value to the
-        # rest of the fields so that the len always
-        # stays equals between columns
-        # for field in self._fields.field_names():
-        #     if field not in self._cached_result:
-        #         self._cached_result.setdefault(field, [])
-        #         self._cached_result[field].extend([None])
-        #     else:
-        #         self._cached_result[field].extend([None])
-        self._cached_result.update({name: cached_field})
+        cached_values = self._cached_result.get(name, [])            
+        # if cached_values is None:
+        #     cached_values = self._cached_result.setdefault(name, [])
+        #     cached_values = self._cached_result.get(name)
+        cached_values.append(resolved_value)
+        self._cached_result.update({name: cached_values})
 
     def add_expression(self, **expressions):
         """
