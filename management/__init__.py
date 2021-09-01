@@ -104,7 +104,7 @@ class Utility:
         command_name = tokens.pop(0)
         command_instance = self.commands_registry.get(command_name, None)
         if command_instance is None:
-            raise Exception(f'Command {command_name} does not exist.')
+            raise ValueError(f'Command {command_name} does not exist.')
 
         parser = command_instance.create_parser()
         namespace = parser.parse_args()
