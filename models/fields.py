@@ -165,9 +165,13 @@ class Field:
         # There might be a case where a None
         # value slides in and breaks the
         # rest of the process -;
-        # deal with that here
+        # deal with that here by running
+        # validations directly and returning
+        # either a default value or the value
         if value is None:
-            return self._true_value_or_default(value)
+            # return self._true_value_or_default(value)
+            self._cached_result = self._run_validation(value)
+            return self._cached_result
         
         # To simplify the whole process,
         # make sure we are dealing with 
