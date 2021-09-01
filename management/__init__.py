@@ -74,7 +74,8 @@ class Utility:
             try:
                 module_obj = import_module(f'zineb.management.commands.{true_name}')
             except Exception as e:
-                raise ImportError(f"Could not import module at {path}.", e.args)
+                raise ImportError((f"Could not import module at {path}. "
+                f"{e.args[0]}"))
             self.commands_registry[true_name] = module_obj.Command()
 
     def _parse_incoming_commands(self, args: list):
