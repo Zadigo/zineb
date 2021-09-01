@@ -14,10 +14,6 @@ from zineb.models import validators as model_validators
 from zineb.utils._html import deep_clean
 from zineb.utils.images import download_image_from_url
 
-TYPING_DEFAULTS = Union[str, int, float]
-
-TYPING_VALIDATORS = Iterable[Callable[[Union[str, int, float]], Any]]
-
 
 class Field:
     """
@@ -30,7 +26,7 @@ class Field:
     _dtype = numpy.str
 
     def __init__(self, max_length: int=None, null: bool=True, 
-                 default: TYPING_DEFAULTS=None, validators: TYPING_VALIDATORS=[]):
+                 default: Union[str, int, float]=None, validators=[]):
         self.max_length = max_length
         self.null = null
 
@@ -483,7 +479,7 @@ class ArrayField(ObjectFieldMixins, Field):
                  validators = []):
         super().__init__(default=default, validators=validators)
 
-    def resolve(self, value) -> pandas.Series:
+    def resolve(self, value):
         if isinstance(value, str):
             value = self._detect_object_in_string(value)
 
