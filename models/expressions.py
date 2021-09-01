@@ -133,11 +133,6 @@ class When:
         if exp not in allowed:
             raise
 
-        value_to_compare = string_to_number(
-            value_to_compare, 
-            strict=True
-        )
-
         return field_name, exp, value_to_compare
 
     def compare(self, exp, value) -> bool:
