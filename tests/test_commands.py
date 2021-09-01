@@ -31,16 +31,20 @@ from zineb.management.base import BaseCommand
 
 
 class TestCommandCollection(unittest.TestCase):
+    """
+    Test the function that is responsible for
+    getting all the available commands for Zineb
+    """
     def test_has_paths(self):
         commands_paths = list(collect_commands())
         self.assertTrue(len(commands_paths) > 0)
 
         sample_path = commands_paths[0]
         self.assertTrue(sample_path.endswith('.py'))
-        self.assertIn('\\shell.py', sample_path)
+        self.assertIn('\\create_spider.py', sample_path)
 
 
-class TestLoadCommand(unittest.TestCase):
+class TestLoadCommands(unittest.TestCase):        
     def test_can_get_command(self):
         command = load_command_class('start')
         self.assertTrue(isinstance(command, BaseCommand))
