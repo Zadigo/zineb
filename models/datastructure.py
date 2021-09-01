@@ -11,6 +11,78 @@ from zineb.models.fields import Field
 from zineb.signals import signal
 
 
+class DataContainers:
+    """
+    A container that regroups all the data that
+    has been parsed by the model fields
+    
+    Parameters
+    ----------
+
+        - names: list of field names
+    """
+    values = defaultdict(deque)
+
+    @classmethod
+    def as_container(cls, *names):
+        # In order to prevent the values
+        # parameter to reinstantiate with
+        # the names when using this class,
+        # we'll create a new instance of
+        # the class and return it. In that
+        # sense, this will prevent
+        for name in names:
+            cls.values[name]
+        instance = cls()
+        setattr(instance, 'names', list(names))
+        return instance
+
+    def __repr__(self):
+        return self.values
+
+    def __str__(self):
+        return str(self.values)
+
+    def get_container(self, name: str):
+        return self.values[name]
+
+    def update(self, name: str, value: Any):
+        self.values[name].append(value)
+
+    def finalize(self):
+        """
+        Makes sure that all the arrays
+        are of same lengths before returning
+        the containers.This adds None to the
+        unbalanced containers.
+
+        Returns
+        -------
+
+            - OrderedDict: the finalized values 
+        """
+        containers = list(self.values.values())
+        container_lengths = [len(container) for container in containers]
+        max_length = max(container_lengths)
+
+        def fill_none_values(container):
+            values_to_complete = max_length - len(container)
+            for _ in range(values_to_complete):
+                container.append(None)
+            return container
+
+        for i in range(0, len(containers)):
+            if len(containers[i]) < max_length:
+                fill_none_values(containers[i])
+
+        new_values = []
+
+        for i in range(0, len(self.names)):
+            new_values.append((self.names[i], containers[i]))
+
+        return OrderedDict(new_values)
+
+
 class ModelRegistry:
     """
     This class is a convienience class that remembers
