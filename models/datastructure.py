@@ -436,8 +436,8 @@ class Model(DataStructure):
     def __repr__(self):
         return f"{self.__class__.__name__}"
 
-    def __getitem__(self, field):
-        return self._cached_result.get(field, None)
+    def __getitem__(self, field_name: str):
+        return self._cached_result.get(field_name, None)
 
     def __setitem__(self, field, value):
         self.add_value(field, value)
