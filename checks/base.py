@@ -93,5 +93,5 @@ def check_proxies_valid(project_settings):
 @checks_registry.register(tag='media_foler')
 def check_media_folder(project_settings):
     media_folder = project_settings.MEDIA_FOLDER
-    if media_folder is not None or not isinstance(media_folder, str):
+    if media_folder is not None and not isinstance(media_folder, str):
         return [E007]
