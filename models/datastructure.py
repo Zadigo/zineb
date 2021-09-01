@@ -202,10 +202,10 @@ class Base(type):
         if name != 'Model':
             # Normally, we should have all the fields
             # and/or remaining methods of the class
-            declared_fields = []
-            for key, value in attrs.items():
-                if isinstance(value, Field):
-                    declared_fields.append((key, value))
+            declared_fields = set()
+            for key, item in attrs.items():
+                if isinstance(item, Field):
+                    declared_fields.add((key, item))
 
             descriptor = FieldDescriptor()
             descriptor.cached_fields = OrderedDict(declared_fields)
