@@ -85,8 +85,9 @@ class DataContainers:
 
 class ModelRegistry:
     """
-    This class is a convienience class that remembers
-    the models that were created and in which order.
+    This class is a convienience container that remembers
+    the models that were created and the order in which
+    they were
     """
     counter = 0
     registry = OrderedDict()
@@ -110,6 +111,8 @@ class ModelRegistry:
 
     def has_model(self, name: str):
         return name in self.registry
+
+model_registry = ModelRegistry()
 
 
 class FieldDescriptor:
