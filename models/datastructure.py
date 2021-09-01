@@ -1,19 +1,19 @@
-import secrets
 import os
+import secrets
 from collections import OrderedDict, defaultdict, deque
+from functools import cached_property
 from typing import Any, List, Union
 
 import pandas
-from functools import cached_property
 from bs4 import BeautifulSoup
 from pydispatch import dispatcher
-from zineb.exceptions import FieldError
+from zineb.exceptions import FieldError, ModelExistsError
 from zineb.http.responses import HTMLResponse
-from zineb.exceptions import ModelExistsError
-from zineb.models.fields import Field
-from zineb.signals import signal
 from zineb.models.expressions import Calculate
+from zineb.models.fields import Field
 from zineb.settings import settings
+from zineb.signals import signal
+
 
 class DataContainers:
     """
@@ -411,7 +411,7 @@ class DataStructure(metaclass=Base):
 
             - name (str): the name of field on which to add a given value
             - value (Any): the value to add to the model
-        """
+        """    
         obj = self._get_field_by_name(name)
         obj.resolve(value)
         resolved_value = obj._cached_result
