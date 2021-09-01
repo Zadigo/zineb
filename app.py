@@ -125,7 +125,7 @@ from zineb.signals import signal
 
             start_urls = getattr(new_class, 'start_urls')
             if not start_urls:
-                warnings.warn("No start urls were provided for the project", Warning, stacklevel=0)
+                warnings.warn("No start urls were provided for the spider", Warning, stacklevel=0)
 
             prepared_requests = attrs.get('_prepared_requests', [])
             for index, link in enumerate(start_urls):
