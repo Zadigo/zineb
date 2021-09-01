@@ -272,6 +272,36 @@ class DataStructure(metaclass=Base):
         """
         pass
 
+    def add_related_value(self, name: str, related_field: str, value: Any):
+        """
+        Add a value to a field based on the last
+        result of another field.
+
+        The related fields should be of the same data type
+        or this might raise errors.
+
+        Parameters
+        ----------
+
+            - name (str): name of the field to which to add the value
+            - related_field (str): name of the base field from which to derive a result
+            - value (Any): the value to add to the original field
+        """
+        if name == related_field:
+            raise ValueError('Name and related name should not be the same.')
+
+        related_field_object = self._get_field_by_name(related_field)
+        
+        self.add_value(name, value)
+        cached_values = self._cached_result.get(name)
+
+        last_value = cached_values[-1]
+        related_field_object.resolve(last_value)
+
+        related_field_values = self._cached_result.get(related_field, [])
+        related_field_values.append(related_field_object._cached_result)
+        self._cached_result.update({ related_field: related_field_values })
+
     def resolve_fields(self):
         """
         Implement the data into a Pandas
