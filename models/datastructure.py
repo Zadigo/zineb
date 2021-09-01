@@ -340,12 +340,7 @@ class DataStructure(metaclass=Base):
             # user might get something unexpected
             resolved_value = str(obj._cached_result.date())
         
-        cached_values = self._cached_result.get(name, [])            
-        # if cached_values is None:
-        #     cached_values = self._cached_result.setdefault(name, [])
-        #     cached_values = self._cached_result.get(name)
-        cached_values.append(resolved_value)
-        self._cached_result.update({name: cached_values})
+        self._add_without_field_resolution(name, resolved_value)
 
     def add_expression(self, **expressions):
         """
