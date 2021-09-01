@@ -149,8 +149,7 @@ class BaseRequest:
         if not is_url(url):
             # TODO: When using https:// this returns True
             # when this is not even a real URL
-            message = ("The url that was provided is not valid. "
-            f"Got: {type(url)} instead of a string.")
+            message = (f"The url that was provided is not valid. Got: {url}.")
 
             global_logger.error(message, stack_info=True)
             raise requests.exceptions.InvalidURL(message)
