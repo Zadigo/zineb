@@ -10,7 +10,9 @@ from zineb.signals import signal
 class UserSettings:
     SETTINGS_MODULE = None
 
-    def __init__(self, user_settings_module: str):        
+    def __init__(self, user_settings_module: str):
+        # user_settings_module should be a
+        # dotted Python path  
         self.configured  = False
         if user_settings_module is None:
             # warnings.warn((f"[{self.__class__.__name__}]: Using initial Zineb "
