@@ -1,5 +1,6 @@
 import os
 import re
+from collections import OrderedDict
 from functools import cached_property
 from itertools import chain
 from typing import Dict, Generator, List, NoReturn, Tuple, Union
@@ -7,7 +8,6 @@ from typing import Dict, Generator, List, NoReturn, Tuple, Union
 import pandas
 from bs4 import BeautifulSoup
 from bs4.element import ResultSet, Tag
-from nltk.tokenize import PunktSentenceTokenizer, WordPunctTokenizer
 from sklearn.feature_extraction.text import CountVectorizer
 from w3lib.html import safe_url_string
 from w3lib.url import is_url, urljoin
@@ -393,9 +393,14 @@ class TextExtractor(Extractor):
     """
     Extract all the text from a soup object
     """
-    tokenizer = WordPunctTokenizer()
 
     def __init__(self):
+        # For performance reasons, load the nltk library
+        # during the __init__. This library takes a little
+        # time to load
+        from nltk.tokenize import WordPunctTokenizer
+
+        self.tokenizer = WordPunctTokenizer()
         self.raw_text = None
         self.tokens = None
 
@@ -426,6 +431,8 @@ class TextExtractor(Extractor):
         self.raw_text = text
 
     def vectorize(self, min_df=1, max_df=1, return_matrix=False):
+        from nltk import PunktSentenceTokenizer
+
         if self.raw_text is not None:
             tokenizer = PunktSentenceTokenizer()
             sentences = tokenizer.sentences_from_text(self.raw_text)
@@ -615,6 +622,8 @@ class MultiLinkExtractor(LinkExtractor):
         return self.validated_links
 
     def resolve_emails(self, soup: BeautifulSoup):
+        from nltk.tokenize import WordPunctTokenizer
+
         super().resolve(soup)
 
         text = soup.text
