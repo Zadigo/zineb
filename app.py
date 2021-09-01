@@ -128,10 +128,8 @@ from zineb.signals import signal
                 warnings.warn("No start urls were provided for the project", Warning, stacklevel=0)
 
             prepared_requests = attrs.get('_prepared_requests', [])
-            prepared_requests = []
             for index, link in enumerate(start_urls):
-                request = HTTPRequest(link, counter=index, settings=cls.settings, _meta=new_class._meta)
-                request.only_secured_requests = cls.settings.get('ENSURE_HTTPS')
+                request = HTTPRequest(link, counter=index)
                 prepared_requests.append(request)
             setattr(new_class, '_prepared_requests', prepared_requests)
             return new_class
