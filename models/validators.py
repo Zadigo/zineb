@@ -101,15 +101,17 @@ class LengthValidator:
     def _get_string_length(value):
         return len(value)
 
-    def should_return_result(self, value, state, expected):
+    def should_return_result(self, value: Any, state: bool, expected: bool):
         """
         Based on an expected value, raise an error if the
         state is not equals to the expected one
 
-        Args:
-            value (Any): [description]
-            state (Any): [description]
-            expected (Any): [description]
+        Parameters
+        ----------
+
+            value (Any): value to test
+            state (bool): result of the comparision
+            expected (bool): expected result from the comparision
 
         Raises:
             ValidationError: [description]
@@ -123,7 +125,7 @@ class MinLengthValidator(LengthValidator):
     def __call__(self, value_to_test: Any):
         value_length = super().__call__(value_to_test)
         result = min_length_validator(value_length, self.constraint)
-        super().should_return_result(value_length, result, True)
+        super().should_return_result(value_length, result, False)
         return value_to_test
 
 
