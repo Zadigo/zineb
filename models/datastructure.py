@@ -124,8 +124,9 @@ class FieldDescriptor:
     def __getitem__(self, key) -> Field:
         return self.cached_fields[key]
 
+    @cached_property
     def field_names(self):
-        return self.cached_fields.keys()
+        return list(self.cached_fields.keys())
 
 
 class ModelOptions:
