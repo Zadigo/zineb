@@ -14,3 +14,5 @@ class Command(BaseCommand):
         command = ['ping', param, '1', namespace.host]
         if subprocess.call(command) == 0:
             global_logger.logger.info('Ping was successful.')
+        else:
+            global_logger.logger.error('Url is not valid.')
