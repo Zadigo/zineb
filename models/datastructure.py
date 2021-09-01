@@ -252,10 +252,10 @@ class DataStructure(metaclass=Base):
 
         self.parser = self._choose_parser()
 
-    def _get_field_by_name(self, name) -> Field:
+    def _get_field_by_name(self, field_name) -> Field:
         """
         Gets the cached field object that was registered
-        on the model
+        on the model via the FieldDescriptor
 
         Parameters
         ----------
@@ -265,17 +265,17 @@ class DataStructure(metaclass=Base):
         Raises
         ------
 
-            - KeyError: When the field is absent
+            - FieldError: if the field does not exist
 
         Returns
         -------
 
-            - Field (type): returns zineb.fields.Field object
+            - Field (type): zineb.fields.Field
         """
         try:
-            return self._fields.cached_fields[name]
+            return self._fields.cached_fields[field_name]
         except:
-            raise FieldError(name, self._fields.field_names())
+            raise FieldError(field_name, self._fields.field_names)
 
     def _choose_parser(self):
         if self.html_document is not None:
