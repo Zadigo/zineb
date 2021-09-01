@@ -33,3 +33,9 @@ class ProjectNotConfiguredError(Exception):
     def __init__(self):
         super().__init__(("You are trying to run a functionnality that requires "
         "you project to be fully configured via your settings file."))
+
+
+class ModelNotImplementedError(Exception):
+    def __init__(self, message: str=None):
+        super().__init__(("Conditional (When), aggregate (Add, Substract, Multiply, Divide)"
+        f" functions should point to a model. {message}"))
