@@ -3,10 +3,10 @@ import unittest
 import pandas
 from models import fields
 from models.datastructure import FieldDescriptor, ModelOptions
-from zineb.exceptions import FieldError
-from zineb.models.datastructure import Model
-from zineb.models.expressions import Add, When, First, Last
-from zineb.models.datastructure import model_registry
+from zineb.exceptions import FieldError, ModelExistsError
+from zineb.models.datastructure import Model, model_registry
+from zineb.models.expressions import Add, First, Last, When
+
 
 def simple_validator(value):
     return value
@@ -135,6 +135,13 @@ class TestModelRegistery(unittest.TestCase):
     def test_can_iterate(self):
         for model in model_registry:
             self.assertIsInstance(model, Model)
+
+    @unittest.expectedFailure
+    def test_adding_existing_model(self):
+        model_registry.add('SimpleModel', SimpleModel)
+        with self.assertRaises(ModelExistsError):
+            print('Model exists.')
+
 
 if __name__ == '__main__':
     unittest.main()
