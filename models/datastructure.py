@@ -103,6 +103,9 @@ class ModelRegistry:
         return list(self.registry.values())
 
     def add(self, name: str, model: type):
+        if self.has_model(name):
+            raise ModelExistsError(name)
+
         self.counter = self.counter + 1
         return self.registry.setdefault(name, model)
 
