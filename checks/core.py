@@ -1,10 +1,10 @@
-from exceptions import ImproperlyConfiguredError
 import os
 import warnings
 from collections import OrderedDict, deque
 from importlib import import_module
 from typing import Callable
-from zineb.exceptions import ProjectExistsError
+
+from zineb.exceptions import ImproperlyConfiguredError, ProjectExistsError
 from zineb.settings import settings as global_settings
 
 
