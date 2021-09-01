@@ -475,7 +475,7 @@ class DataStructure(metaclass=Base):
         # in the other, to put a None value
         df = pandas.DataFrame(
             self._cached_result, 
-            columns=self._fields.field_names(),
+            columns=self._fields.field_names,
         )
 
         if self._meta.has_option('ordering'):
