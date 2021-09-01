@@ -111,7 +111,7 @@ class Command(BaseCommand):
         # or url should be provided and if
         # none a provided, raise an error
         filepath = namespace.file
-        if filepath is not None:
+        if filepath:
             shell.start_file_shell(filepath, use_settings=configured_settings)
         else:
             url = namespace.url
