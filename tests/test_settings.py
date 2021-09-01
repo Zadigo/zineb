@@ -1,7 +1,7 @@
-from zineb.settings import Settings, UserSettings, LazySettings
-from importlib import import_module
 import unittest
+from importlib import import_module
 
+from zineb.settings import LazySettings, Settings, UserSettings
 
 
 class TestSettings(unittest.TestCase):

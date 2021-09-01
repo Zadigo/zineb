@@ -1,4 +1,5 @@
 import unittest
+from unittest.case import TestCase
 
 from zineb.exceptions import ValidationError
 from zineb.models import fields, validators
@@ -40,6 +41,19 @@ class TestGlobalValidators(unittest.TestCase):
     def test_global_validation(self):
         self.field.resolve('Kendall Jenner')
 
+
+class TestValidators(TestCase):
+    def test_validate_numeric(self):
+        value = validators.validate_numeric('1')
+        self.assertIsInstance(value, str)
+
+        value = validators.validate_numeric('-1')
+        self.assertIsInstance(value, str)
+
+    @unittest.expectedFailure
+    def test_value_is_null(self):
+        with self.assertRaises(TypeError):
+            print('Value is None')
 
 if __name__ == "__main__":
     unittest.main()
