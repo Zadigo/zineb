@@ -1,9 +1,9 @@
 import os
 import warnings
 # import time
-from collections import OrderedDict, deque
+from collections import OrderedDict, defaultdict
 from io import StringIO
-from typing import Union
+from typing import Any, Iterator, Union
 
 from bs4 import BeautifulSoup
 from pydispatch import dispatcher
@@ -13,7 +13,6 @@ from zineb import global_logger
 # from zineb.http.pipelines import CallBack
 from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
-from zineb.settings import settings as global_settings
 from zineb.signals import signal
 
 
@@ -100,6 +99,7 @@ from zineb.signals import signal
 
 
 
+class BaseSpider(type):
     def __new__(cls, name, bases, attrs):
         create_new = super().__new__
         if not bases:
@@ -286,6 +286,15 @@ class FileCrawler:
         self.buffers = []
 
         start_files = []
+        if isinstance(self.start_files, Iterator):
+            # This is for collect_files or any
+            # other kind of generator/iterator
+            # that facilitates file collection
+            start_files = self.start_files = list(self.start_files)
+            if self.root_dir is not None:
+                warnings.warn('Skipping root dir attribute.')
+                self.root_dir = None
+
         if self.root_dir is not None:
             def full_path(path):
                 return os.path.join(settings.PROJECT_PATH, self.root_dir, path)
@@ -293,21 +302,20 @@ class FileCrawler:
             for start_file in start_files:
                 if not self._check_path(start_file):
                     raise TypeError(f"{start_file} is not a valid file.")
-            self.start_files = start_files
 
         # Search for the files in the current
         # actual directory.
-        for file in self.start_files:
+        for file in start_files:
             opened_file = open(file, mode='r', encoding='utf-8')
             buffer = StringIO(opened_file.read())
-            self.buffers.append(buffer)
+            self.buffers.append((file, buffer))
             opened_file.close()
 
-        for buffer in self.buffers:
-            self.start(BeautifulSoup(buffer, 'html.parser'))
+        for path, buffer in self.buffers:
+            self.start(BeautifulSoup(buffer, 'html.parser'), filepath=path)
 
     def __del__(self):
-        for buffer in self.buffers:
+        for _, buffer in self.buffers:
             buffer.close()
 
     @staticmethod
