@@ -214,15 +214,15 @@ class BaseRequest:
         except Exception as e:
             self.errors.extend([e.args])
         else:
-            global_logger.logger.error(f"The server response "
-            f"returned code {response.status_code}. Will attempt "
-            "retries if eneabled in settings file.")
             retry_codes = global_settings.RETRY_HTTP_CODES
             test_if_retry = [
                 response.status_code in retry_codes,
                 global_settings.RETRY
             ]
             if all(test_if_retry):
+                global_logger.logger.error(f"The server response "
+                f"returned code {response.status_code}. Will attempt "
+                "retries if eneabled in settings file.")
                 response = self._retry()
 
         if self.errors:
