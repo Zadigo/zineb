@@ -520,8 +520,8 @@ class Model(DataStructure):
     def __getitem__(self, field_name: str):
         return self._cached_result.get(field_name, None)
 
-    def __setitem__(self, field, value):
-        self.add_value(field, value)
+    # def __setitem__(self, field_name: str, value: Any):
+    #     self.add_value(field_name, value)
 
     def clean(self, dataframe: pandas.DataFrame, **kwargs):
         """
