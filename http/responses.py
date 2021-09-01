@@ -10,7 +10,6 @@ import pandas
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 from PIL import Image
-from requests.models import Response
 from w3lib.html import strip_html5_whitespace
 from w3lib.url import is_url
 from zineb.extractors.base import (ImageExtractor, LinkExtractor,
@@ -21,7 +20,7 @@ from zineb.utils.general import create_new_name, random_string
 
 
 class BaseResponse:
-    def __init__(self, response: Response):
+    def __init__(self, response):
         self.cached_response = response
         self.headers = ResponseHeaders(response.headers)
 
@@ -46,7 +45,12 @@ class HTMLResponse(BaseResponse):
             wrapped_response.html_page -> BeautifulSoup object
             wrapped_response.find("a") -> BeautifulSoup object
     """
-    def __init__(self, response: Response, **kwargs):
+    def __init__(self, response, **kwargs):
+        # PERFORMANCE: Import this module during
+        # the __init__ because this takes a little
+        # bit of time to load
+        from requests.models import Response
+
         super().__init__(response)
 
         if isinstance(response, str):
@@ -74,11 +78,6 @@ class HTMLResponse(BaseResponse):
         if name in soup_attributes:
             return getattr(self.html_page, name)
         return name
-            # try:
-            #     print(name)
-            #     return super().__getattr__(name)
-            # except:
-            #     raise AttributeError(f"{self.__class__.__name__} does not have an attribute {name}. Please read https://www.crummy.com/software/BeautifulSoup/bs4/doc/ for available BeautifulSoup functionnalities.")
 
     def __repr__(self):
         return f"{self.__class__.__name__}(title={self.page_title})"
@@ -149,10 +148,12 @@ class ImageResponse(BaseResponse):
     """
     Represents a response for an image 
 
-    Args:
-        BaseResponse ([type]): [description]
+    Parameters
+    ----------
+
+        Response (type): zineb.responses.Response
     """
-    def __init__(self, response: Response):
+    def __init__(self, response):
         super().__init__(response)
         self.attrs = {}
 
@@ -210,7 +211,18 @@ class ImageResponse(BaseResponse):
 
 
 class JsonResponse(BaseResponse):
-    def __init__(self, response: Response, **kwargs):
+    """__init__ [summary]
+
+    [extended_summary]
+
+    Args:
+        response (requests.Response): [description]
+
+    Raises:
+        ValueError: [description]
+        TypeError: [description]
+    """
+    def __init__(self, response, **kwargs):
         super().__init__(response)
         content_type = self.headers.get('content-type')
         if 'application/json' not in content_type:
