@@ -197,8 +197,6 @@ class Field:
             if self._dtype == numpy.float:
                 clean_value = float(clean_value)
             
-        # true_value = self._run_validation(clean_value)
-        # self._cached_result = self._true_value_or_default(true_value)
         self._cached_result = self._run_validation(clean_value)
         return self._cached_result
 
@@ -525,18 +523,18 @@ class RegexField(Field):
         self.output_field = output_field
         super().__init__(**kwargs)
 
-    def resolve(self, value):
+    def resolve(self, value: str):
         regexed_value = self.pattern.search(value)
         if regexed_value:
-            true_value = regexed_value.group(self.group)
+            result = regexed_value.group(self.group)
+
             if self.output_field is not None:
-                if isinstance(self.output_field, Field):
-                    self._cached_result = self.output_field.resolve(true_value)
-                else:
+                if not isinstance(self.output_field, Field):
                     raise TypeError((f"Output field should be a instance of " 
                     "zineb.fields.Field. Got: {self.output_field}"))
+                self._cached_result = self.output_field.resolve(result)
             else:
-                self._cached_result = super().resolve(true_value)
+                self._cached_result = super().resolve(result)
 
 
 class Value:
