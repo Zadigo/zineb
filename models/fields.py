@@ -538,53 +538,38 @@ class RegexField(Field):
                 self._cached_result = super().resolve(true_value)
 
 
-# class RelatedField(Field):
-#     name = 'related'
-#     _dtype = numpy.object
-#     relation = None
+class Value:
+    """
+    The simplest Python representation of a value
 
-#     def __init__(self, to, default=None, validators: List=[]):
-#         self.to_field = to
-#         self.to_field_object = None
-#         super().__init__(default=default, validators=validators)
+    Parameters
+    ----------
 
-#     def __getattr__(self, name):
-#         if name == 'relation':
-#             if self.relation is None:
-#                 raise ValueError(f"{self.relation} should be an actual relationship to a Model field")
+        - value (Any): a value from the internet. Defaults to None
+        - field_name (str): field's name. Defaults to None.
+    """
+    result = None
 
-#     def __setattr__(self, name, value):
-#         if name == 'relation':
-#             if not callable(value) or not isinstance(value, Field):
-#                 raise ValueError(f"{self.relation} should be an actual relationship to a Model field")
+    def __init__(self, value: Any, field_name: str=None):
+        self.result = value
+        self.field_name = field_name
 
-#     def resolve(self):
-#         self._cached_result = self.relation._cached_result
+    def __str__(self):
+        return self.result
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.result})"
 
-# class Value:
-#     result = None
+    def __add__(self, value):
+        if isinstance(self.result, tuple):
+            self.result = list(self.value)
 
-#     def __init__(self, result, field_name=None):
-#         self.result = result
-#         self.field_name = field_name
+        if isinstance(self.result, list):
+            self.result.extend([value])
+            return self.result
+        return self.result + str(value)
 
-#     def __str__(self):
-#         return self.result
-
-#     def __repr__(self):
-#         return f"{self.__class__.__name__}({self.result})"
-
-#     def __add__(self, value):
-#         if isinstance(self.result, tuple):
-#             self.result = list(self.result)
-
-#         if isinstance(self.result, list):
-#             self.result.extend([value])
-#             return self.result
-#         return self.result + value
-
-#     def __setattr__(self, name, value):
-#         if name == 'result':
-#             value = deep_clean(value)
-#         return super().__setattr__(name, value)
+    def __setattr__(self, name, value):
+        if name == 'result':
+            value = deep_clean(value)
+        return super().__setattr__(name, value)
