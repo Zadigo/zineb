@@ -3,13 +3,15 @@ from collections import OrderedDict, defaultdict, deque
 from typing import Any, List, Union
 
 import pandas
+from functools import cached_property
 from bs4 import BeautifulSoup
 from pydispatch import dispatcher
 from zineb.exceptions import FieldError
 from zineb.http.responses import HTMLResponse
+from zineb.exceptions import ModelExistsError
 from zineb.models.fields import Field
 from zineb.signals import signal
-
+from zineb.models.expressions import Calculate
 
 class DataContainers:
     """
