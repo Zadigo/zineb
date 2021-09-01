@@ -63,6 +63,12 @@ class Field:
         # Default values should be validated
         # too ? Otherwise the user might enter
         # anykind of none validated value ??
+        value = self._true_value_or_default(value)
+        # If the value is None, makes no sense
+        # to continue the validation, just return
+        # None instead
+        if value is None:
+            return None
 
         validator_return_value = None
         for validator in self._validators:
@@ -191,8 +197,9 @@ class Field:
             if self._dtype == numpy.float:
                 clean_value = float(clean_value)
             
-        true_value = self._run_validation(clean_value)
-        self._cached_result = self._true_value_or_default(true_value)
+        # true_value = self._run_validation(clean_value)
+        # self._cached_result = self._true_value_or_default(true_value)
+        self._cached_result = self._run_validation(clean_value)
         return self._cached_result
 
 
