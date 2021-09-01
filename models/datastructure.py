@@ -1,4 +1,5 @@
 import secrets
+import os
 from collections import OrderedDict, defaultdict, deque
 from typing import Any, List, Union
 
@@ -12,6 +13,7 @@ from zineb.exceptions import ModelExistsError
 from zineb.models.fields import Field
 from zineb.signals import signal
 from zineb.models.expressions import Calculate
+from zineb.settings import settings
 
 class DataContainers:
     """
@@ -572,5 +574,9 @@ class Model(DataStructure):
                     filename = f'{filename}.json'
 
             signal.send(dispatcher.Any, self, tag='Post.Save')
+
+            if settings.MEDIA_FOLDER is not None:
+                filename = os.path.join(settings.MEDIA_FOLDER, filename)
+                
             return self._cached_dataframe.to_json(filename, orient='records')
         return self._cached_dataframe.copy()    
