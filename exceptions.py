@@ -44,3 +44,9 @@ class ModelNotImplementedError(Exception):
 class ModelExistsError(Exception):
     def __init__(self, name: str):
         super().__init__((f"Model '{name}' is already registered."))
+
+
+
+class ImproperlyConfiguredError(Exception):
+    def __init__(self):
+        super().__init__('Your project is not properly configured.')
