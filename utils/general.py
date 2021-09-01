@@ -1,9 +1,13 @@
 import hashlib
 import hmac
 import re
+import os
 import secrets
+from functools import lru_cache
 from typing import Callable, Iterable
 from urllib.parse import urlparse
+from zineb import exceptions
+from zineb.settings import settings
 
 from zineb import global_logger
 
@@ -119,3 +123,46 @@ def transform_to_bytes(content: str):
     else:
         raise ValueError(("In order to transform the object to bytes "
         "you need to provide a string."))
+
+
+@lru_cache(maxsize=0)
+def collect_files(path: str, func: Callable=None):
+    """
+    Collect all the files within specific
+    directory of your project. This utility function
+    is very useful with the FileCrawler:
+
+        class Spider(FileCrawler):
+            start_files = collect_files('some/path')
+
+    Parameters
+    ----------
+
+        - path (str): relative path to the directory
+        - func (Callable): a callback function to use on the files 
+
+    Raises
+    ------
+
+        - ValueError: [description]
+
+    Returns
+    -------
+
+        - Iterator: list of files
+    """
+    if settings.PROJECT_PATH is None:
+        raise exceptions.ProjectNotConfiguredError()
+
+    full_path = os.path.join(settings.PROJECT_PATH, path)
+    if not os.path.isdir(full_path):
+        raise ValueError('Path should be a directory')
+
+    root, _, files = list(os.walk(full_path))[0]
+    if full_path:
+        files = map(lambda x: os.path.join(root, x), files)
+
+    if func is not None:
+        return map(func, files)
+    
+    return files

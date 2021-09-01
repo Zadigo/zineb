@@ -27,3 +27,9 @@ class CommandRequiresProjectError(Exception):
 class ProjectExistsError(FileExistsError):
     def __init__(self):
         super().__init__('The project path does not exist.')
+
+
+class ProjectNotConfiguredError(Exception):
+    def __init__(self):
+        super().__init__(("You are trying to run a functionnality that requires "
+        "you project to be fully configured via your settings file."))

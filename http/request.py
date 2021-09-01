@@ -1,5 +1,5 @@
-import json
 import random
+import re
 from collections import OrderedDict
 from typing import Union
 from urllib import parse
@@ -12,13 +12,15 @@ from requests.sessions import Request, Session
 from w3lib.url import (is_url, safe_download_url, safe_url_string, urljoin,
                        urlparse)
 from zineb import global_logger
-from zineb.http.responses import HTMLResponse, JsonResponse
+from zineb.http.responses import HTMLResponse
 from zineb.http.user_agent import UserAgent
 from zineb.settings import settings as global_settings
 from zineb.signals import signal
 from zineb.tags import ImageTag, Link
 from zineb.utils.general import transform_to_bytes
 
+
+EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9-_.]+@\w+\.\w+$')
 
 class BaseRequest:
     """
@@ -138,6 +140,12 @@ class BaseRequest:
 
                 str: a safe url string
         """
+        # Check if we're trying to send a request
+        # to an email address
+        if EMAIL_REGEX.match(url):
+            message = "You are trying to send a request to an email address."
+            raise requests.exceptions.InvalidSchema(message)
+
         if not is_url(url):
             # TODO: When using https:// this returns True
             # when this is not even a real URL
@@ -150,17 +158,29 @@ class BaseRequest:
         parsed_url = urlparse(url)
         self._url_meta = parsed_url
 
+        # INFO: By default, all urls are marked as
+        # can be sent UNLESS they do not meet two
+        # criterium present in the settings files.
+        # The url is part of a restricted domain
+        # or the url is not secured (no https
+        # or ftps scheme)
+
         if self.only_secured_requests:
-            if (parsed_url.scheme != 'https' or 
-                    parsed_url.scheme != 'ftps'):
+            # TODO: Logic for FTPS
+            # logic = [
+            #     parsed_url.scheme != 'https',
+            #     parsed_url.scheme != 'ftps'
+            # ]
+            # if not all(logic):
+            if 'https' not in parsed_url.scheme:
                 global_logger.critical(f"{url} is not secured. No HTTPS scheme is present.")
                 self.can_be_sent = False
 
         if self.only_domains:
             if parsed_url.netloc not in self.only_domains:
                 global_logger.critical((f"{url} is part of the restricted domains "
-                "list and will not be able to be sent. Adjust your settings if you "
-                "want to prevent this security check."))
+                "settings list and will not be sent. Adjust your settings if you "
+                "want to prevent this security check on his domain."))
                 self.can_be_sent = False
             
         return safe_url_string(url)
@@ -175,6 +195,14 @@ class BaseRequest:
                 Union[Request, None] (obj): an HTTP request object
         """
         response = None
+
+        if not self.can_be_sent:
+            global_logger.logger.critical(("A request was not sent for the following "
+            f"url {self.url} because self.can_be_sent is marked as False. Ensure that "
+            "the url is not part of a restricted DOMAIN or that ENSURE_HTTPS does not"
+            "force only secured requests."))
+            return None
+
         signal.send(dispatcher.Any, self, tag='Pre.Request')
 
         try:
@@ -192,6 +220,9 @@ class BaseRequest:
                 global_settings.RETRY
             ]
             if all(test_if_retry):
+                global_logger.logger.error(f"The server response "
+                f"returned code {response.status_code}. Will attempt "
+                "retries if eneabled in settings file.")
                 response = self._retry()
 
         if self.errors:
@@ -216,6 +247,7 @@ class BaseRequest:
         )
         # policy = response.headers.get('Referer-Policy', 'origin')
 
+        # TODO: Why set the root_url param ???
         parsed_url = urlparse(response.url)
         self.root_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
 
@@ -293,9 +325,13 @@ class HTTPRequest(BaseRequest):
                 global_logger.info(f'Sent request for {self.url}')
                 self._http_response = http_response
                 self.html_response = HTMLResponse(
-                    http_response, url=self.url, headers=http_response.headers
+                    http_response,
+                    url=self.url,
+                    headers=http_response.headers
                 )
                 self.session.close()
+            else:
+                global_logger.logger.error('Response failed.')
         else:
             global_logger.error(f'An error occured on this request: {self.url}')
 

@@ -1,5 +1,5 @@
 import secrets
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict, deque
 from typing import Any, List, Union
 
 import pandas
@@ -11,10 +11,83 @@ from zineb.models.fields import Field
 from zineb.signals import signal
 
 
+class DataContainers:
+    """
+    A container that regroups all the data that
+    has been parsed by the model fields
+    
+    Parameters
+    ----------
+
+        - names: list of field names
+    """
+    values = defaultdict(deque)
+
+    @classmethod
+    def as_container(cls, *names):
+        # In order to prevent the values
+        # parameter to reinstantiate with
+        # the names when using this class,
+        # we'll create a new instance of
+        # the class and return it. In that
+        # sense, this will prevent
+        for name in names:
+            cls.values[name]
+        instance = cls()
+        setattr(instance, 'names', list(names))
+        return instance
+
+    def __repr__(self):
+        return self.values
+
+    def __str__(self):
+        return str(self.values)
+
+    def get_container(self, name: str):
+        return self.values[name]
+
+    def update(self, name: str, value: Any):
+        self.values[name].append(value)
+
+    def finalize(self):
+        """
+        Makes sure that all the arrays
+        are of same lengths before returning
+        the containers.This adds None to the
+        unbalanced containers.
+
+        Returns
+        -------
+
+            - OrderedDict: the finalized values 
+        """
+        containers = list(self.values.values())
+        container_lengths = [len(container) for container in containers]
+        max_length = max(container_lengths)
+
+        def fill_none_values(container):
+            values_to_complete = max_length - len(container)
+            for _ in range(values_to_complete):
+                container.append(None)
+            return container
+
+        for i in range(0, len(containers)):
+            if len(containers[i]) < max_length:
+                fill_none_values(containers[i])
+
+        new_values = []
+
+        for i in range(0, len(self.names)):
+            new_values.append((self.names[i], containers[i]))
+
+        return OrderedDict(new_values)
+
+
 class ModelRegistry:
     """
-    This class is a convienience class that remembers
-    the models that were created and in which order.
+    This class is a convienience container that remembers
+    the models that were created and the order in which
+    they were
     """
     counter = 0
     registry = OrderedDict()
@@ -39,6 +112,8 @@ class ModelRegistry:
     def has_model(self, name: str):
         return name in self.registry
 
+model_registry = ModelRegistry()
+
 
 class FieldDescriptor:
     """A class that contains and stores
@@ -54,9 +129,14 @@ class FieldDescriptor:
 
 
 class ModelOptions:
-    """A class that stores all the options
-    of a given model"""
+    """A container that stores all the options
+    of a given model
 
+    Parameters
+    ----------
+
+        - options (Union[List[tuple[str]], dict]): list of options
+    """
     def __init__(self, options: Union[List[tuple[str]], dict]):
         self.cached_options = OrderedDict(options)
 
@@ -67,9 +147,13 @@ class ModelOptions:
         
         if self.has_option('ordering'):
             ordering = self.get_option_by_name('ordering')
-            self.ordering_field_names = list({
-                field.removeprefix('-') for field in ordering
-            })
+            # self.ordering_field_names = list({
+            #     field.removeprefix('-') for field in ordering
+            # })
+            for field in ordering:
+                self.ordering_field_names.add(
+                    field.removeprefix('-')
+                )
             self.ascending_fields = [
                 field for field in ordering 
                     if not field.startswith('-')
@@ -104,8 +188,6 @@ class ModelOptions:
 
 
 class Base(type):
-    model_registry = ModelRegistry()
-
     def __new__(cls, name, bases, attrs):
         super_new = super().__new__
         parents = [b for b in bases if isinstance(b, Base)]
@@ -154,7 +236,7 @@ class Base(type):
             setattr(new_class, '_fields', descriptor)
             setattr(new_class, '_meta', meta)
 
-            cls.model_registry.add(name, new_class)
+            model_registry.add(name, new_class)
             return new_class
 
         return super_new(cls, name, bases, attrs)
@@ -183,12 +265,12 @@ class DataStructure(metaclass=Base):
         Raises
         ------
 
-            KeyError: When the field is absent
+            - KeyError: When the field is absent
 
         Returns
         -------
 
-            Field (type): returns zineb.fields.Field object
+            - Field (type): returns zineb.fields.Field object
         """
         try:
             return self._fields.cached_fields[name]
@@ -213,9 +295,9 @@ class DataStructure(metaclass=Base):
         Parameters
         ----------
 
-                - name (str): the name of field on which to add a given value
-                - tag (str): a tag to get on the HTML document
-                - attrs (dict, Optional): attributes related to the element's tag on the page. Defaults to {}
+            - name (str): the name of field on which to add a given value
+            - tag (str): a tag to get on the HTML document
+            - attrs (dict, Optional): attributes related to the element's tag on the page. Defaults to {}
         """
         obj = self._get_field_by_name(name)
         if self.parser is None:
@@ -242,8 +324,8 @@ class DataStructure(metaclass=Base):
         Parameters
         ----------
 
-            - field_name (str): the name of field on which to add a given value
-            - value (str): the value to add to the model
+            - name (str): the name of field on which to add a given value
+            - value (Any): the value to add to the model
         """
         obj = self._get_field_by_name(name)
         obj.resolve(value)
@@ -258,23 +340,12 @@ class DataStructure(metaclass=Base):
             # user might get something unexpected
             resolved_value = str(obj._cached_result.date())
         
-        cached_field = self._cached_result.get(name, None)            
-        if cached_field is None:
-            self._cached_result.setdefault(name, [])
-            cached_field = self._cached_result.get(name)
-        cached_field.append(resolved_value)
-        # ?? To prevent unbalanced columns for example
-        # when the user adds a value to field but not
-        # to another, maybe add a None value to the
-        # rest of the fields so that the len always
-        # stays equals between columns
-        # for field in self._fields.field_names():
-        #     if field not in self._cached_result:
-        #         self._cached_result.setdefault(field, [])
-        #         self._cached_result[field].extend([None])
-        #     else:
-        #         self._cached_result[field].extend([None])
-        self._cached_result.update({name: cached_field})
+        cached_values = self._cached_result.get(name, [])            
+        # if cached_values is None:
+        #     cached_values = self._cached_result.setdefault(name, [])
+        #     cached_values = self._cached_result.get(name)
+        cached_values.append(resolved_value)
+        self._cached_result.update({name: cached_values})
 
     def add_expression(self, **expressions):
         """
@@ -282,6 +353,36 @@ class DataStructure(metaclass=Base):
         set of expressions.
         """
         pass
+
+    def add_related_value(self, name: str, related_field: str, value: Any):
+        """
+        Add a value to a field based on the last
+        result of another field.
+
+        The related fields should be of the same data type
+        or this might raise errors.
+
+        Parameters
+        ----------
+
+            - name (str): name of the field to which to add the value
+            - related_field (str): name of the base field from which to derive a result
+            - value (Any): the value to add to the original field
+        """
+        if name == related_field:
+            raise ValueError('Name and related name should not be the same.')
+
+        related_field_object = self._get_field_by_name(related_field)
+        
+        self.add_value(name, value)
+        cached_values = self._cached_result.get(name)
+
+        last_value = cached_values[-1]
+        related_field_object.resolve(last_value)
+
+        related_field_values = self._cached_result.get(related_field, [])
+        related_field_values.append(related_field_object._cached_result)
+        self._cached_result.update({ related_field: related_field_values })
 
     def resolve_fields(self):
         """

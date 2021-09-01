@@ -25,8 +25,9 @@ def deep_clean(value: str):
     return ' '.join(cleaned_words).strip()
 
 
-def is_path(path):
-    is_match = re.search(r'^(?:[/].*/)(?:.*)$', path)
+def is_path(path: str):
+    # is_match = re.search(r'^(?:[/].*/)(?:.*)$', path)
+    is_match = re.search(r'^(?:\/?.*\/?)\??.*$', path)
     if is_match:
         return True
     return False

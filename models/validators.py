@@ -1,5 +1,4 @@
 import re
-from functools import wraps
 from typing import Any, Callable, Tuple, Union
 
 from w3lib.url import is_url
@@ -38,6 +37,7 @@ def validate_is_not_null(value: Any):
     
     if value is None:
         raise TypeError(message.format(prefix='None'))
+    
     if value == '':
         raise ValueError(message.format(prefix='Empty'))
     return value
@@ -78,7 +78,8 @@ def validate_url(url: str):
 
     url_is_valid = is_url(url)
     if not url_is_valid:
-        raise ValidationError(f"Url is not valid. Got: '{url}'")
+        raise ValidationError(("The following url failed the "
+        f"validation test. Got: '{url}'"))
     return url
 
 

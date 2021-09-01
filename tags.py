@@ -1,6 +1,7 @@
 import re
 from functools import lru_cache
 from mimetypes import guess_extension, guess_type
+from typing import Union
 from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
@@ -9,9 +10,13 @@ from w3lib.url import canonicalize_url, is_url, safe_url_string
 
 
 class BaseTags:
-    def __init__(self, html_page):
+    def __init__(self, html_page: Union[BeautifulSoup, str]):
         self.html_page = None
+
         if isinstance(html_page, str):
+            # if html_page.name != '[document]':
+            #     raise ValueError("'html_page' should be HTML page string document")
+
             # There might be some cases where an HTML string
             # is passed while not being a BeautifulSoup instance
             # at the same time. We can account for this here.
@@ -66,8 +71,8 @@ class Link(HTMLTag):
                 is_match = re.search(r'^mailto:(.*)$', href)
                 if is_match:
                     href = is_match.group(1)
-                else:
-                    href = href
+                # else:
+                #     href = href
 
             href = safe_url_string(canonicalize_url(href))
 
@@ -117,9 +122,10 @@ class Link(HTMLTag):
         return hash(self.href)
 
     def __repr__(self):
+        class_name = self.__class__.__name__
         if self.is_email:
-            return f"{self.__class__.__name__}(email={self.href})"
-        return f"{self.__class__.__name__}(url={self.href}, valid={self.is_valid})"
+            return f"{class_name}(email={self.href})"
+        return f"{class_name}(url={self.href}, valid={self.is_valid})"
 
     @property
     def decompose(self):
