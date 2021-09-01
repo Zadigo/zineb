@@ -1,4 +1,5 @@
-from w3lib.url import urlparse
+import re
+
 from zineb.checks.core import checks_registry
 
 W001 = Warning(
@@ -25,10 +26,15 @@ E002 = ('Could not recognize the scheme in proxy: {proxy}. Should be one of http
 E003 = ('IP address in proxy cannot be empty')
 
 
-E004 = ("Middleware should be string pointing to a module in your project")
+E004 = ("Middleware should be string pointing to a module in your project. Got '{middleware}'")
 
 
 E005 = ('DEFAULT_REQUEST_HEADERS should be a dictionnary')
+
+
+E006 = ('IP address in PROXIES is not valid. Got {proxy}.')
+
+E007 = ('MEDIA_FOLDER should either be None or a string representing a relative or absolute path')
 
 
 @checks_registry.register(tag='middlewares')
@@ -43,7 +49,7 @@ def check_middlewares(project_settings):
 
     for middleware in middlewares:
         if not isinstance(middleware, str):
-            errors.append(E004)
+            errors.append(E004.format(middleware=middleware))
     return errors
 
 
@@ -69,7 +75,6 @@ def check_proxies_valid(project_settings):
             proxy_type, ip = proxy
 
             allowed_schemes = ['http', 'https']
-
             if (proxy_type == '' or
                     proxy_type is None or
                         proxy_type not in allowed_schemes):
@@ -77,4 +82,16 @@ def check_proxies_valid(project_settings):
 
             if ip == '' or ip is None:
                 errors.append(E003)
+
+            is_match = re.match(r'^[\d+\d.]+$', ip)
+            if not is_match:
+                errors.append(E006.format(proxy=proxy))
+            
     return errors
+
+
+@checks_registry.register(tag='media_foler')
+def check_media_folder(project_settings):
+    media_folder = project_settings.MEDIA_FOLDER
+    if media_folder is not None or not isinstance(media_folder, str):
+        return [E007]
