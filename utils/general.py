@@ -187,7 +187,7 @@ def string_to_number(value: str, strict: bool=False):
         raise ValueError(f"Value to convert to number should be a string. Got {value}")
 
     if strict and not value.isnumeric():
-        raise ValueError(f"Value should be an integer or a float. Got {value}.")
+        raise ValueError(f"Value should be an integer or a float. Got '{value}'.")
 
     if value.isnumeric():
         try:
