@@ -14,6 +14,7 @@ from zineb import global_logger
 from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
 from zineb.signals import signal
+from zineb.settings import settings as global_settings
 
 # class Options:
 #     spider_options = defaultdict(set)
@@ -282,8 +283,6 @@ class FileCrawler:
     root_dir = None
 
     def __init__(self):
-        from zineb.settings import settings
-
         self.buffers = []
 
         start_files = []
@@ -298,7 +297,7 @@ class FileCrawler:
 
         if self.root_dir is not None:
             def full_path(path):
-                return os.path.join(settings.PROJECT_PATH, self.root_dir, path)
+                return os.path.join(global_settings.PROJECT_PATH, self.root_dir, path)
             start_files = list(map(full_path, self.start_files))
             for start_file in start_files:
                 if not self._check_path(start_file):
