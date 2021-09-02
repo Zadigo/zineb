@@ -17,8 +17,7 @@ W003 = Warning(
 )
 
 
-E001 = ('Proxy should be a tuple or list containing the proxy '
-        'type and the IP address e.g. (http, 127.0.0.1)')
+E001 = ('Proxy should be a tuple or a list type containing the scheme and the IP/url address e.g. (http, 127.0.0.1)')
 
 E002 = ('Could not recognize the scheme in proxy: {proxy}. Should be one of http or https')
 
@@ -68,6 +67,15 @@ def check_proxies_valid(project_settings):
     if proxies is None:
         return [E001]
 
+    regexes = [
+        # 1.1.1.1
+        r'^[\d+\d.]+$',
+        # http://1.1.1.1:8080
+        r'^https?\:\/\/[d+\d.]+\:?\d+$',
+        # http://user:pass@1.1.1.1:8080
+        r'^https?\:\/\/([a-zA-Z0-9]+)\:([a-zA-Z0-9]+)\@[\d+\.]+\:\d+$'
+    ]
+
     for proxy in proxies:
         if not isinstance(proxy, (tuple, list)):
             errors.append(E001)
@@ -83,10 +91,18 @@ def check_proxies_valid(project_settings):
             if ip == '' or ip is None:
                 errors.append(E003)
 
-            is_match = re.match(r'^[\d+\d.]+$', ip)
-            if not is_match:
+            matched_regex = []
+
+            for regex in regexes:
+                is_match = re.match(regex, ip)
+                if not is_match:
+                    matched_regex.append(False)
+                else:
+                    matched_regex.append(True)
+
+            if not any(matched_regex):
                 errors.append(E006.format(proxy=proxy))
-            
+
     return errors
 
 
