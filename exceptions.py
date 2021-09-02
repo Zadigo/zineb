@@ -46,7 +46,22 @@ class ModelExistsError(Exception):
         super().__init__((f"Model '{name}' is already registered."))
 
 
-
 class ImproperlyConfiguredError(Exception):
     def __init__(self):
         super().__init__('Your project is not properly configured.')
+
+
+class SpiderExistsError(Exception):
+    def __init__(self, name: str):
+        super().__init__(f"'{name}' does not exist in the registry. "
+        f"Did you create '{name}' in your spiders module?")
+
+
+class ResponseFailedError(Exception):
+    def __init__(self):
+        super().__init__("Zineb will not be able to generate a BeautifulSoup object from the response. "
+        "This is due to a response with a fail status code or being None.")
+
+
+class RequestAborted(Exception):
+    pass
