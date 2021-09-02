@@ -486,8 +486,8 @@ class DataStructure(metaclass=Base):
                     ascending=self._meta.ordering_booleans
                 )
             except KeyError:
-                raise KeyError(("Looks like a field is not part of your model."
-                "Please check your ordering fields."))
+                raise KeyError(("Looks like one of the ordering fields is not "
+                "part of your model. Please check your ordering options."))
         return df
 
 
