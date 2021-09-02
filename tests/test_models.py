@@ -1,100 +1,147 @@
 import unittest
-from collections import OrderedDict
 
 import pandas
-from models.fields import (AgeField, CharField, DateField, Field,
-                           FunctionField, ImageField, IntegerField, NameField,
-                           UrlField)
-from zineb.http.request import HTTPRequest
-from zineb.models.datastructure import Model
-
-request = HTTPRequest('http://example.com')
-request._send()
-
-class Player(Model):
-    name = NameField()
+from models import fields
+from models.datastructure import FieldDescriptor, ModelOptions
+from zineb.exceptions import FieldError, ModelExistsError
+from zineb.models.datastructure import Model, model_registry
+from zineb.models.expressions import Add, First, Last, When
 
 
-def custom_function(value):
-    return value + 100
+def simple_validator(value):
+    return value
 
 
-class Celebrity(Model):
-    firstname = NameField()
-    lastname = CharField()
-    birthdate = DateField('%d/%m/%Y')
-    age = AgeField('%d/%m/%Y')
-    url = UrlField()
-    height = IntegerField()
-    weight = IntegerField()
-    spike = FunctionField(
-        custom_function,
-        output_field=IntegerField(),
-    )
-    block = FunctionField(
-        custom_function,
-        output_field=IntegerField()
-    )
-    
+class SimpleModel(Model):
+    name = fields.CharField()
+    date_of_birth = fields.DateField('%Y-%M-%d')
+    age = fields.AgeField('%Y-%M-%d')
+    height = fields.CharField(validators=[simple_validator])
 
-class TestModel(unittest.TestCase):
-    def setUp(self):
-        self.player = Player(response=request.html_response)
 
-    def test_fields(self):
-        self.assertIsInstance(self.player._fields.cached_fields, OrderedDict)
-        self.assertIn('name', self.player._fields.cached_fields)
+class TestSimpleModel(unittest.TestCase):
+    def setUp(self) -> None:
+        self.model = SimpleModel()
 
-    def test_adding_value(self):
-        self.player.add_value('name', 'Kendall Jenner')
+    def test_fields_descriptor(self):
+        self.assertIsInstance(self.model._fields, FieldDescriptor)
+        self.assertListEqual(self.model._fields.field_names, ['name', 'age'])
 
-    # def test_adding_expression(self):
-    #     self.player.add_expression('name', 'h1')
-    #     # self.assertIsInstance(self.player._cached_result, dict)
-    #     # self.assertIsInstance(self.player._cached_result[-1], dict)
-    #     # Testing the data itself
-    #     # self.assertEqual(self.player._cached_result[0]['name'], 'Example Domain')
-    #     # self.assertListEqual(self.player._cached_result, [{'name': 'Example Domain'}])
+    def test_meta(self):
+        self.assertIsInstance(self.model._meta, ModelOptions)
+
+    def test_can_get_field(self):
+        self.assertIsInstance(self.model._get_field_by_name('name'), fields.CharField)
+
+    def test_can_add_value_without_resolution(self):
+        self.model._add_without_field_resolution('name', 'Kendall')
+        self.assertDictEqual(self.model._cached_result, {'name': ['Kendall']})
+
+    def test_can_add_value(self):
+        self.model.add_value('age', 15)
+        self.assertDictEqual(self.model._cached_result, {'age': [15]})
+
+    def test_can_add_calculated_value(self):
+        self.model.add_calculated_value(21, Add('age', 2))
+        self.assertDictEqual(self.model._cached_result, {'age': [23]})
+
+    def test_can_add_case(self):
+        self.model.add_case(21, When('age__eq=21', 23))
+        self.assertDictEqual(self.model._cached_result, {'age': [23]})
+
+    def test_can_add_using_expression(self):
+        self.model = SimpleModel(html_document=None)
+        self.model.add_using_expression('age', 'span', attrs={'id': 'age'})
+        self.assertDictEqual(self.model._cached_result, {'age': 23})
+
+    def test_add_related_value(self):
+        self.model.add_related_value('age', 'date_of_birth', '01-01-1992')
+        # TODO: When adding a value to the fields, this can create
+        # an unbalance between all fields and we should watch against that
+        self.assertDictEqual(self.model._cached_result, {'date_of_birth': ['01-01-1992'], 'age': [23]})
+
+    def test_resolve_fields(self):
+        df = self.model.resolve_fields()
+        self.assertIsInstance(df, pandas.DataFrame)
+
+    def test_can_clean(self):
+        pass
+
+    def test_can_save(self):
+        pass
+
+    def test_model_in_iteration(self):
+        for i in range(1, 4):
+            self.model.add_value('age', 15 + i)
+        self.assertListEqual(self.model._cached_result, {'age': [15, 16, 17]})
+        
+    def test_model_instanciation_in_iteration(self):
+        for i in range(1, 4):
+            model = SimpleModel()
+            model.add_value('age', 15 + i)
+        self.assertListEqual(self.model._cached_result, {'age': [15, 16, 17]})
+
+    def test_can_get_item(self):
+        self.assertIsInstance(self.model['age'], (int, str, float))
+
+    def test_ordering(self):
+        pass
+
+    def test_field_with_validation(self):
+        self.model.add_value('height', 156)
+        self.assertDictEqual(self.model._cached_result, {'height': [156]})
 
     @unittest.expectedFailure
-    def test_cannot_add_non_existing_field(self):
-        # Normally we should not be able to add
-        # a field that is not present on the model
-        self.player.add_value('age', 'h1')
-
-    def test_non_existing_field_error(self):
-        with self.assertRaises(KeyError) as context:
-            self.player.add_value('age', 'h1')
+    def test_wrong_value_to_field(self):
+        self.model.add_value('height', 'Some height')
+        with self.assertRaises(ValueError):
+            pass
 
     @unittest.expectedFailure
-    def test_cannot_add_different_value(self):
-        self.player.add_value('name', 1)
+    def test_field_does_not_exist(self):
+        self.model.add_value('no_field', None)
+        with self.assertRaises(FieldError):
+            pass
 
-    def test_iteration(self):
-        # When adding multiple values to the model,
-        # for whatever reasons the _validators variable
-        # gets populated multiple times with validators
-        self.player.add_value('name', 'Kendall Jenner')
-        self.player.add_value('name', 'Hailey Baldwin')
+    def test_data_container_unbalanced(self):
+        self.model.add_value('age', 15)
+        self.model.add_value('height', 202)
+        # Technically, this should raise
+        # an error when trying to resolve
+        # the fields to a dataframe.
+        
+        # Expected: {name: [None], date_of_birth: [None], age: [15], height: [202]}
+        self.model.resolve_fields()
 
-        name_instance = self.player._get_field_by_name('name')
-        self.assertEqual(len(name_instance._validators), 0)
+    def test_can_get_last(self):
+        self.model.add_value(Last('age'))
 
-    def test_field_type(self):
-        name_instance = self.player._get_field_by_name('name')
-        self.assertIsInstance(name_instance, Field)
-
-    def test_field_cache(self):
-        self.assertEqual(len(self.player._fields.cached_fields), 1)
-
-
-class TestComplexModels(unittest.TestCase):
-    def setUp(self):
-        self.model = Celebrity(response=request._http_response)
-
-    def test_birthdate_field(self):
-        self.model.add_value('age', '3/6/1996')
+    def test_can_get_first(self):
+        self.model.add_value(First('age'))
 
 
-if __name__ == "__main__":
+class TestModelRegistery(unittest.TestCase):
+    def test_has_model(self):
+        result = model_registry.has_model('SimpleModel')
+        self.assertTrue(result)
+
+    def test_can_get_model(self):
+        model = model_registry.get_model('SimpleModel')
+        self.assertIsInstance(model, SimpleModel)
+
+    def test_can_get_all_models(self):
+        self.assertTrue(len(model_registry.models) > 0)
+
+    def test_can_iterate(self):
+        for model in model_registry:
+            self.assertIsInstance(model, Model)
+
+    @unittest.expectedFailure
+    def test_adding_existing_model(self):
+        model_registry.add('SimpleModel', SimpleModel)
+        with self.assertRaises(ModelExistsError):
+            print('Model exists.')
+
+
+if __name__ == '__main__':
     unittest.main()

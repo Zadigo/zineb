@@ -1,4 +1,5 @@
-from w3lib.url import urlparse
+import re
+
 from zineb.checks.core import checks_registry
 
 W001 = Warning(
@@ -16,8 +17,7 @@ W003 = Warning(
 )
 
 
-E001 = ('Proxy should be a tuple or list containing the proxy '
-        'type and the IP address e.g. (http, 127.0.0.1)')
+E001 = ('Proxy should be a tuple or a list type containing the scheme and the IP/url address e.g. (http, 127.0.0.1)')
 
 E002 = ('Could not recognize the scheme in proxy: {proxy}. Should be one of http or https')
 
@@ -25,10 +25,15 @@ E002 = ('Could not recognize the scheme in proxy: {proxy}. Should be one of http
 E003 = ('IP address in proxy cannot be empty')
 
 
-E004 = ("Middleware should be string pointing to a module in your project")
+E004 = ("Middleware should be string pointing to a module in your project. Got '{middleware}'")
 
 
 E005 = ('DEFAULT_REQUEST_HEADERS should be a dictionnary')
+
+
+E006 = ('IP address in PROXIES is not valid. Got {proxy}.')
+
+E007 = ('MEDIA_FOLDER should either be None or a string representing a relative or absolute path')
 
 
 @checks_registry.register(tag='middlewares')
@@ -43,7 +48,7 @@ def check_middlewares(project_settings):
 
     for middleware in middlewares:
         if not isinstance(middleware, str):
-            errors.append(E004)
+            errors.append(E004.format(middleware=middleware))
     return errors
 
 
@@ -62,6 +67,15 @@ def check_proxies_valid(project_settings):
     if proxies is None:
         return [E001]
 
+    regexes = [
+        # 1.1.1.1
+        r'^[\d+\d.]+$',
+        # http://1.1.1.1:8080
+        r'^https?\:\/\/[d+\d.]+\:?\d+$',
+        # http://user:pass@1.1.1.1:8080
+        r'^https?\:\/\/([a-zA-Z0-9]+)\:([a-zA-Z0-9]+)\@[\d+\.]+\:\d+$'
+    ]
+
     for proxy in proxies:
         if not isinstance(proxy, (tuple, list)):
             errors.append(E001)
@@ -69,7 +83,6 @@ def check_proxies_valid(project_settings):
             proxy_type, ip = proxy
 
             allowed_schemes = ['http', 'https']
-
             if (proxy_type == '' or
                     proxy_type is None or
                         proxy_type not in allowed_schemes):
@@ -77,4 +90,24 @@ def check_proxies_valid(project_settings):
 
             if ip == '' or ip is None:
                 errors.append(E003)
+
+            matched_regex = []
+
+            for regex in regexes:
+                is_match = re.match(regex, ip)
+                if not is_match:
+                    matched_regex.append(False)
+                else:
+                    matched_regex.append(True)
+
+            if not any(matched_regex):
+                errors.append(E006.format(proxy=proxy))
+
     return errors
+
+
+@checks_registry.register(tag='media_foler')
+def check_media_folder(project_settings):
+    media_folder = project_settings.MEDIA_FOLDER
+    if media_folder is not None and not isinstance(media_folder, str):
+        return [E007]

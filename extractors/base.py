@@ -2,12 +2,12 @@ import os
 import re
 from collections import OrderedDict
 from functools import cached_property
+from itertools import chain
 from typing import Dict, Generator, List, NoReturn, Tuple, Union
 
 import pandas
 from bs4 import BeautifulSoup
-from bs4.element import Tag
-from nltk.tokenize import PunktSentenceTokenizer, WordPunctTokenizer
+from bs4.element import ResultSet, Tag
 from sklearn.feature_extraction.text import CountVectorizer
 from w3lib.html import safe_url_string
 from w3lib.url import is_url, urljoin
@@ -58,7 +58,7 @@ class TableExtractor(Extractor):
             extractor = TableExtractor()
             extractor.resolve(BeautifulSoup Object)
 
-                -> [[a, b, c], [d, ...]]
+                [[a, b, c], [d, ...]]
 
             By indicating if the table has a header, the header values 
             which generally corresponds to the first row will be dropped
@@ -71,22 +71,25 @@ class TableExtractor(Extractor):
                 if value != '':
                     return value
 
-            extractor = RowExtractor(processors=[drop_empty_values])
+            extractor = TableExtractor(processors=[drop_empty_values])
             extractor.resolve(BeautifulSoup Object)
     """
 
-    def __init__(self, class_or_id_name=None, has_headers=False, 
-                 processors: List=[]):
+    def __init__(self, class_or_id_name=None, header_position: int=None, 
+                 base_url: str=None, processors: List=[]):
         self._table = None
         self._raw_rows = []
         self.values = []
-        self.headers = None
+        # self.headers = None
 
         self.class_or_id_name = class_or_id_name
         self.attrs = None
-        self.has_headers = has_headers
+        self.header_position = header_position
+        self.base_url = base_url
         self.processors = processors
-        # self.filter_empty_rows = filter_empty_rows
+
+    def __enter__(self):
+        return self.get_values
 
     def __iter__(self):
         return iter(self.values)
@@ -94,50 +97,112 @@ class TableExtractor(Extractor):
     def __repr__(self):
         return f"{self.__class__.__name__}({self.values})"
 
-    def __call__(self, **kwargs):
+    def __call__(self, soup: BeautifulSoup, **kwargs):
+        """
+        Resolve another table by calling the instance
+
+        Args:
+            soup (BeautifulSoup): [description]
+
+        Returns:
+            [type]: [description]
+        """
         self.__init__(**kwargs)
+        self.resolve(soup)
         return self
 
     def __getitem__(self, index):
         return self.values[index]
 
-    def _compose(self, include_links=False):
-        if self._raw_rows is not None:
-            rows = []
-            for row in self._raw_rows:
-                new_row = []
-                for column in row:
-                    if column != '\n':
-                        try:
-                            new_row.append(deep_clean(column.text))
-                        except:
-                            new_row.append(None)
+    # def __add__(self, table_instance):
+    #     if not isinstance(table_instance, TableExtractor):
+    #         raise TypeError("The table to add should be an instance of TableExtractor")
+    #     return pandas.concat(
+    #         [table_instance.get_values, self.get_values],
+    #         axis=1
+    #     )
 
-                        # Find the first link in the column
-                        # so that it can be included in the
-                        # row -- This is useful in certain
-                        # cases where the first row of a table
-                        # sometimes has a link to go to a next
-                        # page and it can be interesting to catch
-                        # these kinds of links e.g. go to profile...
-                        if include_links:
-                            link = column.find('a')
-                            if link or link is not None:
-                                href = link.attrs.get('href')
-                                # This is a problematic section especially when used
-                                # in a Pipeline. When the link is not a link e.g. -1,
-                                # this creates an error that is very difficult to resolve
-                                # because the Pipe does not give the full stracktrace.
-                                # Also, only append a link if something is detected.
-                                if is_url(str(href)) or is_path(str(href)):
-                                    link = safe_url_string(href)
-                                    new_row.extend([href])
-                rows.append(new_row)
-            if self.has_headers:
-                self.headers = rows.pop(0)
-            return rows
-        else:
-            return self._raw_rows
+    @property
+    def first(self) -> Union[Tag, None]:
+        return self._raw_rows[0]
+
+    @property
+    def get_values(self):
+        values = self.values.copy()
+        if self.header_position is not None:
+            values.pop(self.header_position)
+        instance = chain(*values)
+        return pandas.Series(data=list(instance))
+
+    @classmethod
+    def as_instance(cls, soup, **kwargs):
+        instance = cls(**kwargs)
+        instance.resolve(soup)
+        return instance
+
+    @staticmethod
+    def _get_rows(element: Tag):
+        return element.find_all('tr')
+
+    def _extract_values(self, elements: ResultSet, include_links: bool=False):
+        # if self._raw_rows is not None:
+        rows = []
+        for row in elements:
+            new_row = []
+            for column in row:
+                if column != '\n':
+                    try:
+                        new_row.append(deep_clean(column.text))
+                    except:
+                        # TODO: For whatever reasons on the
+                        # table header values, colum is directly
+                        # the value of the row instead of <tr>
+                        # which generates an error.
+                        # column = 'A' instead of <tr>A</tr>
+                        # if isinstance(column, str):
+                        #     new_row.append(column or None)
+                        new_row.append(None)
+
+                    # Find the first link in the column
+                    # so that it can be included in the
+                    # row -- This is useful in certain
+                    # cases where the first row of a table
+                    # sometimes has a link to go to a next
+                    # page and it can be interesting to catch
+                    # these kinds of links e.g. go to profile...
+                    if include_links:
+                        link = column.find('a')
+                        if link or link is not None:
+                            href = link.attrs.get('href')
+                            # This is a problematic section especially when used
+                            # in a Pipeline. When the link is not a link e.g. -1,
+                            # this creates an error that is very difficult to resolve
+                            # because the Pipe does not give the full stracktrace.
+                            # Also, only append a link if something is detected.
+                            if is_url(str(href)) or is_path(str(href)):
+                                if self.base_url:
+                                    href = urljoin(self.base_url, href)
+                                link = safe_url_string(href)
+                                new_row.extend([href])
+                            # else:
+                            #     # Sometimes, especially on badly coded websites,
+                            #     # the url/path in the link comes out in a very
+                            #     # odd manner e.g Players.asp?Tourn=WU202013&Team=CHN&No=133592
+                            #     # which does not allow us to collect
+                            #     # the url. If the user knows about this and has
+                            #     # provided a root url, we can use that in an 
+                            #     # attempt to reconcile the path with url
+                            #     if self.base_url is not None:
+                            #         url = urljoin(self.base_url, href)
+                            #         if is_url(url):
+                            #             link = safe_url_string(url)
+                            #             new_row.extend([url])
+            rows.append(new_row)
+        #     if self.header_position is not None:
+        #         self.headers = rows.pop(self.header_position)
+        return rows
+        # else:
+        #     return self._raw_rows
 
     def _run_processors(self, rows):
         if self.processors:
@@ -146,17 +211,10 @@ class TableExtractor(Extractor):
                 for processor in self.processors:
                     if not callable(processor):
                         raise TypeError(f"Processor should be a callable. Got {processor}")
-                    row = [processor(value, row=row) for value in row]
+                    row = [processor(value, index=index) for index, value in enumerate(row)]
                 processed_rows.append(row)
             return processed_rows
         return rows
-
-    @property
-    def first(self) -> Union[Tag, None]:
-        return self._raw_rows[0]
-
-    def _get_rows(self, element):
-        return element.find_all('tr')
 
     def get_row(self, index) -> Tag:
         try:
@@ -166,6 +224,14 @@ class TableExtractor(Extractor):
 
     def resolve(self, soup: BeautifulSoup, include_links=False, 
                 limit_to_columns: list=[]):
+        # Sometimes by accident the "soup" object
+        # could be None, for example when an object
+        # was not found on the page.
+        if soup is None:
+            raise ValueError(("The BeautifulSoup object is None certainly "
+            "because the table you were looking for does not exist on the HTML page. "
+            "Inspect the page and ensure the object exists."))
+
         if self.attrs is None:
             # There might be a case where the user
             # does not pass the whole HTML page but just
@@ -199,7 +265,15 @@ class TableExtractor(Extractor):
                     return self._raw_rows
                 self.resolve(self._table)
 
+        # If no table, just return
+        # an empty array instead of
+        # raising an error or showing
+        # an error
+        if self._table is None:
+            return self.values
+
         if not self._table.is_empty_element:
+            # Option: 1
             tbody = self._table.find('tbody')
             if tbody is None:
                 self._raw_rows = self._get_rows(self._table)
@@ -208,29 +282,53 @@ class TableExtractor(Extractor):
                     self._raw_rows = self._get_rows(self._table)
                 else:
                     self._raw_rows = self._get_rows(tbody)
+
+            extracted_values = self._extract_values(
+                self._raw_rows, 
+                include_links=include_links
+            )
+            self.values = self._run_processors(extracted_values)
+
+            # Option: 2
+            # recomposed_table = []
+
+            # thead = self._table.find('thead')
+            # raw_headers = thead.find_all('th')
+            # self._raw_rows = self._get_rows(self._table.find('tbody'))
+
+            # theader_values = self._extract_values(raw_headers)
+            # tbody_values = self._extract_values(self._raw_rows, include_links=include_links)
+            # recomposed_table.extend(theader_values)
+            # recomposed_table.extend(tbody_values)
             
-            self.values = self._run_processors(self._compose(include_links=include_links))
+            # self.values = self._run_processors(recomposed_table)
             return self.values
 
-    def resolve_to_dataframe(self, soup: BeautifulSoup, columns: dict={}):
-        df = pandas.DataFrame(data=self.resolve(soup))
+    def resolve_to_dataframe(self, soup: BeautifulSoup=None, columns: list=[]):
+        if soup is not None:
+            self.resolve(soup)
+            
         if columns:
-            return df.rename(columns=columns)
-        return df
+            return pandas.DataFrame(data=self.values, columns=columns)
+        return pandas.DataFrame(data=self.values)
 
-    @classmethod
-    def as_instance(cls, soup, **kwargs):
-        instance = cls()
-        instance.resolve(soup, **kwargs)
-        return instance
+        # if columns:
+        #     return df.rename(columns=columns)
+        # return df
 
 
-class MultiTablesExtractor:
-    def __init__(self, with_attrs: list=[], has_headers=False, 
-                 processors: list=[]):
+class MultiTablesExtractor(Extractor):
+    """
+    Extract all the tables on a given page at once
+    """
+
+    def __init__(self, with_attrs: list = [], header_position: int = None):
         self.with_attrs = with_attrs
         self.tables_list = OrderedDict()
         self._raw_tables = None
+
+    def __enter__(self):
+        return self.tables_list
 
     def __iter__(self):
         return iter(self.tables_list.values())
@@ -279,7 +377,11 @@ class MultiTablesExtractor:
 
         extractor = TableExtractor()
         for i, table in enumerate(tables):
-            instance = extractor.as_instance(table, include_links=include_links, limit_to_columns=limit_to_columns)
+            instance = extractor.as_instance(
+                table, 
+                include_links=include_links, 
+                limit_to_columns=limit_to_columns
+            )
             self.tables_list.update({i: instance})
 
     def resolve_to_dataframe(self, soup, table_index=0, columns: dict={}):
@@ -291,9 +393,14 @@ class TextExtractor(Extractor):
     """
     Extract all the text from a soup object
     """
-    tokenizer = WordPunctTokenizer()
 
     def __init__(self):
+        # For performance reasons, load the nltk library
+        # during the __init__. This library takes a little
+        # time to load
+        from nltk.tokenize import WordPunctTokenizer
+
+        self.tokenizer = WordPunctTokenizer()
         self.raw_text = None
         self.tokens = None
 
@@ -324,6 +431,8 @@ class TextExtractor(Extractor):
         self.raw_text = text
 
     def vectorize(self, min_df=1, max_df=1, return_matrix=False):
+        from nltk import PunktSentenceTokenizer
+
         if self.raw_text is not None:
             tokenizer = PunktSentenceTokenizer()
             sentences = tokenizer.sentences_from_text(self.raw_text)
@@ -370,6 +479,9 @@ class LinkExtractor(Extractor):
 
     def __iter__(self):
         return iter(self.validated_links)
+
+    def __next__(self):
+        return next(self.__iter__())
 
     def __contains__(self, value_to_check):
         links = [str(link) for link in self.validated_links]
@@ -418,7 +530,7 @@ class LinkExtractor(Extractor):
         Yields
         ------
 
-            tuple: link (href) and link attributes
+            tuple: url and link attributes
         """
         for tag in self._document_links(soup):
             element_name = tag.name
@@ -510,6 +622,8 @@ class MultiLinkExtractor(LinkExtractor):
         return self.validated_links
 
     def resolve_emails(self, soup: BeautifulSoup):
+        from nltk.tokenize import WordPunctTokenizer
+
         super().resolve(soup)
 
         text = soup.text

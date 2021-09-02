@@ -50,14 +50,15 @@ install_requires = [
     'PyDispatcher',
     'w3lib',
     'nltk',
-    'pyyaml'
+    'pyyaml',
+    'scikit-learn'
 ]
 
 
 setuptools.setup(
     name='zineb-scrapper',
     # packages: [],
-    version='1.0.2',
+    version='1.0.4',
     author='John Pendenque',
     author_email='pendenquejohn@gmail.com',
     classifiers=classifiers,
@@ -68,5 +69,7 @@ setuptools.setup(
     long_description=read_files('README.md'),
     long_description_content_type='text/markdown',
     python_requires='>=3.9',
-    url='https://github.com/Zadigo/zineb/releases/tag/v1.0.2'
+    project_urls={
+        'Source': 'https://github.com/Zadigo/zineb/'
+    }
 )

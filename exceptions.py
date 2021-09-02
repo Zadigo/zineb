@@ -27,3 +27,41 @@ class CommandRequiresProjectError(Exception):
 class ProjectExistsError(FileExistsError):
     def __init__(self):
         super().__init__('The project path does not exist.')
+
+
+class ProjectNotConfiguredError(Exception):
+    def __init__(self):
+        super().__init__(("You are trying to run a functionnality that requires "
+        "you project to be fully configured via your settings file."))
+
+
+class ModelNotImplementedError(Exception):
+    def __init__(self, message: str=None):
+        super().__init__(("Conditional (When), aggregate (Add, Substract, Multiply, Divide)"
+        f" functions should point to a model. {message}"))
+
+
+class ModelExistsError(Exception):
+    def __init__(self, name: str):
+        super().__init__((f"Model '{name}' is already registered."))
+
+
+class ImproperlyConfiguredError(Exception):
+    def __init__(self):
+        super().__init__('Your project is not properly configured.')
+
+
+class SpiderExistsError(Exception):
+    def __init__(self, name: str):
+        super().__init__(f"'{name}' does not exist in the registry. "
+        f"Did you create '{name}' in your spiders module?")
+
+
+class ResponseFailedError(Exception):
+    def __init__(self):
+        super().__init__("Zineb will not be able to generate a BeautifulSoup object from the response. "
+        "This is due to a response with a fail status code or being None.")
+
+
+class RequestAborted(Exception):
+    pass

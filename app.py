@@ -1,9 +1,9 @@
 import os
 import warnings
 # import time
-from collections import OrderedDict, deque
+from collections import OrderedDict
 from io import StringIO
-from typing import Union
+from typing import Iterator, Union
 
 from bs4 import BeautifulSoup
 from pydispatch import dispatcher
@@ -13,13 +13,92 @@ from zineb import global_logger
 # from zineb.http.pipelines import CallBack
 from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
-from zineb.settings import settings as global_settings
 from zineb.signals import signal
+
+# class Options:
+#     spider_options = defaultdict(set)
+
+#     def __init__(self, **kwargs):
+#         self.errors = []
+
+#     @staticmethod
+#     def _check_value_against(value: Any):
+#         def checker(constraint, message: str):
+#             if not isinstance(value, constraint):
+#                 raise ValueError(message)
+#         return checker
+
+#     def _checks(self):
+#         return [
+#             ('domains', self._check_domains),
+#             ('base_url', self._check_value_against),
+#             ('verbose_name', self._check_value_against),
+#             ('sorting', self._check_sorting),
+#             ('limit_request_to', self._check_value_against)
+#         ]
+
+#     def _precheck_options(self, options: dict):
+#         allowed_options = ['domains', 'base_url', 'verbose_name', 'sorting', 'limit_requests_to']
+#         for key, value in options.items():
+#             if key not in allowed_options:
+#                 self.errors.append(key)
+#             else:
+#                 # if key == 'domains':
+#                 #     self._check_domains(value)
+                
+#                 # if key == 'base_url':
+#                 #     if not value.startswith('http') or not value.startswith('https'):
+#                 #         raise ValueError('Base url should start with http:// or https://')
+
+#                 # if key == 'verbose_name':
+#                 #     if not isinstance(value, str):
+#                 #         raise ValueError('Base url should be a string')
+
+#                 # if key == 'sorting':
+#                 #     self._check_sorting(value)
+
+#                 # if key == 'limit_requests_to':
+#                 #     self
+
+#                 for check in self._checks():
+#                     name, func = check
+#                     if name == key:
+#                         if func.__name__ == '_check_value_against':
+#                             checker = func(value)
+#                             checker()
+                
+#                 self.spider_options.setdefault(key, value)
+
+#         if self.errors:
+#             raise KeyError((f"{self.__class__.__name__} received "
+#             f"invalid options: {', '.join(self.errors)}"))
+
+#     def _check_domains(self, domains):
+#         if not isinstance(domains, (list, tuple)):
+#             raise TypeError('Domains should be either a tuple or an array')
+
+#         for url in domains:
+#             if url.startswith('http') or url.startswith('https'):
+#                 raise ValueError('Domain should not start with http:// or http:s//')
+
+#     def _check_sorting(self, values):
+#         self._check_value_against(values, (list, tuple),'Sorting should be a list or a tuple')
+#         for value in values:
+#             self._check_value_against(value, str, 'Sorting parameter should be a string')
+        
+#     def _check_url_domain(self, url: str) -> bool:
+#         restricted_domains = self.spider_options.get('domains')
+#         return url in restricted_domains
+
+#     def get(self, key: str):
+#         return self.spider_options[key]
+
+#     def setdefault(self, key: str, value: str):
+#         return self.spider_options.setdefault(key, value)
+
 
 
 class BaseSpider(type):
-    settings = global_settings
-
     def __new__(cls, name, bases, attrs):
         create_new = super().__new__
         if not bases:
@@ -45,13 +124,11 @@ class BaseSpider(type):
 
             start_urls = getattr(new_class, 'start_urls')
             if not start_urls:
-                warnings.warn("No start urls were provided for the project", Warning, stacklevel=0)
+                warnings.warn("No start urls were provided for the spider", Warning, stacklevel=0)
 
             prepared_requests = attrs.get('_prepared_requests', [])
-            prepared_requests = []
             for index, link in enumerate(start_urls):
-                request = HTTPRequest(link, counter=index, settings=cls.settings, _meta=new_class._meta)
-                request.only_secured_requests = cls.settings.get('ENSURE_HTTPS')
+                request = HTTPRequest(link, counter=index)
                 prepared_requests.append(request)
             setattr(new_class, '_prepared_requests', prepared_requests)
             return new_class
@@ -126,21 +203,23 @@ class Spider(metaclass=BaseSpider):
         """
         if self._prepared_requests:
             if not debug:
-                # return_values_container = deque()
                 limit_requests_to = self._meta.get('limit_requests_to', len(self._prepared_requests))
-                # for request in self._prepared_requests:
+
                 for i in range(0, limit_requests_to):
                     request = self._prepared_requests[i]
                     request._send()
 
-                    # return_value = self.start(
+                    soup_object = request.html_response.html_page
                     self.start(
                         request.html_response,
                         request=request,
-                        soup=request.html_response.html_page
+                        soup=soup_object
                     )
+
                     # TODO: Work with return values from
                     # from the functions
+                    # return_values_container = deque() 
+                    # return_value = self.start()
                     # if return_value is not None:
                     #     return_values_container.append(return_value)
 
@@ -203,28 +282,41 @@ class FileCrawler:
     root_dir = None
 
     def __init__(self):
+        from zineb.settings import settings
+
         self.buffers = []
 
+        start_files = []
+        if isinstance(self.start_files, Iterator):
+            # This is for collect_files or any
+            # other kind of generator/iterator
+            # that facilitates file collection
+            start_files = self.start_files = list(self.start_files)
+            if self.root_dir is not None:
+                warnings.warn('Skipping root dir attribute.')
+                self.root_dir = None
+
         if self.root_dir is not None:
-            start_files = map(lambda p: os.path.join(self.root_dir, p), self.start_files)
+            def full_path(path):
+                return os.path.join(settings.PROJECT_PATH, self.root_dir, path)
+            start_files = list(map(full_path, self.start_files))
             for start_file in start_files:
                 if not self._check_path(start_file):
                     raise TypeError(f"{start_file} is not a valid file.")
-            self.start_files = start_files
 
         # Search for the files in the current
         # actual directory.
-        for file in self.start_files:
+        for file in start_files:
             opened_file = open(file, mode='r', encoding='utf-8')
             buffer = StringIO(opened_file.read())
-            self.buffers.append(buffer)
+            self.buffers.append((file, buffer))
             opened_file.close()
 
-        for buffer in self.buffers:
-            self.start(BeautifulSoup(buffer, 'html.parser'))
+        for path, buffer in self.buffers:
+            self.start(BeautifulSoup(buffer, 'html.parser'), filepath=path)
 
     def __del__(self):
-        for buffer in self.buffers:
+        for _, buffer in self.buffers:
             buffer.close()
 
     @staticmethod

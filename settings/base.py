@@ -51,9 +51,7 @@ LOG_LEVEL = logging.DEBUG
 
 MIDDLEWARES = [
     # 'zineb.middlewares.referer.Referer',
-    # 'zineb.middlewares.handlers.Handler',
-    # 'zineb.middlewares.automation.Automation',
-    # 'zineb.middlewares.history.History',
+    'zineb.middlewares.history.History',
     # 'zineb.middlewares.statistics.GeneralStatistics'
     # 'zineb.middlewares.wireframe.WireFrame',
 ]
@@ -84,9 +82,9 @@ DEFAULT_REQUEST_HEADERS = {
 # HISTORY = False
 
 
-# Set a list of proxies to use within the project.
-# The proxies will be used randomly so make sure they
-# are fully/regularly functionnal.
+# Set a list of proxies to use
+# structured as (http, 1.1.1.1) 
+# or (http, http://1.1.1.1)
 
 PROXIES = []
 

@@ -16,6 +16,8 @@ E003 = (
     "User agent should be of type string. Got {user_agent}."
 )
 
+E004 = ('RANDOMIZE_USER_AGENTS should be a boolean')
+
 
 
 def D001(parsed_domain, domain):
@@ -62,3 +64,10 @@ def check_user_agent(project_settings):
         if not isinstance(agent, str):
             errors.append([E003])
     return errors
+
+
+@checks_registry.register(tag='randomize_user_agents')
+def check_randomize_user_agent(project_settings):
+    result = project_settings.get('RANDOMIZE_USER_AGENTS')
+    if not isinstance(result, bool):
+        return [E004]

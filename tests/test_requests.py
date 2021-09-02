@@ -42,7 +42,7 @@ class TestBaseRequest(unittest.TestCase):
     def test_link_following(self):
         response = _request.follow(_request.html_response.links[0])
         self.assertIsInstance(response, HTMLResponse)
-
+        
         self.assertEqual(response.cached_response.url, 'http://www.iana.org/domains/reserved')
         self.assertEqual(response.page_title, 'IANA — IANA-managed Reserved Domains')
 

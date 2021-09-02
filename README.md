@@ -20,14 +20,14 @@ def start(self, response, **kwargs):
 
 ## Creating a project
 
-To create a project do `python -m zineb startproject <project name>` which will create a directory which will have the following structure.
+To create a project do `python -m zineb start_project <project name>` which will create a directory which will have the following structure.
 
 .myproject
 |
 |--media
 |
 |-- models
-      |-- base.py
+|-- base.py
 |
 |-- __init__.py
 |
@@ -94,7 +94,7 @@ This option limits a spider to a very specific set of domains.
 
 #### Verbose name
 
-This option writter as `verbose_name` will specific a different name to your spider.
+This option writer as `verbose_name` will specific a different name to your spider.
 
 ## Running commands
 
@@ -114,7 +114,6 @@ Extractors are passed using aliases:
 * `images`: ImageExtractor
 * `multilinks`: MultiLinkExtractor
 * `tables`: TableExtractor
-
 
 The extractors are also all passed within the shell in addition to the project settings.
 
@@ -246,6 +245,28 @@ request.html_response.text
     -> '\n\n\nExample Domain\n\n\n\n\n\n\n\nExample Domain\nThis domain is for use in   illustrative examples in documents. You may use this\n    domain in literature without prior coordination or asking for permission.\nMore information...\n\n\n\n'
 ```
 
+## FileCrawler
+
+There might be situations where you might have a set of HTML files in your project directory that you want to crawl. Zineb provides a Spider for such event.
+
+__NOTE:__ Ensure that the directory to use is within your project.
+
+```
+class Spider(FileCrawler):
+    start_files = ["media/folder/myfile.html"]
+```
+
+You might have thousands of files and certainly might not want to reference each file one by one. You can then also use a utility function `collect_files`.
+
+```
+from zineb.utils.general import collect_files
+
+class Spider(FileCrawler):
+    start_files = collect_files("media/folder")
+```
+
+Read more on `collect_files` [here](#-File-collection).
+
 # Models
 
 Models are a simple way to structure your scrapped data before saving them to a file. The Model class is built around Panda's excellent DataFrame class in order to simplify as a much as possible the fact of dealing with your data.
@@ -287,6 +308,33 @@ player.add_using_expression("name", "a", attrs={"class": "title"})
 #### Adding multiple values with expressions
 
 
+#### Adding calculated values
+
+#### Adding related values
+
+In cases where you want to add a value to your model based on the last inserted value, this function serves exactly this purpose. Suppose you are retrieving date of births on a website and want to automatically derive the person's age based on that model field:
+
+```
+class MyModel(Model):
+    date_of_birth = fields.DateField("%d-%M-%Y")
+    age = fields.AgeField("%Y-%M-%d")
+```
+
+Without the `add_related_value` this is what you would do:
+
+```
+model.add_value("date_of_birth", value)
+model.add_value("age", value)
+```
+
+However, with the `add_related_value` you can automatically insert the age value in the model based on the returned value from the date of birth:
+
+```
+model.add_related_value("date_of_birth", "age", value)
+```
+
+This will insert date of birth based on the DateField and then insert another on the AgeField.
+
 ## Meta options
 
 By adding a Meta to your model, you can pass custom behaviours.
@@ -297,6 +345,8 @@ By adding a Meta to your model, you can pass custom behaviours.
 ### Indexes
 
 ### Ordering
+
+Order your data in a specific way based on certain fields before saving your model.
 
 ## Fields
 
@@ -318,15 +368,15 @@ Fields are a very simple way to passing HTML data to your model in a very struct
 
 ### How fields work
 
-Once the field is called via the `resolve` function on each field which in turns calls the `super().resolve` function of the `Field` super class, the value is stored.
+The `resolve` function is called on the field instance which turn stores the resulting value within it.
 
 By default, the resolve function will do the following things.
 
-First, it will run all cleaning functions on the value for example by stripping tags like "<" or ">" by using the `w3lib.html.remove_tags` library.
+First, it will run all cleaning functions on the original value for example by stripping tags like "<" or ">".
 
-Second, a `deep_clean` method will be called on the value which takes out any spaces using `w3lib.html.strip_html5_whitespace`, remove escape characters with the `w3lib.html.replace_escape_chars` function and finally reconstruct the value to ensure that any none-detected white space be eliminated.
+Second, a `deep_clean` method is run on the result by taking out out any useless spaces, removing escape characters and finally reconstructing the value to ensure that any none-detected white space be eliminated.
 
-Finally, all validators (default and custom created) are called on the value. The final value is then returned within the model class.
+Finally, all the registered validators (default and custom created) are called.
 
 ### CharField
 
@@ -379,7 +429,6 @@ This field allows you to pass a float value into your model.
 - `max_value`: Implements a maximum value constraint
 - `min_value`: Implements a minimum value constraint
 
-
 ### DateField
 
 The date field allows you to pass dates to your model. In order to use this field, you have to pass a date format so that the field can know how to resolve the value.
@@ -387,7 +436,6 @@ The date field allows you to pass dates to your model. In order to use this fiel
 - `date_format`: Indicates how to parse the incoming data value
 - `default`: Default value if None
 - `tz_info`: Timezone information
-
 
 ```
 class MyModel(Model):
@@ -444,7 +492,6 @@ class MyCustomField(Field):
 ```
 
 If you want to use the cleaning functionalities from the super class in your own resolve function, make sure to call super beforehand as indicated above.
-
 
 ## Validators [initial validators]
 
@@ -790,6 +837,10 @@ request.urljoin("/kendall-jenner")
 -> https://example.com/kendall-jenner
 ```
 
+## File collection
+
+Collect files within a specific directory using `collect_files`. Collect files also takes an additional function that can be used to filter or alter the final results.
+
 # Settings
 
 This section will talk about all the available settings that are available for your project and how to use them for web scrapping.
@@ -842,7 +893,6 @@ The main Zineb middlewares are the following:
 * zineb.middlewares.statistics.GeneralStatistics
 * zineb.middlewares.wireframe.WireFrame
 
-
 **USER_AGENTS**
 
 A user agent is a characteristic string that lets servers and network peers identify the application, operating system, vendor, and/or version of the requesting [MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent).
@@ -853,7 +903,6 @@ Implement additional sets of user agents to your projects in addition to those t
 
 Specifies whether to use one user agent for every request or to randomize user agents on every request. This setting is set to to False by default.
 
-
 **DEFAULT_REQUEST_HEADERS**
 
 Specify additional default headers to use for each requests.
@@ -863,7 +912,6 @@ The default initial headers are:
 * `Accept-Language` - en
 * `Accept` - text/html,application/json,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
 * Referrer - None
-
 
 **PROXIES**
 
@@ -887,4 +935,3 @@ Specificies the amount of times the the request is sent before eventually failin
 **RETRY_HTTP_CODES**
 
 Indicates which status codes should trigger a retry. By default, the following codes: 500, 502, 503, 504, 522, 524, 408 and 429 will trigger it.
-

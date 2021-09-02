@@ -1,22 +1,97 @@
-import re
+import os
 import secrets
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict, deque
+from functools import cached_property
 from typing import Any, List, Union
 
 import pandas
 from bs4 import BeautifulSoup
-from bs4.element import ResultSet, Tag
 from pydispatch import dispatcher
-from zineb.exceptions import FieldError, ParserError
+from zineb.exceptions import FieldError, ModelExistsError
 from zineb.http.responses import HTMLResponse
+from zineb.models.expressions import Calculate
 from zineb.models.fields import Field
+from zineb.settings import settings
 from zineb.signals import signal
+
+
+class DataContainers:
+    """
+    A container that regroups all the data that
+    has been parsed by the model fields
+    
+    Parameters
+    ----------
+
+        - names: list of field names
+    """
+    values = defaultdict(deque)
+
+    @classmethod
+    def as_container(cls, *names):
+        # In order to prevent the values
+        # parameter to reinstantiate with
+        # the names when using this class,
+        # we'll create a new instance of
+        # the class and return it. In that
+        # sense, this will prevent
+        for name in names:
+            cls.values[name]
+        instance = cls()
+        setattr(instance, 'names', list(names))
+        return instance
+
+    def __repr__(self):
+        return self.values
+
+    def __str__(self):
+        return str(self.values)
+
+    def get_container(self, name: str):
+        return self.values[name]
+
+    def update(self, name: str, value: Any):
+        self.values[name].append(value)
+
+    def finalize(self):
+        """
+        Makes sure that all the arrays
+        are of same lengths before returning
+        the containers.This adds None to the
+        unbalanced containers.
+
+        Returns
+        -------
+
+            - OrderedDict: the finalized values 
+        """
+        containers = list(self.values.values())
+        container_lengths = [len(container) for container in containers]
+        max_length = max(container_lengths)
+
+        def fill_none_values(container):
+            values_to_complete = max_length - len(container)
+            for _ in range(values_to_complete):
+                container.append(None)
+            return container
+
+        for i in range(0, len(containers)):
+            if len(containers[i]) < max_length:
+                fill_none_values(containers[i])
+
+        new_values = []
+
+        for i in range(0, len(self.names)):
+            new_values.append((self.names[i], containers[i]))
+
+        return OrderedDict(new_values)
 
 
 class ModelRegistry:
     """
-    This class is a convienience class that remembers
-    the models that were created and in which order.
+    This class is a convienience container that remembers
+    the models that were created and the order in which
+    they were
     """
     counter = 0
     registry = OrderedDict()
@@ -32,6 +107,9 @@ class ModelRegistry:
         return list(self.registry.values())
 
     def add(self, name: str, model: type):
+        if self.has_model(name):
+            raise ModelExistsError(name)
+
         self.counter = self.counter + 1
         return self.registry.setdefault(name, model)
 
@@ -41,18 +119,32 @@ class ModelRegistry:
     def has_model(self, name: str):
         return name in self.registry
 
+model_registry = ModelRegistry()
+
 
 class FieldDescriptor:
+    """A class that contains and stores
+    all the given fields of a model"""
+
     cached_fields = OrderedDict()
     
     def __getitem__(self, key) -> Field:
         return self.cached_fields[key]
 
+    @cached_property
     def field_names(self):
-        return self.cached_fields.keys()
+        return list(self.cached_fields.keys())
 
 
 class ModelOptions:
+    """A container that stores all the options
+    of a given model
+
+    Parameters
+    ----------
+
+        - options (Union[List[tuple[str]], dict]): list of options
+    """
     def __init__(self, options: Union[List[tuple[str]], dict]):
         self.cached_options = OrderedDict(options)
 
@@ -63,9 +155,13 @@ class ModelOptions:
         
         if self.has_option('ordering'):
             ordering = self.get_option_by_name('ordering')
-            self.ordering_field_names = list({
-                field.removeprefix('-') for field in ordering
-            })
+            # self.ordering_field_names = list({
+            #     field.removeprefix('-') for field in ordering
+            # })
+            for field in ordering:
+                self.ordering_field_names.add(
+                    field.removeprefix('-')
+                )
             self.ascending_fields = [
                 field for field in ordering 
                     if not field.startswith('-')
@@ -75,6 +171,10 @@ class ModelOptions:
                     if field.startswith('-')
             ]
 
+            # Convert each ordering field on the
+            # model Booleans. This is what a
+            # DataFrame accepts in or to order
+            # the data
             def convert_to_boolean(value):
                 if value.startswith('-'):
                     return False
@@ -96,8 +196,6 @@ class ModelOptions:
 
 
 class Base(type):
-    model_registry = ModelRegistry()
-
     def __new__(cls, name, bases, attrs):
         super_new = super().__new__
         parents = [b for b in bases if isinstance(b, Base)]
@@ -108,16 +206,19 @@ class Base(type):
         if name != 'Model':
             # Normally, we should have all the fields
             # and/or remaining methods of the class
-            declared_fields = []
-            for key, value in attrs.items():
-                if isinstance(value, Field):
-                    declared_fields.append((key, value))
+            declared_fields = set()
+            for key, item in attrs.items():
+                if isinstance(item, Field):
+                    declared_fields.add((key, item))
 
             descriptor = FieldDescriptor()
             descriptor.cached_fields = OrderedDict(declared_fields)
 
             meta = ModelOptions([])
             if 'Meta' in attrs:
+                # TODO: If the user does not pass
+                # a 'class Meta', this could be a
+                # serious issue and break
                 meta_dict = attrs.pop('Meta').__dict__
                 authorized_options = ['ordering']
                 non_authorized_options = []
@@ -126,22 +227,24 @@ class Base(type):
                     key, _ = item
                     if key.startswith('__'):
                         return False
+
                     if key in authorized_options:
                         return True
+                    
                     non_authorized_options.append(key)
                     return False
 
                 options = list(filter(check_option, meta_dict.items()))
                 if non_authorized_options:
                     raise ValueError("Meta received an illegal "
-                    f"option. Valid options are: {', '.join(non_authorized_options)}")
+                    f"option. Valid options are: {', '.join(authorized_options)}")
                 meta = meta(options)
 
             new_class = super_new(cls, name, bases, attrs)
             setattr(new_class, '_fields', descriptor)
             setattr(new_class, '_meta', meta)
 
-            cls.model_registry.add(name, new_class)
+            model_registry.add(name, new_class)
             return new_class
 
         return super_new(cls, name, bases, attrs)
@@ -157,10 +260,10 @@ class DataStructure(metaclass=Base):
 
         self.parser = self._choose_parser()
 
-    def _get_field_by_name(self, name) -> Field:
+    def _get_field_by_name(self, field_name) -> Field:
         """
         Gets the cached field object that was registered
-        on the model
+        on the model via the FieldDescriptor
 
         Parameters
         ----------
@@ -170,17 +273,17 @@ class DataStructure(metaclass=Base):
         Raises
         ------
 
-            KeyError: When the field is absent
+            - FieldError: if the field does not exist
 
         Returns
         -------
 
-            Field: returns zineb.fields.Field object
+            - Field (type): zineb.fields.Field
         """
         try:
-            return self._fields.cached_fields[name]
+            return self._fields.cached_fields[field_name]
         except:
-            raise FieldError(name, self._fields.field_names())
+            raise FieldError(field_name, self._fields.field_names)
 
     def _choose_parser(self):
         if self.html_document is not None:
@@ -192,6 +295,83 @@ class DataStructure(metaclass=Base):
                 'zineb.response.HTMLResponse object.'))
             return self.response.html_page
 
+    def _add_without_field_resolution(self, field_name: str, value:Any):
+        """
+        When the value of a field has already been
+        resolved, just add it to the model. This is
+        an internal function used for the purpose of
+        other internal functions.
+
+        Parameters
+        ----------
+
+            value (Any): value to add to the the model
+        """
+        cached_values = self._cached_result.get(field_name, [])
+        cached_values.append(value)
+        self._cached_result.update({ field_name: cached_values })
+
+    def add_calculated_value(self, value: Any, *funcs):
+        funcs = list(funcs)
+
+        all_field_names = []
+        unique_field_names = set()
+        for func in funcs:
+            if not isinstance(func, Calculate):
+                raise TypeError('Function should be an instance of Calculate')
+
+            setattr(func, 'model', self)
+            # Technically, the funcs should
+            # apply to the same field on the
+            # model or this could create
+            # inconsistencies
+            all_field_names.append(func.field)
+            unique_field_names.add(func.field)
+
+        all_field_names = set(all_field_names)
+        result = unique_field_names.difference(all_field_names)
+        if result:
+            raise ValueError('Functions should apply to the same field')
+
+        if len(funcs) == 1:
+            func._cached_data = value
+            func.resolve()
+            self.add_value(func.field, func._calculated_result)
+        else:
+            for i in range(len(funcs)):
+                if i == 0:
+                    funcs[0]._cached_data = value
+                else:
+                    # When there a multiple functions, the
+                    # _cached_data of the current function
+                    # should be the _caclulat_result of the
+                    # previous one. This technique allows
+                    # us to run multiple expressions on
+                    # one single value
+                    funcs[i]._cached_data = funcs[i - 1]._calculated_result
+                funcs[i].resolve()
+            # Once everything has been calculated,
+            # use the data of the last function to
+            # add the given value to the model
+            self.add_value(funcs[-1].field, funcs[-1]._calculated_result)
+
+    def add_case(self, value: Any, case):
+        """
+        Add a value to the model based on a specific
+        conditions determined by a When-function.
+
+        Parameters
+        ----------
+
+            value (Any): the value to test
+            case (Type): When function
+        """
+        # cases = list(cases)
+        case._cached_result = value
+        case.model = self
+        field_name, value = case.resolve()
+        self.add_value(field_name, value)
+
     def add_using_expression(self, name: str, tag: str, attrs: dict={}):
         """
         Adds a value to your Model object using an expression. Using this
@@ -200,9 +380,9 @@ class DataStructure(metaclass=Base):
         Parameters
         ----------
 
-                - name (str): the name of field on which to add a given value
-                - tag (str): a tag to get on the HTML document
-                - attrs (dict, Optional): attributes related to the element's tag on the page. Defaults to {}
+            - name (str): the name of field on which to add a given value
+            - tag (str): a tag to get on the HTML document
+            - attrs (dict, Optional): attributes related to the element's tag on the page. Defaults to {}
         """
         obj = self._get_field_by_name(name)
         if self.parser is None:
@@ -229,9 +409,9 @@ class DataStructure(metaclass=Base):
         Parameters
         ----------
 
-            - field_name (str): the name of field on which to add a given value
-            - value (str): the value to add to the model
-        """
+            - name (str): the name of field on which to add a given value
+            - value (Any): the value to add to the model
+        """    
         obj = self._get_field_by_name(name)
         obj.resolve(value)
         resolved_value = obj._cached_result
@@ -245,23 +425,7 @@ class DataStructure(metaclass=Base):
             # user might get something unexpected
             resolved_value = str(obj._cached_result.date())
         
-        cached_field = self._cached_result.get(name, None)            
-        if cached_field is None:
-            self._cached_result.setdefault(name, [])
-            cached_field = self._cached_result.get(name)
-        cached_field.append(resolved_value)
-        # ?? To prevent unbalanced columns for example
-        # when the user adds a value to field but not
-        # to another, maybe add a None value to the
-        # rest of the fields so that the len always
-        # stays equals between columns
-        # for field in self._fields.field_names():
-        #     if field not in self._cached_result:
-        #         self._cached_result.setdefault(field, [])
-        #         self._cached_result[field].extend([None])
-        #     else:
-        #         self._cached_result[field].extend([None])
-        self._cached_result.update({name: cached_field})
+        self._add_without_field_resolution(name, resolved_value)
 
     def add_expression(self, **expressions):
         """
@@ -270,24 +434,61 @@ class DataStructure(metaclass=Base):
         """
         pass
 
+    def add_related_value(self, name: str, related_field: str, value: Any):
+        """
+        Add a value to a field based on the last
+        result of another field.
+
+        The related fields should be of the same data type
+        or this might raise errors.
+
+        Parameters
+        ----------
+
+            - name (str): name of the field to which to add the value
+            - related_field (str): name of the base field from which to derive a result
+            - value (Any): the value to add to the original field
+        """
+        if name == related_field:
+            raise ValueError('Name and related name should not be the same.')
+
+        related_field_object = self._get_field_by_name(related_field)
+        
+        self.add_value(name, value)
+        cached_values = self._cached_result.get(name)
+
+        last_value = cached_values[-1]
+        related_field_object.resolve(last_value)
+
+        related_field_values = self._cached_result.get(related_field, [])
+        related_field_values.append(related_field_object._cached_result)
+        self._cached_result.update({ related_field: related_field_values })
+
     def resolve_fields(self):
         """
         Implement the data into a Pandas
-        Dataframe
+        Dataframe and return the result
         """
+        # TODO: Before doing anything with
+        # the data, we either need to check
+        # that the lists are of same length
+        # or ensure that everytime an element
+        # is added to one the arrays and not
+        # in the other, to put a None value
         df = pandas.DataFrame(
             self._cached_result, 
-            columns=self._fields.field_names(),
+            columns=self._fields.field_names,
         )
 
         if self._meta.has_option('ordering'):
-            # if self._meta.ordering_field_names and not self._meta.ordering_booleans:
-            #     number_of_fields = len(self._meta.ordering_field_names):
-            #     self._meta.ordering_booleans = [True for _ in range(0, number_of_fields)]
-            df = df.sort_values(
-                by=self._meta.ordering_field_names,
-                ascending=self._meta.ordering_booleans
-            )
+            try:
+                df = df.sort_values(
+                    by=self._meta.ordering_field_names,
+                    ascending=self._meta.ordering_booleans
+                )
+            except KeyError:
+                raise KeyError(("Looks like a field is not part of your model."
+                "Please check your ordering fields."))
         return df
 
 
@@ -300,15 +501,15 @@ class Model(DataStructure):
     base Model class and implement a set of fields
     from zineb.models.fields. For example:
 
-            class MyCustomModel(Model):
+            class MyModel(Model):
                 name = CharField()
 
     Once you've created the model, you can then use
     it within your project like so:
 
-            custom_model = MyCustommodel()
+            custom_model = MyModel()
             custom_model.add_value('name', 'p')
-            custom_model.resolve_fields()
+            custom_model.save()
 
             -> pandas.DataFrame
     """
@@ -320,11 +521,11 @@ class Model(DataStructure):
     def __repr__(self):
         return f"{self.__class__.__name__}"
 
-    def __getitem__(self, field):
-        return self._cached_result.get(field, None)
+    def __getitem__(self, field_name: str):
+        return self._cached_result.get(field_name, None)
 
-    def __setitem__(self, field, value):
-        self.add_value(field, value)
+    # def __setitem__(self, field_name: str, value: Any):
+    #     self.add_value(field_name, value)
 
     def clean(self, dataframe: pandas.DataFrame, **kwargs):
         """
@@ -341,15 +542,18 @@ class Model(DataStructure):
         
     def save(self, commit=True, filename=None, **kwargs):
         """
-        Save the model's dataframe to a file.
+        Transform the collected data to a DataFrame which
+        in turn will be saved to a JSON file.
 
         By setting commit to False, you will get a copy of the
         dataframe in order to run additional actions on it
+        otherwise, the default behaviour will be to output
+        to a file within your project.
 
         Parameters
         ----------
 
-            commit (bool, optional): save immediately. Defaults to True.
+            commit (bool, optional): save to json file. Defaults to True.
             filename (str, optional): the file name to use. Defaults to None.
 
         Returns
@@ -370,5 +574,9 @@ class Model(DataStructure):
                     filename = f'{filename}.json'
 
             signal.send(dispatcher.Any, self, tag='Post.Save')
+
+            if settings.MEDIA_FOLDER is not None:
+                filename = os.path.join(settings.MEDIA_FOLDER, filename)
+                
             return self._cached_dataframe.to_json(filename, orient='records')
         return self._cached_dataframe.copy()    

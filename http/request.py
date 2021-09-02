@@ -1,5 +1,4 @@
-import json
-import random
+import re
 from collections import OrderedDict
 from typing import Union
 from urllib import parse
@@ -12,13 +11,15 @@ from requests.sessions import Request, Session
 from w3lib.url import (is_url, safe_download_url, safe_url_string, urljoin,
                        urlparse)
 from zineb import global_logger
-from zineb.http.responses import HTMLResponse, JsonResponse
+from zineb.exceptions import RequestAborted, ResponseFailedError
+from zineb.http.responses import HTMLResponse
 from zineb.http.user_agent import UserAgent
 from zineb.settings import settings as global_settings
 from zineb.signals import signal
 from zineb.tags import ImageTag, Link
 from zineb.utils.general import transform_to_bytes
 
+EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9-_.]+@\w+\.\w+$')
 
 class BaseRequest:
     """
@@ -41,7 +42,7 @@ class BaseRequest:
     # if all the prechecks on the url turn out to
     # be positive -; this is a non blocking procedure
     # leaving the front end spider to deal with
-    # .. Also, assume that all created requests
+    # .. Also, assumes that all created requests
     # can be sent as is
     can_be_sent = True
     http_methods = ['GET', 'POST']
@@ -58,16 +59,8 @@ class BaseRequest:
 
         session = Session()
 
-        proxies = global_settings.PROXIES
-        if proxies:
-            http_proxies = list(filter(lambda x: 'http' in x, proxies))
-            https_proxies = list(filter(lambda x: 'https' in x, proxies))
-            proxy_map = {'http': None}
-            if http_proxies:
-                proxy_map.update({'http': random.choice(http_proxies)})
-
-            if https_proxies:
-                proxy_map.update({'https': random.choice(https_proxies)})
+        proxy_list = dict(set(global_settings.PROXIES))
+        session.proxies.update(proxy_list)
 
         self.only_domains = global_settings.DOMAINS
         self.only_secured_requests = global_settings.get('ENSURE_HTTPS', False)
@@ -138,11 +131,16 @@ class BaseRequest:
 
                 str: a safe url string
         """
+        # Check if we're trying to send a request
+        # to an email address
+        if EMAIL_REGEX.match(url):
+            message = "You are trying to send a request to an email address."
+            raise requests.exceptions.InvalidSchema(message)
+
         if not is_url(url):
             # TODO: When using https:// this returns True
             # when this is not even a real URL
-            message = ("The url that was provided is not valid. "
-            f"Got: {type(url)} instead of a string.")
+            message = (f"The url that was provided is not valid. Got: {url}.")
 
             global_logger.error(message, stack_info=True)
             raise requests.exceptions.InvalidURL(message)
@@ -150,17 +148,29 @@ class BaseRequest:
         parsed_url = urlparse(url)
         self._url_meta = parsed_url
 
+        # INFO: By default, all urls are marked as
+        # can be sent UNLESS they do not meet two
+        # criterium present in the settings files.
+        # The url is part of a restricted domain
+        # or the url is not secured (no https
+        # or ftps scheme)
+
         if self.only_secured_requests:
-            if (parsed_url.scheme != 'https' or 
-                    parsed_url.scheme != 'ftps'):
+            # TODO: Logic for FTPS
+            # logic = [
+            #     parsed_url.scheme != 'https',
+            #     parsed_url.scheme != 'ftps'
+            # ]
+            # if not all(logic):
+            if 'https' not in parsed_url.scheme:
                 global_logger.critical(f"{url} is not secured. No HTTPS scheme is present.")
                 self.can_be_sent = False
 
         if self.only_domains:
             if parsed_url.netloc not in self.only_domains:
                 global_logger.critical((f"{url} is part of the restricted domains "
-                "list and will not be able to be sent. Adjust your settings if you "
-                "want to prevent this security check."))
+                "settings list and will not be sent. Adjust your settings if you "
+                "want to prevent this security check on his domain."))
                 self.can_be_sent = False
             
         return safe_url_string(url)
@@ -175,6 +185,14 @@ class BaseRequest:
                 Union[Request, None] (obj): an HTTP request object
         """
         response = None
+
+        if not self.can_be_sent:
+            global_logger.logger.critical(("A request was not sent for the following "
+            f"url {self.url} because self.can_be_sent is marked as False. Ensure that "
+            "the url is not part of a restricted DOMAIN or that ENSURE_HTTPS does not"
+            "force only secured requests."))
+            return None
+
         signal.send(dispatcher.Any, self, tag='Pre.Request')
 
         try:
@@ -185,24 +203,29 @@ class BaseRequest:
             self.errors.append([e.args])
         except Exception as e:
             self.errors.extend([e.args])
-        else:
-            retry_codes = global_settings.RETRY_HTTP_CODES
-            test_if_retry = [
-                response.status_code in retry_codes,
-                global_settings.RETRY
-            ]
-            if all(test_if_retry):
-                response = self._retry()
+            
+        # TODO: Implement the retry
+        # else:
+        #     retry_codes = global_settings.RETRY_HTTP_CODES
+        #     test_if_retry = [
+        #         response.status_code in retry_codes,
+        #         global_settings.RETRY
+        #     ]
+        #     if all(test_if_retry):
+        #         global_logger.logger.error(f"The server response "
+        #         f"returned code {response.status_code}. Will attempt "
+        #         "retries if eneabled in settings file.")
+        #         response = self._retry()
 
-        if self.errors:
-            return None
+        if self.errors or response is None:
+            raise ResponseFailedError()
 
-            # retry = self.retries.get('retry', False)
-            # if retry:
-            #     retry_http_status_codes = self.retries.get('retry_http_status_codes', [])
-            #     if response.status_code in retry_http_status_codes:
-            #         # TODO: Might create an error
-            #         response = self._retry()
+        # retry = self.retries.get('retry', False)
+        # if retry:
+        #     retry_http_status_codes = self.retries.get('retry_http_status_codes', [])
+        #     if response.status_code in retry_http_status_codes:
+        #         # TODO: Might create an error
+        #         response = self._retry()
 
         if response.status_code == 200:
             self.resolved = True
@@ -216,6 +239,7 @@ class BaseRequest:
         )
         # policy = response.headers.get('Referer-Policy', 'origin')
 
+        # TODO: Why set the root_url param ???
         parsed_url = urlparse(response.url)
         self.root_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
 
@@ -293,11 +317,15 @@ class HTTPRequest(BaseRequest):
                 global_logger.info(f'Sent request for {self.url}')
                 self._http_response = http_response
                 self.html_response = HTMLResponse(
-                    http_response, url=self.url, headers=http_response.headers
+                    http_response,
+                    url=self.url,
+                    headers=http_response.headers
                 )
                 self.session.close()
+            else:
+                global_logger.logger.error('Response failed.')
         else:
-            global_logger.error(f'An error occured on this request: {self.url}')
+            global_logger.error(f'An error occured on this request: {self.url} with status code {http_response.status_code}')
 
     @classmethod
     def follow(cls, url: Union[str, Link]):

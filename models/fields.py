@@ -14,10 +14,6 @@ from zineb.models import validators as model_validators
 from zineb.utils._html import deep_clean
 from zineb.utils.images import download_image_from_url
 
-TYPING_DEFAULTS = Union[str, int, float]
-
-TYPING_VALIDATORS = Iterable[Callable[[Union[str, int, float]], Any]]
-
 
 class Field:
     """
@@ -30,7 +26,7 @@ class Field:
     _dtype = numpy.str
 
     def __init__(self, max_length: int=None, null: bool=True, 
-                 default: TYPING_DEFAULTS=None, validators: TYPING_VALIDATORS=[]):
+                 default: Union[str, int, float]=None, validators=[]):
         self.max_length = max_length
         self.null = null
 
@@ -63,6 +59,12 @@ class Field:
         # Default values should be validated
         # too ? Otherwise the user might enter
         # anykind of none validated value ??
+        value = self._true_value_or_default(value)
+        # If the value is None, makes no sense
+        # to continue the validation, just return
+        # None instead
+        if value is None:
+            return None
 
         validator_return_value = None
         for validator in self._validators:
@@ -159,9 +161,13 @@ class Field:
         # There might be a case where a None
         # value slides in and breaks the
         # rest of the process -;
-        # deal with that here
+        # deal with that here by running
+        # validations directly and returning
+        # either a default value or the value
         if value is None:
-            return self._true_value_or_default(value)
+            # return self._true_value_or_default(value)
+            self._cached_result = self._run_validation(value)
+            return self._cached_result
         
         # To simplify the whole process,
         # make sure we are dealing with 
@@ -191,8 +197,7 @@ class Field:
             if self._dtype == numpy.float:
                 clean_value = float(clean_value)
             
-        true_value = self._run_validation(clean_value)
-        self._cached_result = self._true_value_or_default(true_value)
+        self._cached_result = self._run_validation(clean_value)
         return self._cached_result
 
 
@@ -267,11 +272,12 @@ class UrlField(Field):
     def resolve(self, url):
         # TODO: This can be simplified into a single
         # unified check ????
-        result = self._check_or_convert_to_type(
-            url, str, 'Link should be of type string', force_conversion=True
-        )
-        url = super().resolve(result)
-        self._cached_result = safe_download_url(canonicalize_url(url))
+        # result = self._check_or_convert_to_type(
+        #     url, str, 'Link should be of type string', force_conversion=True
+        # )
+        url = super().resolve(url)
+        if url is not None:
+            self._cached_result = safe_download_url(canonicalize_url(url))
 
 
 class ImageField(UrlField):
@@ -310,16 +316,19 @@ class IntegerField(Field):
     """
     Field for numbers
 
-    Args:
-        default (Any, optional): [description]. Defaults to None.
-        min_value (int, optional): [description]. Defaults to None.
-        max_value (int, optional): [description]. Defaults to None.
+    Parameters
+    ----------
+
+        - default (Any, optional): Default value if None. Defaults to None.
+        - min_value (int, optional): Minimum value. Defaults to None.
+        - max_value (int, optional): Maximum value. Defaults to None.
     """
     name = 'integer'
     _dtype = numpy.int
 
     def __init__(self, default: Any=None, min_value: int=None, max_value: int=None):
         super().__init__(default=default)
+
         if min_value is not None:
             self._validators.add(model_validators.MinLengthValidator(min_value))
 
@@ -329,21 +338,14 @@ class IntegerField(Field):
     def resolve(self, value):
         result = super().resolve(value)
         self._cached_result = self._convert_to_type(result)
-        # self._cached_result = self._check_or_convert_to_type(
-        #     self._cached_result,
-        #     int,
-        #     'Value should be an integer',
-        #     force_conversion=True,
-        #     use_default=True
-        # )
 
 
 class DecimalField(Field):
     name = 'float'
-    _dtype = numpy.float
+    _dtype = float
 
-    def __init__(self, default: Any = None, 
-                 min_value: int = None, max_value: int = None):
+    def __init__(self, default: Any=None, 
+                 min_value: int=None, max_value: int=None):
         if min_value is not None:
             self._validators.add(model_validators.MinLengthValidator)
 
@@ -355,9 +357,6 @@ class DecimalField(Field):
     def resolve(self, value):
         result = super().resolve(value)
         self._cached_result = self._convert_to_type(result)
-        # self._cached_result = self._check_or_convert_to_type(
-        #     result, float, 'Value should be a float/decimial', force_conversion=True
-        # )
 
 
 class DateField(Field):
@@ -478,7 +477,7 @@ class ArrayField(ObjectFieldMixins, Field):
                  validators = []):
         super().__init__(default=default, validators=validators)
 
-    def resolve(self, value) -> pandas.Series:
+    def resolve(self, value):
         if isinstance(value, str):
             value = self._detect_object_in_string(value)
 
@@ -524,67 +523,52 @@ class RegexField(Field):
         self.output_field = output_field
         super().__init__(**kwargs)
 
-    def resolve(self, value):
+    def resolve(self, value: str):
         regexed_value = self.pattern.search(value)
         if regexed_value:
-            true_value = regexed_value.group(self.group)
+            result = regexed_value.group(self.group)
+
             if self.output_field is not None:
-                if isinstance(self.output_field, Field):
-                    self._cached_result = self.output_field.resolve(true_value)
-                else:
+                if not isinstance(self.output_field, Field):
                     raise TypeError((f"Output field should be a instance of " 
                     "zineb.fields.Field. Got: {self.output_field}"))
+                self._cached_result = self.output_field.resolve(result)
             else:
-                self._cached_result = super().resolve(true_value)
+                self._cached_result = super().resolve(result)
 
 
-# class RelatedField(Field):
-#     name = 'related'
-#     _dtype = numpy.object
-#     relation = None
+class Value:
+    """
+    The simplest Python representation of a value
 
-#     def __init__(self, to, default=None, validators: List=[]):
-#         self.to_field = to
-#         self.to_field_object = None
-#         super().__init__(default=default, validators=validators)
+    Parameters
+    ----------
 
-#     def __getattr__(self, name):
-#         if name == 'relation':
-#             if self.relation is None:
-#                 raise ValueError(f"{self.relation} should be an actual relationship to a Model field")
+        - value (Any): a value from the internet. Defaults to None
+        - field_name (str): field's name. Defaults to None.
+    """
+    result = None
 
-#     def __setattr__(self, name, value):
-#         if name == 'relation':
-#             if not callable(value) or not isinstance(value, Field):
-#                 raise ValueError(f"{self.relation} should be an actual relationship to a Model field")
+    def __init__(self, value: Any, field_name: str=None):
+        self.result = value
+        self.field_name = field_name
 
-#     def resolve(self):
-#         self._cached_result = self.relation._cached_result
+    def __str__(self):
+        return self.result
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.result})"
 
-# class Value:
-#     result = None
+    def __add__(self, value):
+        if isinstance(self.result, tuple):
+            self.result = list(self.value)
 
-#     def __init__(self, result, field_name=None):
-#         self.result = result
-#         self.field_name = field_name
+        if isinstance(self.result, list):
+            self.result.extend([value])
+            return self.result
+        return self.result + str(value)
 
-#     def __str__(self):
-#         return self.result
-
-#     def __repr__(self):
-#         return f"{self.__class__.__name__}({self.result})"
-
-#     def __add__(self, value):
-#         if isinstance(self.result, tuple):
-#             self.result = list(self.result)
-
-#         if isinstance(self.result, list):
-#             self.result.extend([value])
-#             return self.result
-#         return self.result + value
-
-#     def __setattr__(self, name, value):
-#         if name == 'result':
-#             value = deep_clean(value)
-#         return super().__setattr__(name, value)
+    def __setattr__(self, name, value):
+        if name == 'result':
+            value = deep_clean(value)
+        return super().__setattr__(name, value)
