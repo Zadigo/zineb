@@ -143,5 +143,18 @@ class TestModelRegistery(unittest.TestCase):
             print('Model exists.')
 
 
+
+class ModelWithMeta(Model):
+    name = fields.CharField()
+
+    class Meta:
+        ordering = ['name']
+
+
+class TestModelWithOptions(unittest.TestCase):
+    def test_options(self):
+        pass
+
+
 if __name__ == '__main__':
     unittest.main()
