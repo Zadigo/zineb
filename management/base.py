@@ -66,12 +66,19 @@ class BaseCommand:
         # itself
         setattr(settings, 'REGISTRY', None)
 
+        project_path = getattr(settings, 'PROJECT_PATH')
+        zineb_path = getattr(settings, 'GLOBAL_ZINEB_PATH')
+
+        setattr(
+            settings, 'LOG_FILE', 
+            os.path.join(project_path or zineb_path, 'zineb.log'),
+        )
+
         # If the user did not explicitly set the path
         # to a MEDIA_FOLDER, we will be doing it
         # autmatically here
         media_folder = getattr(settings, 'MEDIA_FOLDER')
-        if media_folder is None:
-            project_path = os.path.join(getattr(settings, 'PROJECT_PATH'))
+        if media_folder is None and project_path is not None:
             setattr(settings, 'MEDIA_FOLDER', os.path.join(project_path, 'media'))
         return project_name, settings
 
