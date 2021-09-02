@@ -10,3 +10,15 @@
 # container.update('age', 26)
 
 # print(container.values)
+
+from zineb.models.expressions import When
+from zineb.models.datastructure import Model
+from zineb.models import fields
+from zineb.models.expressions import Substract
+
+class TestModel(Model):
+    age = fields.IntegerField()
+    age2 = fields.IntegerField()
+
+model = TestModel()
+print(model)
