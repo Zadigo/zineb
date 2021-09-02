@@ -58,7 +58,7 @@ install_requires = [
 setuptools.setup(
     name='zineb-scrapper',
     # packages: [],
-    version='1.0.4',
+    version='2.0.0',
     author='John Pendenque',
     author_email='pendenquejohn@gmail.com',
     classifiers=classifiers,
