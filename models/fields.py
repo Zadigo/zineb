@@ -4,8 +4,6 @@ import json
 import re
 from typing import Any, Callable, Iterable, List, Tuple, Union
 
-import numpy
-import pandas
 import pytz
 from bs4.element import Tag as beautiful_soup_tag
 from w3lib import html
@@ -23,7 +21,7 @@ class Field:
     name = None
     _cached_result = None
     _default_validators = []
-    _dtype = numpy.str
+    _dtype = str
 
     def __init__(self, max_length: int=None, null: bool=True, 
                  default: Union[str, int, float]=None, validators=[]):
@@ -191,10 +189,10 @@ class Field:
         # that is passed (a data string) is obviously
         # not an integer. This then creates and error.
         if clean_value.isnumeric():
-            if self._dtype == numpy.int:
+            if self._dtype == int:
                 clean_value = int(clean_value)
 
-            if self._dtype == numpy.float:
+            if self._dtype == float:
                 clean_value = float(clean_value)
             
         self._cached_result = self._run_validation(clean_value)
@@ -324,7 +322,7 @@ class IntegerField(Field):
         - max_value (int, optional): Maximum value. Defaults to None.
     """
     name = 'integer'
-    _dtype = numpy.int
+    _dtype = int
 
     def __init__(self, default: Any=None, min_value: int=None, max_value: int=None):
         super().__init__(default=default)
@@ -379,7 +377,7 @@ class DateField(Field):
 
 class AgeField(DateField):
     name = 'age'
-    _dtype = numpy.int
+    _dtype = int
 
     def __init__(self, date_format: str,
                  default: Any = None, tz_info=None):
@@ -422,7 +420,6 @@ class FunctionField(Field):
         TypeError: [description]
     """
     name = 'function'
-    _dtype = numpy.object
 
     def __init__(self, *methods: Callable[[Any], Any], output_field: Field = None, 
                  default: Any = None, validators = []):
@@ -471,13 +468,15 @@ class ObjectFieldMixins:
 
 class ArrayField(ObjectFieldMixins, Field):
     name = 'list'
-    _dytpe = numpy.array
+    _dytpe = list
 
     def __init__(self, default: Any = None, 
                  validators = []):
         super().__init__(default=default, validators=validators)
 
     def resolve(self, value):
+        import pandas
+        
         if isinstance(value, str):
             value = self._detect_object_in_string(value)
 

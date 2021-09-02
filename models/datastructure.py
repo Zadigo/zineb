@@ -1,10 +1,9 @@
 import os
 import secrets
-from collections import OrderedDict, defaultdict, deque
+from collections import OrderedDict, defaultdict
 from functools import cached_property
 from typing import Any, List, Union
 
-import pandas
 from bs4 import BeautifulSoup
 from pydispatch import dispatcher
 from zineb.exceptions import FieldError, ModelExistsError

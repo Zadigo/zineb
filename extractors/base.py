@@ -5,10 +5,8 @@ from functools import cached_property
 from itertools import chain
 from typing import Dict, Generator, List, NoReturn, Tuple, Union
 
-import pandas
 from bs4 import BeautifulSoup
 from bs4.element import ResultSet, Tag
-from sklearn.feature_extraction.text import CountVectorizer
 from w3lib.html import safe_url_string
 from w3lib.url import is_url, urljoin
 from zineb.extractors._mixins import MultipleRowsMixin
@@ -305,6 +303,8 @@ class TableExtractor(Extractor):
             return self.values
 
     def resolve_to_dataframe(self, soup: BeautifulSoup=None, columns: list=[]):
+        import pandas
+        
         if soup is not None:
             self.resolve(soup)
             
@@ -432,6 +432,7 @@ class TextExtractor(Extractor):
 
     def vectorize(self, min_df=1, max_df=1, return_matrix=False):
         from nltk import PunktSentenceTokenizer
+        from sklearn.feature_extraction.text import CountVectorizer
 
         if self.raw_text is not None:
             tokenizer = PunktSentenceTokenizer()
