@@ -145,6 +145,11 @@ class When:
         if self._cached_data is None:
             return result
 
+        # Detect if the value can
+        # be an integer or a float and
+        # if so get the true value
+        value = string_to_number(value)
+
         if exp == 'gt':
             result = self._cached_data > value
 
