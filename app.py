@@ -1,9 +1,9 @@
 import os
 import warnings
 # import time
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 from io import StringIO
-from typing import Any, Iterator, Union
+from typing import Iterator, Union
 
 from bs4 import BeautifulSoup
 from pydispatch import dispatcher
@@ -14,7 +14,6 @@ from zineb import global_logger
 from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
 from zineb.signals import signal
-
 
 # class Options:
 #     spider_options = defaultdict(set)
@@ -204,21 +203,23 @@ class Spider(metaclass=BaseSpider):
         """
         if self._prepared_requests:
             if not debug:
-                # return_values_container = deque()
                 limit_requests_to = self._meta.get('limit_requests_to', len(self._prepared_requests))
-                # for request in self._prepared_requests:
+
                 for i in range(0, limit_requests_to):
                     request = self._prepared_requests[i]
                     request._send()
 
-                    # return_value = self.start(
+                    soup_object = request.html_response.html_page
                     self.start(
                         request.html_response,
                         request=request,
-                        soup=request.html_response.html_page
+                        soup=soup_object
                     )
+
                     # TODO: Work with return values from
                     # from the functions
+                    # return_values_container = deque() 
+                    # return_value = self.start()
                     # if return_value is not None:
                     #     return_values_container.append(return_value)
 
