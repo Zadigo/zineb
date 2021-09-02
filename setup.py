@@ -5,8 +5,8 @@ from os import path
 import setuptools
 
 
-
 ROOT = path.abspath(path.dirname(__file__))
+
 
 def read_files(filename):
     with open(path.join(ROOT, filename), 'r', encoding='utf-8') as f:
