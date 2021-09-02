@@ -482,7 +482,7 @@ class DataStructure(metaclass=Base):
         if self._meta.has_option('ordering'):
             try:
                 df = df.sort_values(
-                    by=self._meta.ordering_field_names,
+                    by=list(self._meta.ordering_field_names),
                     ascending=self._meta.ordering_booleans
                 )
             except KeyError:
