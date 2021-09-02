@@ -8,82 +8,138 @@ from bs4 import BeautifulSoup
 from pydispatch import dispatcher
 from zineb.exceptions import FieldError, ModelExistsError
 from zineb.http.responses import HTMLResponse
-from zineb.models.expressions import Calculate
+from zineb.models.expressions import Calculate, When
 from zineb.models.fields import Field
 from zineb.settings import settings
 from zineb.signals import signal
 
 
-class DataContainers:
+class DataContainer:
     """
     A container that regroups all the data that
-    has been parsed by the model fields
+    has been parsed from the internet in one place.
     
     Parameters
     ----------
 
         - names: list of field names
     """
-    values = defaultdict(deque)
+    values = defaultdict(list)
+    current_updated_fields = set()
+
+    def __init__(self):
+        self._last_created_row = []
+
+    def __repr__(self):
+        return self.values
+
+    def __str__(self):
+        return str(dict(self.as_values()))
 
     @classmethod
     def as_container(cls, *names):
         # In order to prevent the values
-        # parameter to reinstantiate with
+        # parameter from reinstantiating with
         # the names when using this class,
-        # we'll create a new instance of
-        # the class and return it. In that
-        # sense, this will prevent
+        # we'll always use a new instance
+        # of this class.
         for name in names:
             cls.values[name]
         instance = cls()
         setattr(instance, 'names', list(names))
         return instance
 
-    def __repr__(self):
-        return self.values
+    @property
+    def _last_id(self) -> int:
+        """
+        Returns the last registered ID within
+        the first container
 
-    def __str__(self):
-        return str(self.values)
+        Returns:
+            [type]: [description]
+        """
+        container = self.get_container(self.names[0])
+        if not container:
+            return 0
+        return container[-1][0]
+
+    def _last_value(self, name: str):
+        return self.get_container(name)[-1][-1]
+
+    @property
+    def _next_id(self):
+        return self._last_id + 1
 
     def get_container(self, name: str):
         return self.values[name]
 
-    def update(self, name: str, value: Any):
-        self.values[name].append(value)
+    def update_last_item(self, name: str, value: Any):
+        container = self.get_container(name)
+        if isinstance(value, tuple):
+            container[-1] = value
+        else:
+            # TODO: Check that the id is correct
+            container[-1] = (self._last_id, value)
 
-    def finalize(self):
+    def update(self, name: str, value: Any):
         """
-        Makes sure that all the arrays
-        are of same lengths before returning
-        the containers.This adds None to the
-        unbalanced containers.
+        Adds a new value to the containers
+
+        Parameters
+        ----------
+
+            name (str): name of the field to update
+            value (Any): value to add
+        """
+        def row_generator():
+            for _, field_name in enumerate(self.names, start=1):
+                if name == field_name:
+                    yield (self._next_id, value)
+                else:
+                    yield (self._next_id, None)
+
+        if name in self.current_updated_fields:
+            self.current_updated_fields.clear()
+            self.current_updated_fields.add(name)
+            self._last_created_row = None
+            
+            self._last_created_row = list(row_generator())
+
+            for i, field_name in enumerate(self.names, start=1):
+                self.get_container(field_name).append(self._last_created_row[i - 1])
+        else:
+            self.current_updated_fields.add(name)
+            if self._last_created_row:
+                for i, field_name in enumerate(self.names, start=1):
+                    if field_name == name:
+                        value_to_update = list(self._last_created_row[i - 1])
+                        value_to_update[-1] = value
+                        self.update_last_item(field_name, tuple(value_to_update))
+            else:
+                self._last_created_row = list(row_generator())
+                for i, field_name in enumerate(self.names, start=1):
+                    self.get_container(field_name).append(self._last_created_row[i - 1])
+
+    def update_multiple(self, attrs: dict):
+        for key, value in attrs.items():
+            container = self.get_container(key)
+            container.append((self._next_id, value))
+
+    def as_values(self):
+        """
+        Return collected values by removing the index part 
+        in the tuple e.g [(1, ...), ...] becomes [..., ...]
 
         Returns
         -------
 
-            - OrderedDict: the finalized values 
+            dict: 
         """
-        containers = list(self.values.values())
-        container_lengths = [len(container) for container in containers]
-        max_length = max(container_lengths)
-
-        def fill_none_values(container):
-            values_to_complete = max_length - len(container)
-            for _ in range(values_to_complete):
-                container.append(None)
-            return container
-
-        for i in range(0, len(containers)):
-            if len(containers[i]) < max_length:
-                fill_none_values(containers[i])
-
-        new_values = []
-
-        for i in range(0, len(self.names)):
-            new_values.append((self.names[i], containers[i]))
-
-        return OrderedDict(new_values)
+        container = {}
+        for key, values in self.values.items():
+            values_only = map(lambda x: x[-1], values)
+            container.update({key: list(values_only)})
+        return container
 
 
 class ModelRegistry:
@@ -154,9 +210,6 @@ class ModelOptions:
         
         if self.has_option('ordering'):
             ordering = self.get_option_by_name('ordering')
-            # self.ordering_field_names = list({
-            #     field.removeprefix('-') for field in ordering
-            # })
             for field in ordering:
                 self.ordering_field_names.add(
                     field.removeprefix('-')
@@ -252,7 +305,11 @@ class Base(type):
 class DataStructure(metaclass=Base):
     def __init__(self, html_document: BeautifulSoup=None, 
                  response: HTMLResponse=None):
-        self._cached_result = {}
+        # self._cached_result = {}
+
+        self._cached_result = DataContainer.as_container(
+            *self._fields.field_names
+        )
 
         self.html_document = html_document
         self.response = response
@@ -324,8 +381,8 @@ class DataStructure(metaclass=Base):
             # apply to the same field on the
             # model or this could create
             # inconsistencies
-            all_field_names.append(func.field)
-            unique_field_names.add(func.field)
+            all_field_names.append(func.field_name)
+            unique_field_names.add(func.field_name)
 
         all_field_names = set(all_field_names)
         result = unique_field_names.difference(all_field_names)
@@ -335,7 +392,7 @@ class DataStructure(metaclass=Base):
         if len(funcs) == 1:
             func._cached_data = value
             func.resolve()
-            self.add_value(func.field, func._calculated_result)
+            self.add_value(func.field_name, func._calculated_result)
         else:
             for i in range(len(funcs)):
                 if i == 0:
@@ -352,7 +409,7 @@ class DataStructure(metaclass=Base):
             # Once everything has been calculated,
             # use the data of the last function to
             # add the given value to the model
-            self.add_value(funcs[-1].field, funcs[-1]._calculated_result)
+            self.add_value(funcs[-1].field_name, funcs[-1]._calculated_result)
 
     def add_case(self, value: Any, case):
         """
@@ -365,8 +422,10 @@ class DataStructure(metaclass=Base):
             value (Any): the value to test
             case (Type): When function
         """
-        # cases = list(cases)
-        case._cached_result = value
+        if not isinstance(case, When):
+            raise TypeError('Case should be a When class.')
+
+        case._cached_data = value
         case.model = self
         field_name, value = case.resolve()
         self.add_value(field_name, value)
@@ -385,21 +444,40 @@ class DataStructure(metaclass=Base):
         """
         obj = self._get_field_by_name(name)
         if self.parser is None:
-            raise ValueError(('No valid parser could be user. '
+            raise ValueError(('No valid parser could be used. '
             'Make sure you pass a BeautifulSoup '
-            'or an HTTPRespsone object to your model that can be used '
-            'to resolve the expression'))
+            'or an HTTPRespsone object to your model '
+            'in order to resolve the expression'))
 
         tag_value = self.parser.find(name=tag, attrs=attrs)
         obj.resolve(tag_value.string)
         resolved_value = obj._cached_result
+        self._cached_result.update(name, resolved_value)
 
-        cached_field = self._cached_result.get(name, None)
-        if cached_field is None:
-            self._cached_result.setdefault(name, [])
-            cached_field = self._cached_result.get(name)
-        cached_field.append(resolved_value)
-        self._cached_result.update({name: cached_field})
+        # cached_field = self._cached_result.get(name, None)
+        # if cached_field is None:
+        #     self._cached_result.setdefault(name, [])
+        #     cached_field = self._cached_result.get(name)
+        # cached_field.append(resolved_value)
+        # self._cached_result.update({name: cached_field})
+
+    # def add_values(self, **attrs):
+    #     """
+    #     Add a single row at once on your model
+    #     using either a dictionnary or keyword
+    #     arguments.
+
+    #     Example
+    #     -------
+
+    #         add_values(name=Kendall, age=22)
+    #     """
+    #     attrs_copy = attrs.copy()
+    #     for key, value in attrs_copy.items():
+    #         field_obj = self._get_field_by_name(key)
+    #         field_obj.resolve(value)
+    #         attrs_copy[key] = field_obj._cached_result
+    #     self.__cached_result.update_multiple(**attrs)
 
     def add_value(self, name: str, value: Any):
         """
@@ -424,14 +502,8 @@ class DataStructure(metaclass=Base):
             # user might get something unexpected
             resolved_value = str(obj._cached_result.date())
         
-        self._add_without_field_resolution(name, resolved_value)
-
-    def add_expression(self, **expressions):
-        """
-        Add multiple values to your model using a
-        set of expressions.
-        """
-        pass
+        # self._add_without_field_resolution(name, resolved_value)
+        self._cached_result.update(name, resolved_value)
 
     def add_related_value(self, name: str, related_field: str, value: Any):
         """
@@ -451,23 +523,29 @@ class DataStructure(metaclass=Base):
         if name == related_field:
             raise ValueError('Name and related name should not be the same.')
 
-        related_field_object = self._get_field_by_name(related_field)
-        
         self.add_value(name, value)
-        cached_values = self._cached_result.get(name)
 
-        last_value = cached_values[-1]
-        related_field_object.resolve(last_value)
+        related_field_object = self._get_field_by_name(related_field)
+        related_field_object.resolve(self._cached_result._last_value(name))
+        self._cached_result.update_last_item(related_field, related_field_object._cached_result)
 
-        related_field_values = self._cached_result.get(related_field, [])
-        related_field_values.append(related_field_object._cached_result)
-        self._cached_result.update({ related_field: related_field_values })
 
     def resolve_fields(self):
         """
         Implement the data into a Pandas
         Dataframe and return the result
         """
+        import pandas
+
+        # FIXME: If the user does not add
+        # a value to a given field, it does
+        # not get added in the container
+        # hence creating unbalaned values
+        # ex. MyModel, model = MyModel()
+        # with fields name, age...
+        # model.add_value(name, Kendall)
+        # results in {name: [Kendall]}
+        # instead of {name: [Kendall], age: [None]}
         # TODO: Before doing anything with
         # the data, we either need to check
         # that the lists are of same length
@@ -475,7 +553,7 @@ class DataStructure(metaclass=Base):
         # is added to one the arrays and not
         # in the other, to put a None value
         df = pandas.DataFrame(
-            self._cached_result, 
+            data=self._cached_result,
             columns=self._fields.field_names,
         )
 
@@ -526,7 +604,7 @@ class Model(DataStructure):
     # def __setitem__(self, field_name: str, value: Any):
     #     self.add_value(field_name, value)
 
-    def clean(self, dataframe: pandas.DataFrame, **kwargs):
+    def clean(self, dataframe, **kwargs):
         """
         Put all additional functionnalities that you wish to
         run on the DataFrame here before calling the save
