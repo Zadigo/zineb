@@ -553,7 +553,7 @@ class DataStructure(metaclass=Base):
         # is added to one the arrays and not
         # in the other, to put a None value
         df = pandas.DataFrame(
-            data=self._cached_result,
+            self._cached_result.as_values(),
             columns=self._fields.field_names,
         )
 
