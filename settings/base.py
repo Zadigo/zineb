@@ -39,7 +39,7 @@ ENSURE_HTTPS = False
 
 LOG_TO_FILE = True
 
-LOG_FILE = None
+LOG_FILE = 'zineb.log'
 
 LOG_FORMAT = '%(asctime)s [%(name)s] %(levelname)s: %(message)s'
 
