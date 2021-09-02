@@ -164,7 +164,6 @@ class Spider(metaclass=BaseSpider):
     def __init__(self, **kwargs):
         global_logger.info(f'Starting {self.__class__.__name__}')
         global_logger.info(f"{self.__class__.__name__} contains {self.__len__()} request(s)")
-        
         # Tell all middlewares and signals registered
         # to receive Any that the Spider is ready
         # and fully loaded
