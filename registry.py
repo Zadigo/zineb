@@ -3,19 +3,19 @@ import threading
 import warnings
 from collections import OrderedDict
 from functools import lru_cache
-from typing import Type
 
 from pydispatch import dispatcher
 
 from zineb import global_logger
+from zineb.exceptions import SpiderExistsError
 from zineb.middleware import Middleware
 from zineb.signals import signal
 
 
 class SpiderConfig:
     """
-    Class that represents a spider and stores all the different
-    settings that it holds via the `_meta` attribute.
+    Class that represents a spider and its configurations
+    via the `_meta` attribute.
     """
 
     def __init__(self, name: str, project_module):
@@ -54,7 +54,10 @@ class SpiderConfig:
 
     @lru_cache(maxsize=5)
     def get_spider(self, name):
-        return getattr(self.MODULE, name)
+        try:
+            return getattr(self.MODULE, name)
+        except AttributeError:
+            raise SpiderExistsError(name)
 
     def run(self):
         self.get_spider(self.label)()
