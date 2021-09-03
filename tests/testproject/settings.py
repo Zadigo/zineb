@@ -1,5 +1,4 @@
 import os
-import logging
 
 
 PROJECT_PATH = os.path.dirname(__file__)
@@ -11,8 +10,7 @@ PROJECT_PATH = os.path.dirname(__file__)
 # of them or python manage.py <spider name>
 
 SPIDERS = [
-    'MySpider',
-    'KendallJenner'
+    'MySpider'
 ]
 
 
@@ -20,8 +18,3 @@ SPIDERS = [
 # certain specific actions within the application
 
 MIDDLEWARES = []
-
-
-MEDIA_FOLDER = [
-    os.path.join(PROJECT_PATH, 'media')
-]

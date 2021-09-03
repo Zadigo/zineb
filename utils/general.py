@@ -4,7 +4,7 @@ import re
 import os
 import secrets
 from functools import lru_cache
-from typing import Callable, Iterable
+from typing import Any, Callable, Iterable
 from urllib.parse import urlparse
 from zineb import exceptions
 from zineb.settings import settings
@@ -166,3 +166,32 @@ def collect_files(path: str, func: Callable=None):
         return map(func, files)
     
     return files
+
+
+def string_to_number(value: str, strict: bool=False):
+    """
+    Check if the value is a number and
+    return it's true numberic rpresentation
+
+    Parameters
+    ----------
+
+        value (Any): value to convert
+
+    Returns
+    -------
+
+        Any: int, str, float
+    """
+    if not isinstance(value, str):
+        raise ValueError(f"Value to convert to number should be a string. Got {value}")
+
+    if strict and not value.isnumeric():
+        raise ValueError(f"Value should be an integer or a float. Got '{value}'.")
+
+    if value.isnumeric():
+        try:
+            return int(value)
+        except:
+            return float(value)
+    return value

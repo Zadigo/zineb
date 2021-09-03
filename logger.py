@@ -3,8 +3,8 @@ from zineb.settings import settings as global_settings
 
 
 class Logger:
-    def __init__(self, name=None, debug_level=logging.DEBUG, 
-                 to_file=True, **kwargs):
+    def __init__(self, name: str=None, debug_level=logging.DEBUG, 
+                 to_file: bool=True, **kwargs):
         if name is None:
             name = self.__class__.__name__
 
@@ -27,8 +27,11 @@ class Logger:
     def __getattr__(self, name):
         return getattr(self.logger, name)
 
-    def __call__(self, name=None, debug_level=logging.DEBUG, 
-                 to_file=False, **kwargs):
-        self.__init__(name=name, debug_level=debug_level, 
-                      to_file=to_file, **kwargs)
+    def __call__(self, name=None, **kwargs):
+        self.__init__(name=name, **kwargs)
         return self.logger
+
+    @classmethod
+    def new(cls, name=None, to_file=False, **kwargs):
+        instance = cls(name=name, to_file=to_file, **kwargs)
+        return instance

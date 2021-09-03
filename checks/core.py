@@ -3,7 +3,8 @@ import warnings
 from collections import OrderedDict, deque
 from importlib import import_module
 from typing import Callable
-from zineb.exceptions import ProjectExistsError
+
+from zineb.exceptions import ImproperlyConfiguredError, ProjectExistsError
 from zineb.settings import settings as global_settings
 
 
@@ -43,14 +44,20 @@ class ApplicationChecks(GlobalMixins):
 
         for error in self._errors:
             warnings.warn(error, stacklevel=1)
+            
+        if self._errors:
+            raise ImproperlyConfiguredError()
 
     def check_settings_integrity(self):
         """
         Verifies that certain base values are present
-        in the project before starting the project.
+        in the project and that they are correctly
+        configured.
 
-        Raises:
-            ValueError: [description]
+        Raises
+        ------
+
+            ValueError: for incorrectly configured parameters
         """
         required_values = ['PROJECT_PATH', 'SPIDERS']
         keys = self._default_settings.keys()

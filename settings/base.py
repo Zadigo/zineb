@@ -39,7 +39,7 @@ ENSURE_HTTPS = False
 
 LOG_TO_FILE = True
 
-LOG_FILE = None
+LOG_FILE = 'zineb.log'
 
 LOG_FORMAT = '%(asctime)s [%(name)s] %(levelname)s: %(message)s'
 
@@ -82,9 +82,9 @@ DEFAULT_REQUEST_HEADERS = {
 # HISTORY = False
 
 
-# Set a list of proxies to use within the project.
-# The proxies will be used randomly so make sure they
-# are fully/regularly functionnal.
+# Set a list of proxies to use
+# structured as (http, 1.1.1.1) 
+# or (http, http://1.1.1.1)
 
 PROXIES = []
 

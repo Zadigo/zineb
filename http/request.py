@@ -1,4 +1,3 @@
-import random
 import re
 from collections import OrderedDict
 from typing import Union
@@ -12,13 +11,13 @@ from requests.sessions import Request, Session
 from w3lib.url import (is_url, safe_download_url, safe_url_string, urljoin,
                        urlparse)
 from zineb import global_logger
+from zineb.exceptions import RequestAborted, ResponseFailedError
 from zineb.http.responses import HTMLResponse
 from zineb.http.user_agent import UserAgent
 from zineb.settings import settings as global_settings
 from zineb.signals import signal
 from zineb.tags import ImageTag, Link
 from zineb.utils.general import transform_to_bytes
-
 
 EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9-_.]+@\w+\.\w+$')
 
@@ -43,12 +42,14 @@ class BaseRequest:
     # if all the prechecks on the url turn out to
     # be positive -; this is a non blocking procedure
     # leaving the front end spider to deal with
-    # .. Also, assume that all created requests
+    # .. Also, assumes that all created requests
     # can be sent as is
     can_be_sent = True
     http_methods = ['GET', 'POST']
 
     def __init__(self, url: Union[Link, str, ImageTag], method='GET', **kwargs):
+        self.local_logger = global_logger.new(name=self.__class__.__name__, to_file=True)
+
         if method not in self.http_methods:
             raise ValueError("The provided method is not valid. Should be "
             f"one of {''.join(self.http_methods)}.")
@@ -60,16 +61,8 @@ class BaseRequest:
 
         session = Session()
 
-        proxies = global_settings.PROXIES
-        if proxies:
-            http_proxies = list(filter(lambda x: 'http' in x, proxies))
-            https_proxies = list(filter(lambda x: 'https' in x, proxies))
-            proxy_map = {'http': None}
-            if http_proxies:
-                proxy_map.update({'http': random.choice(http_proxies)})
-
-            if https_proxies:
-                proxy_map.update({'https': random.choice(https_proxies)})
+        proxy_list = dict(set(global_settings.PROXIES))
+        session.proxies.update(proxy_list)
 
         self.only_domains = global_settings.DOMAINS
         self.only_secured_requests = global_settings.get('ENSURE_HTTPS', False)
@@ -149,8 +142,7 @@ class BaseRequest:
         if not is_url(url):
             # TODO: When using https:// this returns True
             # when this is not even a real URL
-            message = ("The url that was provided is not valid. "
-            f"Got: {type(url)} instead of a string.")
+            message = (f"The url that was provided is not valid. Got: {url}.")
 
             global_logger.error(message, stack_info=True)
             raise requests.exceptions.InvalidURL(message)
@@ -197,7 +189,7 @@ class BaseRequest:
         response = None
 
         if not self.can_be_sent:
-            global_logger.logger.critical(("A request was not sent for the following "
+            self.local_logger.info(("A request was not sent for the following "
             f"url {self.url} because self.can_be_sent is marked as False. Ensure that "
             "the url is not part of a restricted DOMAIN or that ENSURE_HTTPS does not"
             "force only secured requests."))
@@ -213,27 +205,29 @@ class BaseRequest:
             self.errors.append([e.args])
         except Exception as e:
             self.errors.extend([e.args])
-        else:
-            retry_codes = global_settings.RETRY_HTTP_CODES
-            test_if_retry = [
-                response.status_code in retry_codes,
-                global_settings.RETRY
-            ]
-            if all(test_if_retry):
-                global_logger.logger.error(f"The server response "
-                f"returned code {response.status_code}. Will attempt "
-                "retries if eneabled in settings file.")
-                response = self._retry()
+            
+        # TODO: Implement the retry
+        # else:
+        #     retry_codes = global_settings.RETRY_HTTP_CODES
+        #     test_if_retry = [
+        #         response.status_code in retry_codes,
+        #         global_settings.RETRY
+        #     ]
+        #     if all(test_if_retry):
+        #         global_logger.logger.error(f"The server response "
+        #         f"returned code {response.status_code}. Will attempt "
+        #         "retries if eneabled in settings file.")
+        #         response = self._retry()
 
-        if self.errors:
-            return None
+        if self.errors or response is None:
+            raise ResponseFailedError()
 
-            # retry = self.retries.get('retry', False)
-            # if retry:
-            #     retry_http_status_codes = self.retries.get('retry_http_status_codes', [])
-            #     if response.status_code in retry_http_status_codes:
-            #         # TODO: Might create an error
-            #         response = self._retry()
+        # retry = self.retries.get('retry', False)
+        # if retry:
+        #     retry_http_status_codes = self.retries.get('retry_http_status_codes', [])
+        #     if response.status_code in retry_http_status_codes:
+        #         # TODO: Might create an error
+        #         response = self._retry()
 
         if response.status_code == 200:
             self.resolved = True
@@ -331,9 +325,9 @@ class HTTPRequest(BaseRequest):
                 )
                 self.session.close()
             else:
-                global_logger.logger.error('Response failed.')
+                self.local_logger.error('Response failed.')
         else:
-            global_logger.error(f'An error occured on this request: {self.url}')
+            self.local_logger.error(f'An error occured on this request: {self.url} with status code {http_response.status_code}')
 
     @classmethod
     def follow(cls, url: Union[str, Link]):

@@ -5,6 +5,7 @@ from zineb import global_logger
 from zineb.checks.core import checks_registry
 from zineb.management.base import BaseCommand
 from zineb.registry import registry
+from zineb import global_logger
 
 
 class Command(BaseCommand):
@@ -52,6 +53,11 @@ class Command(BaseCommand):
         #     setattr(settings, 'MEDIA_FOLDER', os.path.join(project_path, 'media'))
         project_name, settings = self.preconfigure_project()
         checks_registry.run()
+
+        # The first call of the logger does not
+        # use the user settings. To correct that
+        # we need to re-instantiate it.
+        global_logger(name='Zineb', to_file=True)
 
         try:
             # Load the spiders module 

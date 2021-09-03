@@ -5,8 +5,8 @@ from os import path
 import setuptools
 
 
-
 ROOT = path.abspath(path.dirname(__file__))
+
 
 def read_files(filename):
     with open(path.join(ROOT, filename), 'r', encoding='utf-8') as f:
@@ -58,7 +58,7 @@ install_requires = [
 setuptools.setup(
     name='zineb-scrapper',
     # packages: [],
-    version='1.0.4',
+    version='2.0.0',
     author='John Pendenque',
     author_email='pendenquejohn@gmail.com',
     classifiers=classifiers,

@@ -38,13 +38,16 @@ def load_command_class(name: str) -> Type:
     Returns
     -------
 
-        obj: the Command instance
+        Command (type): the Command instance
     """
-    modules = collect_commands()
-    for module in modules:
-        module_name = basename(module)
+    paths = collect_commands()
+    for path in   paths:
+        module_name = basename(path)
         name, _ = module_name.split('.')
-        module = import_module(f'zineb.management.commands.{name}')
+        try:
+            module = import_module(f'zineb.management.commands.{name}')
+        except:
+            raise ImportError(f"Could not import module at {path} from the Zineb commands directory.")
         return module.Command()
 
 
@@ -74,7 +77,7 @@ class Utility:
             try:
                 module_obj = import_module(f'zineb.management.commands.{true_name}')
             except Exception as e:
-                raise ImportError(f"Could not import module at {path}.", e.args)
+                raise ImportError((f"Could not import module at {path}. {e.args[0]}"))
             self.commands_registry[true_name] = module_obj.Command()
 
     def _parse_incoming_commands(self, args: list):
@@ -103,7 +106,7 @@ class Utility:
         command_name = tokens.pop(0)
         command_instance = self.commands_registry.get(command_name, None)
         if command_instance is None:
-            raise Exception(f'Command {command_name} does not exist.')
+            raise ValueError(f'Command {command_name} does not exist.')
 
         parser = command_instance.create_parser()
         namespace = parser.parse_args()
