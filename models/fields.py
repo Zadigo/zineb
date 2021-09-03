@@ -2,7 +2,7 @@ import ast
 import datetime
 import json
 import re
-from typing import Any, Callable, Iterable, List, Tuple, Union
+from typing import Any, Callable, List, Tuple, Union
 
 import pytz
 from bs4.element import Tag as beautiful_soup_tag
@@ -268,11 +268,6 @@ class UrlField(Field):
     _default_validators = [model_validators.validate_url]
 
     def resolve(self, url):
-        # TODO: This can be simplified into a single
-        # unified check ????
-        # result = self._check_or_convert_to_type(
-        #     url, str, 'Link should be of type string', force_conversion=True
-        # )
         url = super().resolve(url)
         if url is not None:
             self._cached_result = safe_download_url(canonicalize_url(url))
@@ -285,9 +280,9 @@ class ImageField(UrlField):
     Parameters
     ----------
 
-            download (bool, optional): download the image. Defaults to False
-            as_thumbnail (bool, optional): download as a thumnail. Defaults to False
-            download_to (str, optional): download image to a specific path. Defaults to None
+        - download (bool, optional): download the image. Defaults to False
+        - as_thumbnail (bool, optional): download as a thumnail. Defaults to False
+        - download_to (str, optional): download image to a specific path. Defaults to None
     """
     name = 'image'
 
