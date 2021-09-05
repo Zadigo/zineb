@@ -513,6 +513,11 @@ class DataStructure(metaclass=Base):
         The related fields should be of the same data type
         or this might raise errors.
 
+        Using both add_value and add_related_value simultanuously
+        can create an error because add_related_value adds a value
+        to the first field and then uses that result to add a value
+        to its own column.
+
         Parameters
         ----------
 
