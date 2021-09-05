@@ -10,6 +10,7 @@ from zineb.exceptions import FieldError, ModelExistsError
 from zineb.http.responses import HTMLResponse
 from zineb.models.expressions import Calculate, When
 from zineb.models.fields import Field
+from zineb.models.functions import Function
 from zineb.settings import settings
 from zineb.signals import signal
 
@@ -454,13 +455,6 @@ class DataStructure(metaclass=Base):
         resolved_value = obj._cached_result
         self._cached_result.update(name, resolved_value)
 
-        # cached_field = self._cached_result.get(name, None)
-        # if cached_field is None:
-        #     self._cached_result.setdefault(name, [])
-        #     cached_field = self._cached_result.get(name)
-        # cached_field.append(resolved_value)
-        # self._cached_result.update({name: cached_field})
-
     # def add_values(self, **attrs):
     #     """
     #     Add a single row at once on your model
@@ -488,7 +482,8 @@ class DataStructure(metaclass=Base):
 
             - name (str): the name of field on which to add a given value
             - value (Any): the value to add to the model
-        """    
+        """
+
         obj = self._get_field_by_name(name)
         obj.resolve(value)
         resolved_value = obj._cached_result
@@ -502,7 +497,6 @@ class DataStructure(metaclass=Base):
             # user might get something unexpected
             resolved_value = str(obj._cached_result.date())
         
-        # self._add_without_field_resolution(name, resolved_value)
         self._cached_result.update(name, resolved_value)
 
     def add_related_value(self, name: str, related_field: str, value: Any):

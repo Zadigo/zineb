@@ -9,6 +9,7 @@ from bs4.element import Tag as beautiful_soup_tag
 from w3lib import html
 from w3lib.url import canonicalize_url, safe_download_url
 from zineb.models import validators as model_validators
+from zineb.models.functions import Function, ExtractDay, ExtractMonth, ExtractYear
 from zineb.utils._html import deep_clean
 from zineb.utils.images import download_image_from_url
 
@@ -177,7 +178,10 @@ class Field:
         # To simplify the whole process,
         # make sure we are dealing with 
         # a string even though it's an
-        # integer, float etc.
+        # integer, float etc. - Also, this
+        # allows us to get the real value via
+        # functions such as ExtractYear, Value
+        # or ExtractMonth
         true_value = str(value)
 
         # Ensure the value to work with
@@ -201,7 +205,15 @@ class Field:
 
             if self._dtype == float:
                 clean_value = float(clean_value)
-            
+
+        if isinstance(value, (ExtractDay, ExtractMonth, ExtractYear)):
+            value.resolve()
+            clean_value = value._cached_result
+        elif isinstance(value, Function):
+            value._cached_result = clean_value
+            value.resolve()
+            clean_value = value._cached_result
+
         self._cached_result = self._run_validation(clean_value)
         return self._cached_result
 
