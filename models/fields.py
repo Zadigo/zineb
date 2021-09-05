@@ -124,6 +124,13 @@ class Field:
         return value
 
     def _convert_to_type(self, value, t=None):
+        # NOTE: With IntegerField or FloatField
+        # if the default value is None, just return
+        # None instead of forcing a conversion that
+        # raises an error
+        if value is None:
+            return value
+
         try:
             return t(value) if t is not None else self._dtype(value)
         except Exception:
