@@ -1,4 +1,5 @@
 from typing import Union
+import datetime
 
 from zineb.exceptions import ModelNotImplementedError
 from zineb.utils.general import string_to_number
@@ -12,6 +13,7 @@ class ExpressionMixin:
         if self.model is None:
             raise ModelNotImplementedError((f"{self.__class__.__name__} could not"
             f" retrieve the field object for '{self.field_name}' - {self.__class__.__name__}.model is {self.model}"))
+
         field_object = self.model._get_field_by_name(self.field_name)
         field_object.resolve(self._cached_data)
         return field_object
