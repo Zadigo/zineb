@@ -88,7 +88,7 @@ class Utility:
         remaining_tokens = args[1:]
         return name, remaining_tokens
 
-    def call_command(self, name: Union[list, str]):
+    def call_command(self, name: list):
         """
         Call a specific command from the registry
 
@@ -110,7 +110,6 @@ class Utility:
 
         parser = command_instance.create_parser()
         namespace = parser.parse_args()
-        command_called = namespace.command
         command_instance.execute(namespace)
         return command_instance
 
@@ -122,7 +121,7 @@ def execute_command_inline(argv):
     Parameters
     ----------
 
-        argv (List): a list where [command name, value]
+        argv (list): [file, command, ...]
     """
     utility = Utility()
     utility.call_command(argv)

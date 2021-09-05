@@ -97,8 +97,8 @@ class Shell:
 
 class Command(BaseCommand):
     def add_arguments(self, parser):
-        parser.add_argument('--url', type=str, required=False, help='Url to use for testing')
-        parser.add_argument('--file', type=str, default=False, help='Open a shell ')
+        parser.add_argument('--url', type=str, help='Opens a shell with a given url request')
+        parser.add_argument('--file', type=str, help='Opens a shell with the given file')
 
     def execute(self, namespace):
         configured_settings = self.preconfigure_project()

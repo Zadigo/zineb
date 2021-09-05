@@ -7,7 +7,7 @@ from zineb.management.base import BaseCommand
 
 class Command(BaseCommand):
     def add_arguments(self, parser):
-        parser.add_argument('--host', type=str, required=True)
+        parser.add_argument('host', type=str)
 
     def execute(self, namespace):
         param = '-n' if platform.system().lower() == 'windows' else '-c'
