@@ -112,6 +112,9 @@ class TableExtractor(Extractor):
     def __getitem__(self, index):
         return self.values[index]
 
+    def __len__(self):
+        return len(self.values)
+
     # def __add__(self, table_instance):
     #     if not isinstance(table_instance, TableExtractor):
     #         raise TypeError("The table to add should be an instance of TableExtractor")
@@ -126,6 +129,8 @@ class TableExtractor(Extractor):
 
     @property
     def get_values(self):
+        import pandas
+        
         values = self.values.copy()
         if self.header_position is not None:
             values.pop(self.header_position)
@@ -202,17 +207,38 @@ class TableExtractor(Extractor):
         # else:
         #     return self._raw_rows
 
+    # def _run_processors(self, rows):
+    #     if self.processors:
+    #         processed_rows = []
+    #         for row in rows:
+    #             for processor in self.processors:
+    #                 if not callable(processor):
+    #                     raise TypeError(f"Processor should be a callable. Got {processor}")
+    #                 row = [processor(value, index=index) for index, value in enumerate(row)]
+    #             processed_rows.append(row)
+    #         return processed_rows
+    #     return rows
+
     def _run_processors(self, rows):
+        new_row = []
+        processed_rows = []
         if self.processors:
-            processed_rows = []
             for row in rows:
                 for processor in self.processors:
                     if not callable(processor):
-                        raise TypeError(f"Processor should be a callable. Got {processor}")
-                    row = [processor(value, index=index) for index, value in enumerate(row)]
-                processed_rows.append(row)
+                        raise TypeError(f"Processor should be a callable. Got {processor}.")
+                    
+                    if not new_row:
+                        new_row = processor(row)
+                    else:
+                        new_row = processor(new_row)
+
+                processed_rows.append(new_row)
+                new_row = []
             return processed_rows
-        return rows
+        else:
+            return rows
+                    
 
     def get_row(self, index) -> Tag:
         try:
@@ -312,10 +338,6 @@ class TableExtractor(Extractor):
             return pandas.DataFrame(data=self.values, columns=columns)
         return pandas.DataFrame(data=self.values)
 
-        # if columns:
-        #     return df.rename(columns=columns)
-        # return df
-
 
 class MultiTablesExtractor(Extractor):
     """
@@ -385,6 +407,8 @@ class MultiTablesExtractor(Extractor):
             self.tables_list.update({i: instance})
 
     def resolve_to_dataframe(self, soup, table_index=0, columns: dict={}):
+        import pandas
+        
         self.resolve(soup)
         return pandas.DataFrame(self.get_table_parsed_values(table_index), columns=columns)
 
