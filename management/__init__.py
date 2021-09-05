@@ -1,10 +1,15 @@
 import os
 from collections import OrderedDict
-from functools import lru_cache
 from importlib import import_module
 from os.path import basename
-from typing import Type, Union
 
+
+# NOTE: In order for certain commands to work when
+# testing ex. startproject myproject, in order for
+# the second command to work correctly, its better
+# to call a file with the vscode debugger and the
+# arguments that we want. Otherwise, for whatever
+# reason there is an error on the second command.
 
 def collect_commands():
     """
