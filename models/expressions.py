@@ -3,6 +3,7 @@ import datetime
 
 from zineb.exceptions import ModelNotImplementedError
 from zineb.utils.conversion import string_to_number
+from zineb.utils.formatting import LazyFormat
 
 
 class ExpressionMixin:
@@ -104,21 +105,19 @@ class When:
         self.else_condition = else_condition
 
     def __repr__(self):
-        value = f"{self.__class__.__name__}({self._cached_data} THEN {self.else_condition})"
+        template = "{class_name}({conditions})"
+        conditions = f"THEN {self.then_condition}"
         if self.else_condition is not None:
-            value = value = f" ELSE {self.else_condition}"
-        return value
+            conditions = conditions + f" ELSE {self.else_condition}"
+        return template.format(
+            class_name=self.__class__.__name__,
+            conditions=conditions
+        )
 
     def resolve(self):
         field_name, exp, value_to_compare = self.parse_expression(self.if_condition)
         field_object = self.model._get_field_by_name(field_name)
         
-        # if self.then_condition == field_name:
-        #     self.then_condition == field_object._cached_result
-
-        # if self.else_condition == field_name:
-        #     self.else_condition = field_object._cached_result
-
         result = self.compare(exp, value_to_compare)
         if result:
             field_object.resolve(self.then_condition)
@@ -130,10 +129,19 @@ class When:
     def parse_expression(self, expression: str):
         allowed = ['gt', 'lt', 'lte', 'gte', 'eq', 'contains']
         
-        field_name, rhs = expression.split('__', maxsplit=1)
-        exp, value_to_compare = rhs.split('=', maxsplit=1)
+        try:
+            field_name, rhs = expression.split('__', maxsplit=1)
+        except ValueError:
+            raise ValueError((f'Case requires a valid operator '
+            'e.g. value__gt or value__eq.'))
+
+        try:
+            exp, value_to_compare = rhs.split('=', maxsplit=1)
+        except ValueError:
+            raise ValueError(f'Case requires a comparision value e.g. {field_name}__gt=??')
+
         if exp not in allowed:
-            raise
+            raise ValueError()
 
         return field_name, exp, value_to_compare
 
@@ -141,9 +149,8 @@ class When:
         result = False
 
         # If there's nothing in the
-        # _cached_result attribute,
-        # just force the then/else
-        # condition directly
+        # _cached_result attribute, just force 
+        # the then/else condition directly
         if self._cached_data is None:
             return result
 
@@ -151,6 +158,22 @@ class When:
         # be an integer or a float and
         # if so get the true value
         value = string_to_number(value)
+
+        # If the types that we are trying
+        # to compare are not the same,
+        # we should not run a comparision
+        # otherwise this will raise a TypeError
+        if type(value) != type(self._cached_data):
+            template = ('Comparision is not support betweet {type1} and {type2}. ' 
+                        'Make sure the data types of the value to compare are the '
+                        'same when using the When-function.')
+            message = LazyFormat(template, type1=type(value), type2=type(self._cached_data))
+            raise TypeError(message)
+
+        # TODO: Maybe if the value is a string,
+        # calculate it's length and improve the
+        # the comparision without raising a
+        # useless error
 
         if exp == 'gt':
             result = self._cached_data > value
@@ -248,3 +271,24 @@ class Max(Min):
     def resolve(self):
         cached_values = self.get_field_cached_values()
         return max(cached_values)
+
+
+
+class DateExtractorMixin:
+    def __init__(self, name: str):
+        self.field_name = name
+
+    def resolve(self, value):
+        pass
+
+
+class ExtractYear(DateExtractorMixin):
+    pass
+
+
+class ExtractMonth(DateExtractorMixin):
+    pass
+
+
+class ExtractDay(DateExtractorMixin):
+    pass

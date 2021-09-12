@@ -1,15 +1,16 @@
 import os
+import copy
 import secrets
 from collections import OrderedDict, defaultdict
 from functools import cached_property
-from typing import Any, List, Union
+from typing import Any, Callable, List, Union
 
 from bs4 import BeautifulSoup
 from pydispatch import dispatcher
 from zineb.exceptions import FieldError, ModelExistsError
 from zineb.http.responses import HTMLResponse
 from zineb.models.expressions import Calculate, When
-from zineb.models.fields import Field
+from zineb.models.fields import Field, Empty
 from zineb.settings import settings
 from zineb.signals import signal
 
@@ -90,6 +91,9 @@ class DataContainer:
             name (str): name of the field to update
             value (Any): value to add
         """
+        if value == Empty:
+            value = None
+
         def row_generator():
             for _, field_name in enumerate(self.names, start=1):
                 if name == field_name:
@@ -398,7 +402,7 @@ class DataStructure(metaclass=Base):
     #         # add the given value to the model
     #         self.add_value(funcs[-1].field_name, funcs[-1]._calculated_result)
 
-    def add_case(self, value: Any, case):
+    def add_case(self, value: Any, case: Callable):
         """
         Add a value to the model based on a specific
         conditions determined by a When-function.
@@ -406,8 +410,8 @@ class DataStructure(metaclass=Base):
         Parameters
         ----------
 
-            value (Any): the value to test
-            case (Type): When function
+            - value (Any): the value to test
+            - case (Callable): When-function
         """
         if not isinstance(case, When):
             raise TypeError('Case should be a When class.')
@@ -440,13 +444,6 @@ class DataStructure(metaclass=Base):
         obj.resolve(tag_value.string)
         resolved_value = obj._cached_result
         self._cached_result.update(name, resolved_value)
-
-        # cached_field = self._cached_result.get(name, None)
-        # if cached_field is None:
-        #     self._cached_result.setdefault(name, [])
-        #     cached_field = self._cached_result.get(name)
-        # cached_field.append(resolved_value)
-        # self._cached_result.update({name: cached_field})
 
     # def add_values(self, **attrs):
     #     """

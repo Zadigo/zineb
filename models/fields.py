@@ -14,6 +14,15 @@ from zineb.settings import settings
 from zineb.utils.conversion import convert_to_type, detect_object_in_string
 from zineb.utils.formatting import deep_clean
 from zineb.utils.images import download_image_from_url
+from zineb.utils.formatting import LazyFormat
+
+
+class Empty:
+    """
+    Class that represents '' as a Python object.
+    These string are not considered None in Python
+    but do no have any value
+    """
 
 
 class Field:
@@ -54,6 +63,10 @@ class Field:
     def _true_value_or_default(self, value):
         if self.default is not None and value is None:
             return self.default
+        
+        if self.default is not None and value == Empty:
+            return self.default
+
         return value
 
     def _to_python_object(self, value: Any, use_dtype=None):
@@ -79,6 +92,7 @@ class Field:
         # too ? Otherwise the user might enter
         # anykind of none validated value ??
         value = self._true_value_or_default(value)
+
         # If the value is None, makes no sense
         # to continue the validation, just return
         # None instead
@@ -98,25 +112,42 @@ class Field:
 
     def resolve(self, value: Any, convert: bool=False, dtype: Any=None):
         """
-        Resolves a given value by cleaning it and calling
-        a series of default validators and checks before
-        returning the normalized item
+        Resolves a given value by cleaning it, calling
+        a series of default validators before
+        returning the normalized item.
+
+        The value can be converted to it's true Pythonic
+        representation
 
         Subclasses should implement their own resolve function
-        with it's own custom logic because this resolve definition
-        is more to implement some standardized resolution more than
-        anything else
+        with it's own custom logic because definition a more
+        standardized resolution
 
         Parameters
         ----------
 
                 value (str, int, float): a valid python object
+                convert (bool): convert the value to it's true Pyhon
+                                representation. Default to False
+                dtype (str, int, float, list, set, dict): the type to
+                                which the value should be converted to
 
         Returns
         -------
 
-                str, int, float: a valid python object
+                str, int, float, dict, set: a valid python object
         """
+        # Deal with true empty values that
+        # are factually None but get passed
+        # around as valid. The Empty class
+        # is the pythonic representation
+        # for these kinds of strings
+        if value == '':
+            value = Empty
+            result = self._run_validation(value)
+            self._cached_result = result
+            return self._cached_result
+
         true_value = None
         if isinstance(value, beautiful_soup_tag):
             true_value = value.text
@@ -128,9 +159,7 @@ class Field:
         # validations directly and returning
         # either a default value or the value
         if value is None:
-            # return self._true_value_or_default(value)
-            self._cached_result = self._run_validation(value)
-            return self._cached_result
+            return self._run_validation(value)
         
         # To simplify the whole process,
         # make sure we are dealing with 
@@ -145,21 +174,6 @@ class Field:
 
         clean_value = deep_clean(true_value)
 
-        # Here, try to convert the value to it's
-        # true self (instead of returning) string but
-        # the problem is when a subclass that has a _dtype
-        # of int invoks this superclass e.g. AgeField
-        # through another subclass e.g. AgeField(DateField),
-        # this creates an error because the value
-        # that is passed (a data string) is obviously
-        # not an integer. This then creates and error.
-        if clean_value.isnumeric():
-            if self._dtype == int:
-                clean_value = int(clean_value)
-
-            if self._dtype == float:
-                clean_value = float(clean_value)
-            
         self._cached_result = self._run_validation(clean_value)
 
         if convert:
@@ -167,7 +181,7 @@ class Field:
                 dtype = self._dtype
             self._cached_result = self._to_python_object(self._cached_result)
         return self._cached_result
-
+            
 
 class CharField(Field):
     """
@@ -208,17 +222,15 @@ class NameField(CharField):
 class EmailField(Field):
     _default_validators = [model_validators.validate_email]
 
-    def __init__(self, limit_to_domains: Union[List[str], Tuple[str]] = [], **kwargs):
-        null = kwargs.get('null')
-        default = kwargs.get('default')
-        validators = kwargs.get('validators', [])
+    def __init__(self, limit_to_domains: Union[List[str], Tuple[str]] = [],
+                 null: bool=False, default: Any=None, validators: list=[]):
         super().__init__(null=null, default=default, validators=validators)
         self.limit_to_domains = limit_to_domains
 
     def _check_domain(self, domain):
         if self.limit_to_domains:
             if domain not in self.limit_to_domains:
-                self._cached_result = self.default
+                raise ValidationError(f'{domain} is not in valid domains.')
 
     def resolve(self, value):
         result = super().resolve(value)
@@ -250,8 +262,9 @@ class ImageField(UrlField):
     """
     name = 'image'
 
-    def __init__(self, download=False, as_thumnail=False, download_to: str=None):
+    def __init__(self, download: bool=False, as_thumnail: bool=False, download_to: str=None):
         super().__init__()
+
         self.download = download
         self.as_thumbnail = as_thumnail
         self.image_data = None
@@ -296,36 +309,28 @@ class IntegerField(Field):
         super().resolve(value, convert=True)
 
 
-class DecimalField(Field):
+class DecimalField(IntegerField):
     name = 'float'
     _dtype = float
 
-    def __init__(self, default: Any=None, 
-                 min_value: int=None, max_value: int=None):
-        if min_value is not None:
-            self._validators.add(model_validators.MinLengthValidator)
 
-        if max_value is not None:
-            self._validators.add(model_validators.MaxLengthValidator)
-
+class DateFieldsMixin:
+    def __init__(self, date_format: str=None, 
+                 default: Any=None, tz_info: str=None):
         super().__init__(default=default)
 
-    def resolve(self, value):
-        result = super().resolve(value)
-        self._cached_result = self._convert_to_type(result)
+        self.date_parser = datetime.datetime.strptime
 
+        formats = set(getattr(settings, 'DEFAULT_DATE_FORMATS'))
+        formats.add(date_format)
+        self.date_formats = formats
 
-class DateField(Field):
-    name = 'date'
-
-    def __init__(self, date_format: str, 
-                 default: Any=None, tz_info=None):
-        super().__init__(default=default)
-        self.date_format = date_format
+        # TODO: Implement
         if tz_info is None:
-            tz_info = pytz.UTC
+            tz_info_string = getattr(settings, 'TIME_ZONE', pytz.UTC)
+            tz_info = pytz.timezone(tz_info_string)
         self.tz_info = tz_info
-    
+
     def _to_python_object(self, result: str):
         for date_format in self.date_formats:
             try:
@@ -356,11 +361,11 @@ class DateField(Field):
 class DateField(DateFieldsMixin, Field):
     name = 'date'
 
-    def resolve(self, date: str):
+    def resolve(self, date: str):        
         super().resolve(date, convert=True)
 
 
-class AgeField(DateField):
+class AgeField(DateFieldsMixin, Field):
     name = 'age'
     _dtype = int
 
@@ -440,18 +445,12 @@ class FunctionField(Field):
                     new_cached_result = method(self._cached_result)
                 else:
                     new_cached_result = method(new_cached_result)
-            self._cached_result = new_cached_result
+
             self.output_field.resolve(self._cached_result)
             self._cached_result = self.output_field._cached_result
 
 
-class ObjectFieldMixins:
-    @staticmethod
-    def _detect_object_in_string(value):
-        return ast.literal_eval(value)
-
-
-class ArrayField(ObjectFieldMixins, Field):
+class ListField(Field):
     name = 'list'
     _dytpe = list
 
@@ -466,7 +465,7 @@ class ArrayField(ObjectFieldMixins, Field):
         self._cached_result = self._to_python_object(value)
 
 
-class JsonField(ObjectFieldMixins, Field):
+class JsonField(Field):
     def __init__(self, validators=[]):
         super().__init__(validators=validators)
 
@@ -523,6 +522,7 @@ class RegexField(Field):
 
 
 class BooleanField(Field):
+    name = 'boolean'
     _dtype = bool
     
     REP_TRUE = ['True', 'true', '1', 
@@ -555,7 +555,7 @@ class BooleanField(Field):
 
 class Value:
     """
-    The simplest Python representation of a value
+    A simple container 
 
     Parameters
     ----------
