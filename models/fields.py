@@ -326,27 +326,54 @@ class DateField(Field):
             tz_info = pytz.UTC
         self.tz_info = tz_info
     
+    def _to_python_object(self, result: str):
+        for date_format in self.date_formats:
+            try:
+                d = self.date_parser(result, date_format)
+            except:
+                d = None
+            else:
+                if d:
+                    break
+        
+        if d is None:
+            message = LazyFormat('Could not find a valid format for date ({d}).', d=result)
+            raise ValidationError(message)
+        return d.date()
+
+    # def _implement_timezone(self):
+    #     TODO: Implement logic for awareness or not
+    #     # Datetime is aware
+    #     if self._cached_result.utcoffset() is not None:
+    #         try:
+    #             return self._cached_result.astimezone(self.tz_info)
+    #         except:
+    #             raise
+    #     else:
+    #         pass
+
+
+class DateField(DateFieldsMixin, Field):
+    name = 'date'
+
     def resolve(self, date: str):
-        result = super().resolve(date)
-        self._cached_result = datetime.datetime.strptime(
-            result, self.date_format
-        )
+        super().resolve(date, convert=True)
 
 
 class AgeField(DateField):
     name = 'age'
     _dtype = int
 
-    def __init__(self, date_format: str,
-                 default: Any = None, tz_info=None):
+    def __init__(self, date_format: str=None,
+                 default: Any = None, tz_info: str=None):
         super().__init__(date_format=date_format, 
                          default=default, tz_info=tz_info)
         self._cached_date = None
 
     def _substract(self) -> int:
         current_date = datetime.datetime.now()
-        return current_date.year - self._cached_result.year
-
+        return current_date.year - self._cached_date.year
+    
     def resolve(self, date: str):
         result = super().resolve(date)
         self._cached_date = self._to_python_object(self._cached_result)
