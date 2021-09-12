@@ -502,7 +502,6 @@ class DataStructure(metaclass=Base):
             # user might get something unexpected
             resolved_value = str(obj._cached_result.date())
         
-        # self._add_without_field_resolution(name, resolved_value)
         self._cached_result.update(name, resolved_value)
 
     def add_related_value(self, name: str, related_field: str, value: Any):
