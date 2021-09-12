@@ -1,7 +1,8 @@
 from zineb.app import Zineb
 from zineb.extractors.base import ImageExtractor
 from zineb.http.pipelines import ResponsesPipeline
-from zineb.utils.general import download_image, replace_urls_suffix
+from zineb.utils.images import download_image
+from zineb.utils.urls import replace_urls_suffix
 
 
 def fix_url(url:str):
