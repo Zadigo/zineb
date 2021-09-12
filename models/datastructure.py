@@ -256,47 +256,45 @@ class Base(type):
         if not parents:
             return super_new(cls, name, bases, attrs)
 
-        if name != 'Model':
-            # Normally, we should have all the fields
-            # and/or remaining methods of the class
-            declared_fields = set()
-            for key, item in attrs.items():
-                if isinstance(item, Field):
-                    declared_fields.add((key, item))
+        declared_fields = set()
+        for key, item in attrs.items():
+            if isinstance(item, Field):
+                declared_fields.add((key, item))
 
+        if declared_fields:
             descriptor = FieldDescriptor()
             descriptor.cached_fields = OrderedDict(declared_fields)
+            attrs['_fields'] = descriptor
 
+        if 'Meta' in attrs:
             meta = ModelOptions([])
-            if 'Meta' in attrs:
-                # TODO: If the user does not pass
-                # a 'class Meta', this could be a
-                # serious issue and break
-                meta_dict = attrs.pop('Meta').__dict__
-                authorized_options = ['ordering']
-                non_authorized_options = []
+            meta_dict = attrs.pop('Meta').__dict__
+            authorized_options = ['ordering']
+            non_authorized_options = []
 
-                def check_option(item):
-                    key, _ = item
-                    if key.startswith('__'):
-                        return False
-
-                    if key in authorized_options:
-                        return True
-                    
-                    non_authorized_options.append(key)
+            def check_option(item):
+                key, _ = item
+                if key.startswith('__'):
                     return False
 
-                options = list(filter(check_option, meta_dict.items()))
-                if non_authorized_options:
-                    raise ValueError("Meta received an illegal "
-                    f"option. Valid options are: {', '.join(authorized_options)}")
-                meta = meta(options)
+                if key in authorized_options:
+                    return True
+                
+                non_authorized_options.append(key)
+                return False
 
+            options = list(filter(check_option, meta_dict.items()))
+            if non_authorized_options:
+                raise ValueError("Meta received an illegal "
+                f"option. Valid options are: {', '.join(authorized_options)}")
+            meta = meta(options)
+            attrs['_meta'] = meta
+
+        if declared_fields:
+            # That's where is explicitely register
+            # models that have declared fields and
+            # that are actually user created models
             new_class = super_new(cls, name, bases, attrs)
-            setattr(new_class, '_fields', descriptor)
-            setattr(new_class, '_meta', meta)
-
             model_registry.add(name, new_class)
             return new_class
 
@@ -306,8 +304,6 @@ class Base(type):
 class DataStructure(metaclass=Base):
     def __init__(self, html_document: BeautifulSoup=None, 
                  response: HTMLResponse=None):
-        # self._cached_result = {}
-
         self._cached_result = DataContainer.as_container(
             *self._fields.field_names
         )
