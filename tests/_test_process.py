@@ -12,10 +12,10 @@
 # from typing import OrderedDict
 
 
-import datetime
+# import datetime
 
-import pytz
-from zineb.models.fields import AgeField, DateField
+# import pytz
+# from zineb.models.fields import AgeField, DateField
 
 # t = pytz.timezone('America/Chicago')
 # c = datetime.datetime.now().astimezone(t)
@@ -24,3 +24,15 @@ from zineb.models.fields import AgeField, DateField
 
 # d = datetime.datetime.strptime('1-1-2017', '%d-%M-%Y')
 # print(d.date())
+
+
+from zineb.models.datastructure import Model
+from zineb.models import fields
+from zineb.models.expressions import When
+
+class TestModel(Model):
+    date = fields.IntegerField()
+
+model = TestModel()
+model.add_case(15, When('google__gt', 0))
+print(model)

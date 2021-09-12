@@ -46,8 +46,8 @@ class TestWhen(unittest.TestCase):
         # Value that was originally
         # retrived from the HTML page
         instance._cached_result = 15
-
         instance.model = self.model
+
         self.instance = instance
 
     def test_resolution(self):
@@ -55,6 +55,14 @@ class TestWhen(unittest.TestCase):
         name, result = self.instance.resolve()
         self.assertIsInstance(name, str)
         self.assertEqual(result, 15)
+
+    def test_cannot_compare_in_when(self):
+        self.model.add_case('google', When('age__eq=21', 23))
+        self.assertRaises(TypeError)
+
+    def test_wrong_expression_in_when(self):
+        instance = expressions.When('fast', 0, then_condition=0)
+        self.assertRaises(Exception)
 
     def test_comparision(self):
         result = self.instance.compare('gt', 10)
