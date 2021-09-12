@@ -351,49 +351,52 @@ class DataStructure(metaclass=Base):
         cached_values.append(value)
         self._cached_result.update({ field_name: cached_values })
 
-    def add_calculated_value(self, value: Any, *funcs):
-        funcs = list(funcs)
+    # TODO: Think of how to better implement calculated
+    # fields onto the model especially in the manner how
+    # we should get the fields in the Calculate methods
+    # def add_calculated_value(self, value: Any, *funcs):
+    #     funcs = list(funcs)
 
-        all_field_names = []
-        unique_field_names = set()
-        for func in funcs:
-            if not isinstance(func, Calculate):
-                raise TypeError('Function should be an instance of Calculate')
+    #     all_field_names = []
+    #     unique_field_names = set()
+    #     for func in funcs:
+    #         if not isinstance(func, Calculate):
+    #             raise TypeError('Function should be an instance of Calculate')
 
-            setattr(func, 'model', self)
-            # Technically, the funcs should
-            # apply to the same field on the
-            # model or this could create
-            # inconsistencies
-            all_field_names.append(func.field_name)
-            unique_field_names.add(func.field_name)
+    #         setattr(func, 'model', self)
+    #         # Technically, the funcs should
+    #         # apply to the same field on the
+    #         # model or this could create
+    #         # inconsistencies
+    #         all_field_names.append(func.field_name)
+    #         unique_field_names.add(func.field_name)
 
-        all_field_names = set(all_field_names)
-        result = unique_field_names.difference(all_field_names)
-        if result:
-            raise ValueError('Functions should apply to the same field')
+    #     all_field_names = set(all_field_names)
+    #     result = unique_field_names.difference(all_field_names)
+    #     if result:
+    #         raise ValueError('Functions should apply to the same field')
 
-        if len(funcs) == 1:
-            func._cached_data = value
-            func.resolve()
-            self.add_value(func.field_name, func._calculated_result)
-        else:
-            for i in range(len(funcs)):
-                if i == 0:
-                    funcs[0]._cached_data = value
-                else:
-                    # When there a multiple functions, the
-                    # _cached_data of the current function
-                    # should be the _caclulat_result of the
-                    # previous one. This technique allows
-                    # us to run multiple expressions on
-                    # one single value
-                    funcs[i]._cached_data = funcs[i - 1]._calculated_result
-                funcs[i].resolve()
-            # Once everything has been calculated,
-            # use the data of the last function to
-            # add the given value to the model
-            self.add_value(funcs[-1].field_name, funcs[-1]._calculated_result)
+    #     if len(funcs) == 1:
+    #         func._cached_data = value
+    #         func.resolve()
+    #         self.add_value(func.field_name, func._calculated_result)
+    #     else:
+    #         for i in range(len(funcs)):
+    #             if i == 0:
+    #                 funcs[0]._cached_data = value
+    #             else:
+    #                 # When there a multiple functions, the
+    #                 # _cached_data of the current function
+    #                 # should be the _caclulat_result of the
+    #                 # previous one. This technique allows
+    #                 # us to run multiple expressions on
+    #                 # one single value
+    #                 funcs[i]._cached_data = funcs[i - 1]._calculated_result
+    #             funcs[i].resolve()
+    #         # Once everything has been calculated,
+    #         # use the data of the last function to
+    #         # add the given value to the model
+    #         self.add_value(funcs[-1].field_name, funcs[-1]._calculated_result)
 
     def add_case(self, value: Any, case):
         """
