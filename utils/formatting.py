@@ -3,7 +3,7 @@ from w3lib.html import replace_escape_chars, strip_html5_whitespace
 
 class LazyFormat:
     """
-    Lazily formats a string until it called or required.
+    Lazily formats a string until it is called or required.
 
     Example
     -------
@@ -24,7 +24,7 @@ class LazyFormat:
     def __str__(self):
         if self._cached_result is None:
             self._cached_result = self._string_to_format\
-                    .format(*self.args, **self.kwargs)
+                    .format(*self._args, **self._kwargs)
             self._string_to_format = None
             self._args = None
             self._kwargs = None
