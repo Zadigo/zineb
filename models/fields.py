@@ -56,6 +56,24 @@ class Field:
             return self.default
         return value
 
+    def _to_python_object(self, value: Any, use_dtype=None):
+        """
+        Returns the true python representation
+        of a given value
+
+        Parameters
+        ----------
+
+            value (Any): [description]
+
+        Returns
+        -------
+
+            Any: [description]
+        """
+        dtype = use_dtype or self._dtype
+        return convert_to_type(value, t=dtype)
+
     def _run_validation(self, value):
         # Default values should be validated
         # too ? Otherwise the user might enter
@@ -78,70 +96,7 @@ class Field:
                 validator_return_value = validator(validator_return_value)
         return validator_return_value or value
 
-    def _check_or_convert_to_type(self, value, object_to_check_against,
-                                  message, enforce=True, force_conversion=False,
-                                  use_default=False):
-        """
-        Checks the validity of a value against a Python object for example
-        an int, a str or a list
-
-        This check is used only to make sure that a value corresponds
-        specifically to a python object with the possibility of raising
-        an error if not or force converting the value to the python
-        object in question
-
-        Parameters
-        ----------
-
-            - value (str, int, type): value to test
-            - object_to_check_against (type): int, str, type
-            - message (str): message to display
-            - enforce (bool, optional): whether to raise an error. Defaults to True
-            - force_conversion (bool, optional): try to convert the value to obj. Defaults to False
-
-        Raises
-        ------
-
-                TypeError: the value is not of the same type of the python object
-
-        Returns
-        -------
-
-                Any: int, str
-        """
-        if force_conversion:
-            try:
-                value = object_to_check_against(value)
-            except:
-                # Thing is the validators know how to use
-                # the default value which is not the case
-                # when calling this specific function
-                if use_default:
-                    return self.default
-
-        result = isinstance(value, object_to_check_against)
-        if not result:
-            if enforce:
-                raise TypeError(message)
-
-        return value
-
-    def _convert_to_type(self, value, t=None):
-        # NOTE: With IntegerField or FloatField
-        # if the default value is None, just return
-        # None instead of forcing a conversion that
-        # raises an error
-        if value is None:
-            return value
-
-        try:
-            return t(value) if t is not None else self._dtype(value)
-        except Exception:
-            raise ValueError((f"The value {value} does not match"
-            f" the type provided in {self._dtype}. Got {type(value)}"
-            f"instead of {self._dtype}"))
-
-    def resolve(self, value: Any):
+    def resolve(self, value: Any, convert: bool=False, dtype: Any=None):
         """
         Resolves a given value by cleaning it and calling
         a series of default validators and checks before
@@ -206,6 +161,11 @@ class Field:
                 clean_value = float(clean_value)
             
         self._cached_result = self._run_validation(clean_value)
+
+        if convert:
+            if dtype is None:
+                dtype = self._dtype
+            self._cached_result = self._to_python_object(self._cached_result)
         return self._cached_result
 
 
@@ -224,13 +184,7 @@ class CharField(Field):
     name = 'char'
 
     def resolve(self, value):
-        result = self._check_or_convert_to_type(
-            value,
-            str,
-            'Value should be a string',
-            force_conversion=True
-        )
-        self._cached_result = super().resolve(result)
+        return super().resolve(value, convert=True)
 
 
 class TextField(CharField):
@@ -267,8 +221,8 @@ class EmailField(Field):
                 self._cached_result = self.default
 
     def resolve(self, value):
-        value = super().resolve(value)
-        if value is not None:
+        result = super().resolve(value)
+        if result is not None or result != Empty:
             _, domain = value.split('@')
             self._check_domain(domain)
 
@@ -278,9 +232,9 @@ class UrlField(Field):
     _default_validators = [model_validators.validate_url]
 
     def resolve(self, url):
-        url = super().resolve(url)
-        if url is not None:
-            self._cached_result = safe_download_url(canonicalize_url(url))
+        result = super().resolve(url)
+        if result is not None:
+            result = safe_download_url(canonicalize_url(url))
 
 
 class ImageField(UrlField):
@@ -309,7 +263,7 @@ class ImageField(UrlField):
 
         if self.download:
             download_image_from_url(
-                url,
+                self._cached_result,
                 download_to=self.download_to,
                 as_thumbnail=self.as_thumbnail
             )
@@ -338,9 +292,8 @@ class IntegerField(Field):
         if max_value is not None:
             self._validators.add(model_validators.MaxLengthValidator(max_value))
 
-    def resolve(self, value):
-        result = super().resolve(value)
-        self._cached_result = self._convert_to_type(result)
+    def resolve(self, value: Any):
+        super().resolve(value, convert=True)
 
 
 class DecimalField(Field):
@@ -394,10 +347,10 @@ class AgeField(DateField):
         current_date = datetime.datetime.now()
         return current_date.year - self._cached_result.year
 
-    def resolve(self, date):
-        super().resolve(date)
-        self._cached_date = self._cached_result
-        self._cached_result = self._convert_to_type(self._substract())
+    def resolve(self, date: str):
+        result = super().resolve(date)
+        self._cached_date = self._to_python_object(self._cached_result)
+        self._cached_result = self._substract()
 
 
 class FunctionField(Field):
@@ -451,7 +404,7 @@ class FunctionField(Field):
                 f"Instead got: {incorrect_elements}"))
 
     def resolve(self, value):
-        self._cached_result = super().resolve(value)
+        self._cached_result = super().resolve(value, convert=True)
 
         new_cached_result = None
         if self.filtered_methods:
@@ -480,15 +433,10 @@ class ArrayField(ObjectFieldMixins, Field):
         super().__init__(default=default, validators=validators)
 
     def resolve(self, value):
-        import pandas
-        
         if isinstance(value, str):
-            value = self._detect_object_in_string(value)
+            value = detect_object_in_string(value)
 
-        result = self._convert_to_type(value, t=list)
-
-        self._cached_result = pandas.Series(result)
-        return self._cached_result
+        self._cached_result = self._to_python_object(value)
 
 
 class JsonField(ObjectFieldMixins, Field):
@@ -496,9 +444,10 @@ class JsonField(ObjectFieldMixins, Field):
         super().__init__(validators=validators)
 
     def resolve(self, value):
-        result = super().resolve(value)
-        if isinstance(result, str):
-            result = self._detect_object_in_string(result)
+        result = None
+
+        if isinstance(value, str):
+            result = self._detect_object_in_string(value)
 
         if not isinstance(result, dict):
             raise ValueError(f"JsonField should receive a dict as value.")
@@ -513,9 +462,14 @@ class CommaSeperatedField(Field):
         super().__init__(max_length=max_length)
 
     def resolve(self, values: Union[List[Any]]):
-        values = self._convert_to_type(values, t=list)
-        resolved_values = map(lambda x: str(x), values)
-        self._cached_result = ','.join(resolved_values)
+        if isinstance(values, str):
+            values = detect_object_in_string(values)
+
+        if not isinstance(values, (list, tuple)):
+            raise TypeError('The values parameter should be of type str, list or tuple.')
+        
+        container = ','.join(map(lambda x: str(x), values))
+        self._cached_result = self._to_python_object(container)
 
 
 class RegexField(Field):
@@ -538,8 +492,39 @@ class RegexField(Field):
                     "zineb.fields.Field. Got: {self.output_field}"))
                 self._cached_result = self.output_field.resolve(result)
             else:
-                self._cached_result = super().resolve(result)
+                self._cached_result = result
 
+
+class BooleanField(Field):
+    _dtype = bool
+    
+    REP_TRUE = ['True', 'true', '1', 
+                'ON', 'On', 'on', True]
+
+    REP_FALSE = ['False', 'false', '0', 
+                 'OFF', 'Off', 'off', False]
+
+    def __init__(self, default: Any=None, null: bool=True):
+        super().__init__(null=null, default=default)
+
+    def _true_value_or_default(self, value):
+        if isinstance(self.default, bool) and (value is None or value == Empty):
+            return self.default
+        return super()._true_value_or_default(value)
+
+    def resolve(self, value: Any):
+        if value in self.REP_TRUE:
+            self._cached_result = True
+        elif value in self.REP_FALSE:
+            self._cached_result = False
+        else:
+            if value == '':
+                value = Empty
+            result = self._run_validation(value)              
+
+            if not isinstance(result, bool) and not self.null:
+                raise ValueError('BooleanField accepts booleans as value.')
+            self._cached_result = result
 
 class Value:
     """
@@ -562,15 +547,6 @@ class Value:
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.result})"
-
-    def __add__(self, value):
-        if isinstance(self.result, tuple):
-            self.result = list(self.value)
-
-        if isinstance(self.result, list):
-            self.result.extend([value])
-            return self.result
-        return self.result + str(value)
 
     def __setattr__(self, name, value):
         if name == 'result':
