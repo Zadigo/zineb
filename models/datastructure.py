@@ -225,9 +225,9 @@ class ModelOptions:
             ]
 
             # Convert each ordering field on the
-            # model Booleans. This is what a
-            # DataFrame accepts in or to order
-            # the data
+            # model to Booleans. This is what a
+            # DataFrame accepts in order to sort
+            # a particular column
             def convert_to_boolean(value):
                 if value.startswith('-'):
                     return False
