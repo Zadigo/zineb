@@ -42,7 +42,6 @@ class DataContainer:
         # parameter from reinstantiating with
         # the names when using this class,
         # we'll always use a new instance
-        # of this class.
         for name in names:
             cls.values[name]
         instance = cls()
