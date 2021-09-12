@@ -11,7 +11,10 @@ from w3lib.html import safe_url_string
 from w3lib.url import is_url, urljoin
 from zineb.extractors._mixins import MultipleRowsMixin
 from zineb.settings import settings as global_settings
-from zineb.utils._html import decode_email, deep_clean, is_path
+from zineb.utils.decoders import decode_email
+from zineb.utils.formatting import deep_clean
+from zineb.utils.paths import is_path
+from zineb.utils.iteration import keep_while
 
 
 class Extractor:
@@ -361,16 +364,6 @@ class MultiTablesExtractor(Extractor):
     def __getitem__(self, key):
         return self.tables_list[key]
 
-    # def __add__(self, obj):
-    #     if isinstance(obj, MultiTablesExtractor):
-    #         keys = obj.tables_list.keys()
-    #         this_tables_list_keys = self.tables_list.keys()
-    #         last_key = this_tables_list_keys[-1]
-    #         if keys[-1] == this_tables_list_keys[-1]:
-    #             last_key = last_key + 1
-    #         for i in range(last_key + 1, len(keys)):
-    #             self.tables_list.setdefault(i, obj[])
-
     @staticmethod
     def _filter_tables(tables, with_attrs):
         def utility(table):
@@ -405,12 +398,6 @@ class MultiTablesExtractor(Extractor):
                 limit_to_columns=limit_to_columns
             )
             self.tables_list.update({i: instance})
-
-    def resolve_to_dataframe(self, soup, table_index=0, columns: dict={}):
-        import pandas
-        
-        self.resolve(soup)
-        return pandas.DataFrame(self.get_table_parsed_values(table_index), columns=columns)
 
 
 class TextExtractor(Extractor):
@@ -578,12 +565,6 @@ class LinkExtractor(Extractor):
         return urljoin(self.base_url, path)
 
     def resolve(self, soup: BeautifulSoup):
-        """
-        Parameters
-        ----------
-
-                soup (type): BeautifulSoup object
-        """
         from zineb.tags import Link
         if soup is None:
             return None

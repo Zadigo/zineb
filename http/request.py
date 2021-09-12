@@ -17,7 +17,7 @@ from zineb.http.user_agent import UserAgent
 from zineb.settings import settings as global_settings
 from zineb.signals import signal
 from zineb.tags import ImageTag, Link
-from zineb.utils.general import transform_to_bytes
+from zineb.utils.conversion import transform_to_bytes
 
 EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9-_.]+@\w+\.\w+$')
 

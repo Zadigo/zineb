@@ -2,7 +2,7 @@ from typing import Union
 import datetime
 
 from zineb.exceptions import ModelNotImplementedError
-from zineb.utils.general import string_to_number
+from zineb.utils.conversion import string_to_number
 
 
 class ExpressionMixin:
