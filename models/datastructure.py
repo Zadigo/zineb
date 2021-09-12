@@ -47,7 +47,7 @@ class DataContainer:
         instance = cls()
         setattr(instance, 'names', list(names))
         return instance
-
+        
     @property
     def _last_id(self) -> int:
         """
