@@ -321,22 +321,9 @@ class DataStructure(metaclass=Base):
         Parameters
         ----------
 
-            - name (str): the field name to get
-
-        Raises
-        ------
-
-            - FieldError: if the field does not exist
-
-        Returns
-        -------
-
-            - Field (type): zineb.fields.Field
+            - field_name (str): the field name to get
         """
-        try:
-            return self._fields.cached_fields[field_name]
-        except:
-            raise FieldError(field_name, self._fields.field_names)
+        return self._fields.get_field(field_name)
 
     def _choose_parser(self):
         if self.html_document is not None:
