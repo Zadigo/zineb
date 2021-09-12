@@ -8,8 +8,11 @@ import pytz
 from bs4.element import Tag as beautiful_soup_tag
 from w3lib import html
 from w3lib.url import canonicalize_url, safe_download_url
+from zineb.exceptions import ValidationError
 from zineb.models import validators as model_validators
-from zineb.utils._html import deep_clean
+from zineb.settings import settings
+from zineb.utils.conversion import convert_to_type, detect_object_in_string
+from zineb.utils.formatting import deep_clean
 from zineb.utils.images import download_image_from_url
 
 
