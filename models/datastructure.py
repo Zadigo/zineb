@@ -182,12 +182,18 @@ class FieldDescriptor:
 
     cached_fields = OrderedDict()
     
-    def __getitem__(self, key) -> Field:
-        return self.cached_fields[key]
+    def __getitem__(self, name) -> Field:
+        return self.get_field(name)
 
     @cached_property
     def field_names(self):
         return list(self.cached_fields.keys())
+
+    def get_field(self, name) -> Field:
+        try:
+            return self.cached_fields[name]
+        except:
+            raise FieldError(name, self.field_names)
 
 
 class ModelOptions:
