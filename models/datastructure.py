@@ -197,13 +197,9 @@ class FieldDescriptor:
 
 
 class ModelOptions:
-    """A container that stores all the options
-    of a given model
-
-    Parameters
-    ----------
-
-        - options (Union[List[tuple[str]], dict]): list of options
+    """
+    A container that stores the options
+    of a given model Meta
     """
     def __init__(self, options: Union[List[tuple[str]], dict]):
         self.cached_options = OrderedDict(options)
