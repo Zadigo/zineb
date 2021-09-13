@@ -1,5 +1,5 @@
-from typing import Union
 import datetime
+from typing import Any, Callable, Union
 
 from zineb.exceptions import ModelNotImplementedError
 from zineb.utils.conversion import string_to_number
@@ -7,92 +7,84 @@ from zineb.utils.formatting import LazyFormat
 
 
 class ExpressionMixin:
-    _cached_data = None
     model = None
+    _cached_data = None
+    field_name = None
 
     def get_field_object(self):
         if self.model is None:
-            raise ModelNotImplementedError((f"{self.__class__.__name__} could not"
-            f" retrieve the field object for '{self.field_name}' - {self.__class__.__name__}.model is {self.model}"))
+            class_name = self.__class__.__name__
+            raise ModelNotImplementedError(
+                LazyFormat((f"{class_name} could not"
+                f" retrieve the field object for '{self.field_name}'."))
+            )
 
-        field_object = self.model._get_field_by_name(self.field_name)
-        field_object.resolve(self._cached_data)
-        return field_object
+        field = self.model._get_field_by_name(self.field_name)
+        field.resolve(self._cached_data)
+        return field
 
     def resolve(self):
-        raise NotImplementedError('Expression resoltion should be implement by child classes')
+        raise NotImplementedError('Expression resolution should be implement by child classes')
 
 
-class Calculate(ExpressionMixin):
-    def __init__(self, field_name: str, by: Union[int, float], days: int=None, month: int=None, year: int=None):
-        self.field_name = field_name
+class Math(ExpressionMixin):
+    def __init__(self, value: Any, by: Union[int, float], 
+                 days: int=None, month: int=None, year: int=None):
+        self.value = value
         self.by = by
-        self._calculated_result = None
+        self.days = days
+        self.month = month
+        self.year = year
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self._cached_data})"
+        return f"{self.__class__.__name__}(field={self.field_name})"
 
+    def resolve(self):
+        field = self.get_field_object()
+        field.resolve(self.value)
+        return field
+        
 
-class Substract(Calculate):
+class Substract(Math):
     """
-    Substracts a value from the incoming element
-
-    Parameters
-    ----------
-
-        Calculate ([type]): [description]
+    Substracts an incoming value to another
     """
     def resolve(self):
-        field_object = self.get_field_object()
-        self._calculated_result = field_object._cached_result - self.by
-        field_object.resolve(self._calculated_result)
+        field = super().resolve()
+        self._cached_data = field._cached_result - self.by
+        return self._cached_data
 
 
-class Add(Calculate):
+class Add(Math):
     """
-    Adds a value to the incoming element
-
-    Parameters
-    ----------
-
-        Calculate ([type]): [description]
+    Adds an incoming element to a value
     """
     def resolve(self):
-        field_object = self.get_field_object()
-        self._calculated_result = field_object._cached_result + self.by
-        field_object.resolve(self._calculated_result)
+        field = super().resolve()
+        self._cached_data = field._cached_result + self.by
+        return self._cached_data
 
 
-class Multiply(Calculate):
+class Multiply(Math):
     """
-    Adds a value to the incoming element
-
-    Parameters
-    ----------
-
-        Calculate ([type]): [description]
+    Multiplies an incoming element to a value
     """
 
     def resolve(self):
-        field_object = self.get_field_object()
-        self._calculated_result = field_object._cached_result * self.by
-        field_object.resolve(self._calculated_result)
+        field = super().resolve()
+        self._cached_data = field._cached_result * self.by
+        return self._cached_data
 
 
-class Divide(Calculate):
+class Divide(Math):
     """
-    Adds a value to the incoming element
-
-    Parameters
-    ----------
-
-        Calculate ([type]): [description]
+    Divides the incoming value by another
     """
 
     def resolve(self):
-        field_object = self.get_field_object()
-        self._calculated_result = field_object._cached_result / self.by
-        field_object.resolve(self._calculated_result)
+        field = super().resolve()
+        self._cached_data = field._cached_result / self.by
+        return self._cached_data
 
 
 class When:
@@ -199,58 +191,27 @@ class When:
         return result
 
 
-# class F:
-#     _cached_data = None
-#     model = None
-
+# class PositionMixin:
 #     def __init__(self, field: str):
 #         self.field_name = field
 
-#     def __repr__(self) -> str:
-#         return f"{self.__class__.__name__}({self._cached_data})"
+#     def get_field_cached_values(self):
+#         return self.model._cached_result.get(self.field_name)
 
-#     def __str__(self):
-#         return self._cached_data
 
-#     def __contains__(self, value):
-#         if self._cached_data.isnumeric():
-#             return self._cached_data == value
-#         return value in self._cached_data
-
-#     def __add__(self, value):
-#         return self._cached_data + value
-
-#     def __sub__(self, value):
-#         return self._cached_data - value
-
-#     def __div__(self, value):
-#         return self._cached_data / value
-
+# class Last(PositionMixin, ExpressionMixin):
 #     def resolve(self):
-#         field_object = self.model._get_field_by_name(self.field_name)
+#         cached_values = self.get_field_cached_values()
+#         return cached_values[-1]
 
 
-class PositionMixin:
-    def __init__(self, field: str):
-        self.field_name = field
-
-    def get_field_cached_values(self):
-        return self.model._cached_result.get(self.field_name)
-
-
-class Last(PositionMixin, ExpressionMixin):
-    def resolve(self):
-        cached_values = self.get_field_cached_values()
-        return cached_values[-1]
-
-
-class First(PositionMixin, ExpressionMixin):
-    def resolve(self):
-        cached_values = self.get_field_cached_values()
-        result = cached_values[:1]
-        if result:
-            return result[-1]
-        return None
+# class First(PositionMixin, ExpressionMixin):
+#     def resolve(self):
+#         cached_values = self.get_field_cached_values()
+#         result = cached_values[:1]
+#         if result:
+#             return result[-1]
+#         return None
 
 
 # class Latest:
@@ -261,34 +222,68 @@ class First(PositionMixin, ExpressionMixin):
 #     pass
 
 
-class Min(PositionMixin, ExpressionMixin):
-    def resolve(self):
-        cached_values = self.get_field_cached_values()
-        return min(cached_values)
+# class Min(PositionMixin, ExpressionMixin):
+#     def resolve(self):
+#         cached_values = self.get_field_cached_values()
+#         return min(cached_values)
 
 
-class Max(Min):
-    def resolve(self):
-        cached_values = self.get_field_cached_values()
-        return max(cached_values)
-
+# class Max(Min):
+#     def resolve(self):
+#         cached_values = self.get_field_cached_values()
+#         return max(cached_values)
 
 
 class DateExtractorMixin:
-    def __init__(self, name: str):
-        self.field_name = name
+    field_name = None
 
-    def resolve(self, value):
-        pass
+    def __init__(self, value: Any, output_field: Callable=None, date_format: str=None):
+        self.value = value
+        self.date = None
+        self.output_field = output_field
+        self.date_format = date_format
+
+    def resolve(self):
+        from zineb.models.fields import DateField
+
+        output_field = super().get_field_object()
+        if self.output_field is None:
+            self.output_field = output_field
+
+        resolution_field = None
+        if not isinstance(output_field, DateField):
+            resolution_field = DateField()
+
+        resolution_field.date_formats.add(self.date_format)
+        resolution_field.resolve(self.value)
+        
+        # if not isinstance(resolution_field._cached_result, datetime.datetime.date):
+        #     raise TypeError('Date should be a datetime object')
+        self._cached_data = resolution_field._cached_result
 
 
-class ExtractYear(DateExtractorMixin):
-    pass
+class ExtractYear(DateExtractorMixin, ExpressionMixin):
+    def resolve(self):
+        super().resolve()
+        return self._cached_data.year
 
 
-class ExtractMonth(DateExtractorMixin):
-    pass
+class ExtractMonth(DateExtractorMixin, ExpressionMixin):
+    def resolve(self):
+        super().resolve()
+        return self._cached_data.month
 
 
-class ExtractDay(DateExtractorMixin):
-    pass
+class ExtractDay(DateExtractorMixin, ExpressionMixin):
+    def resolve(self):
+        super().resolve()
+        return self._cached_data.day
+
+
+# class F(ExpressionMixin):
+#     def __init__(self, value):
+#         self.field = super().get_field_object()
+#         self.value = value
+
+#     def __add__(self, value):
+#         pass

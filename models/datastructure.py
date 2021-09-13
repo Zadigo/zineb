@@ -1,5 +1,6 @@
-import os
 import copy
+from zineb.models.expressions import ExpressionMixin
+import os
 import secrets
 from collections import OrderedDict, defaultdict
 from functools import cached_property
@@ -9,10 +10,11 @@ from bs4 import BeautifulSoup
 from pydispatch import dispatcher
 from zineb.exceptions import FieldError, ModelExistsError
 from zineb.http.responses import HTMLResponse
-from zineb.models.expressions import Calculate, When
-from zineb.models.fields import Field, Empty
+from zineb.models.expressions import Math, When
+from zineb.models.fields import Empty, Field
 from zineb.settings import settings
 from zineb.signals import signal
+# from zineb.utils.formatting import remap_to_dict
 
 
 class DataContainer:
@@ -132,17 +134,19 @@ class DataContainer:
         """
         Return collected values by removing the index part 
         in the tuple e.g [(1, ...), ...] becomes [..., ...]
-
-        Returns
-        -------
-
-            dict: 
         """
         container = {}
         for key, values in self.values.items():
             values_only = map(lambda x: x[-1], values)
             container.update({key: list(values_only)})
         return container
+
+    # def as_list(self):
+    #     """
+    #     Return a collection of dictionnaries
+    #     e.g. [{a: 1}, {a: 2}, ...]
+    #     """
+    #     return list(remap_to_dict(self.as_values()))
 
 
 class ModelRegistry:
@@ -472,7 +476,12 @@ class DataStructure(metaclass=Base):
 
             - name (str): the name of field on which to add a given value
             - value (Any): the value to add to the model
-        """    
+        """
+        if isinstance(value, (ExpressionMixin, Math)):
+            value.model = self
+            value.field_name = name
+            return self._cached_result.update(name, value.resolve())
+
         obj = self._get_field_by_name(name)
         obj.resolve(value)
         resolved_value = obj._cached_result
