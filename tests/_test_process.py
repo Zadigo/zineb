@@ -12,6 +12,7 @@
 # print(d.date())
 
 
+from zineb.models.constraints import UniqueConstraint
 from zineb.models.expressions import ExtractYear
 from zineb.models.datastructure import Model
 from zineb.models import fields
@@ -20,6 +21,9 @@ from zineb.models.expressions import Add
 class TestModel(Model):
     year = fields.DateField(default='*')
 
+    class Meta:
+        constraints = [
+            UniqueConstraint('name')
+        ]
+
 model = TestModel()
-model.add_value('year', ExtractYear('11-1-2021', output_field=fields.ListField()))
-print(model)
