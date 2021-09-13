@@ -274,8 +274,8 @@ class Base(type):
             descriptor.cached_fields = OrderedDict(declared_fields)
             attrs['_fields'] = descriptor
 
+        meta = ModelOptions([])
         if 'Meta' in attrs:
-            meta = ModelOptions([])
             meta_dict = attrs.pop('Meta').__dict__
             authorized_options = ['ordering']
             non_authorized_options = []
@@ -296,7 +296,7 @@ class Base(type):
                 raise ValueError("Meta received an illegal "
                 f"option. Valid options are: {', '.join(authorized_options)}")
             meta = meta(options)
-            attrs['_meta'] = meta
+        attrs['_meta'] = meta
 
         if declared_fields:
             # That's where is explicitely register
