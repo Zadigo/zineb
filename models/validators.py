@@ -3,7 +3,7 @@ from typing import Any, Callable, Tuple, Union
 
 from w3lib.url import is_url
 from zineb.exceptions import ValidationError
-
+from zineb.utils.conversion import convert_if_number
 
 def regex_compiler(pattern: str):
     def compiler(func: Callable[[Tuple], Any]):
@@ -94,8 +94,18 @@ class LengthValidator:
         self.constraint = constraint
 
     def __call__(self, value_to_test):
+        # On this validator, values come
+        # exclusively as a string but if
+        # the string contains a number, we
+        # need to get its true represention
+        # in order for the comparision to
+        # be valid
+        if value_to_test.isnumeric():
+            return convert_if_number(value_to_test)
+
         if isinstance(value_to_test, str):
             return self._get_string_length(value_to_test)
+            
         return value_to_test
 
     @staticmethod
