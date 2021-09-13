@@ -12,7 +12,7 @@ from w3lib.url import is_url, urljoin
 from zineb.extractors._mixins import MultipleRowsMixin
 from zineb.settings import settings as global_settings
 from zineb.utils.decoders import decode_email
-from zineb.utils.formatting import deep_clean
+from zineb.utils.characters import deep_clean
 from zineb.utils.paths import is_path
 from zineb.utils.iteration import keep_while
 
