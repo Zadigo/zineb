@@ -12,25 +12,14 @@
 # print(d.date())
 
 
-# from zineb.models.datastructure import Model
-# from zineb.models import fields
-# from zineb.models.expressions import When
-
-# class TestModel(Model):
-#     date = fields.IntegerField()
-
-# model = TestModel()
-# model.add_case(15, When('google__gt', 0))
-# print(model)
-
-from models.expressions import ExtractYear
+from zineb.models.expressions import ExtractYear
 from zineb.models.datastructure import Model
 from zineb.models import fields
 from zineb.models.expressions import Add
 
 class TestModel(Model):
-    dob = fields.RegexField(r'(\d+)', output_field=fields.CharField())
+    year = fields.DateField(default='*')
 
 model = TestModel()
-model.add_value('dob', Add('100€', 10))
+model.add_value('year', ExtractYear('11-1-2021', output_field=fields.ListField()))
 print(model)
