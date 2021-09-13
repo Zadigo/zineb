@@ -2,7 +2,7 @@ import os
 from collections import OrderedDict
 from importlib import import_module
 from os.path import basename
-
+from typing import Callable
 
 # NOTE: In order for certain commands to work when
 # testing ex. startproject myproject, in order for
@@ -29,7 +29,7 @@ def collect_commands():
     return complete_paths
 
 
-def load_command_class(name: str) -> Type:
+def load_command_class(name: str) -> Callable:
     """
     Loads each commands in the `management/commands` directory
     and then returns the Command class instance of a specific
