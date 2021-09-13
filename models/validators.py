@@ -111,12 +111,9 @@ class LengthValidator:
         Parameters
         ----------
 
-            value (Any): value to test
-            state (bool): result of the comparision
-            expected (bool): expected result from the comparision
-
-        Raises:
-            ValidationError: [description]
+            - value (Any): value to test
+            - state (bool): result of the comparision
+            - expected (bool): expected result from the comparision
         """
         if state != expected:
             message = self.error_message['length_error']
