@@ -62,11 +62,11 @@ def validate_extension(clean_value, extensions: list = []):
 
 
 def max_length_validator(a, b) -> bool:
-    return a > b
+    return a >= b
 
 
 def min_length_validator(a, b) -> bool:
-    return a < b
+    return a <= b
 
 
 @regex_compiler(r'^(\-?\d+[\W]\d?)(?=\%$)')
