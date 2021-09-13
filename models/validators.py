@@ -87,17 +87,16 @@ def validate_url(url: str):
 
 class LengthValidator:
     error_message = {
-        'length_error': "%(value)s does not respect the %(validator)s constraint"
+        'length_error': "'%(value)s' does not respect the %(validator)s constraint."
     }
 
     def __init__(self, constraint):
         self.constraint = constraint
 
     def __call__(self, value_to_test):
-        value_length = value_to_test
         if isinstance(value_to_test, str):
-            value_length = self._get_string_length(value_length)
-        return value_length
+            return self._get_string_length(value_to_test)
+        return value_to_test
 
     @staticmethod
     def _get_string_length(value):
