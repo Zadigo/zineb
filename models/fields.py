@@ -11,10 +11,10 @@ from w3lib.url import canonicalize_url, safe_download_url
 from zineb.exceptions import ValidationError
 from zineb.models import validators as model_validators
 from zineb.settings import settings
+from zineb.utils.characters import deep_clean
 from zineb.utils.conversion import convert_to_type, detect_object_in_string
-from zineb.utils.formatting import deep_clean
-from zineb.utils.images import download_image_from_url
 from zineb.utils.formatting import LazyFormat
+from zineb.utils.images import download_image_from_url
 
 
 class Empty:
@@ -508,17 +508,24 @@ class RegexField(Field):
         super().__init__(**kwargs)
 
     def resolve(self, value: str):
-        regexed_value = self.pattern.search(value)
-        if regexed_value:
-            result = regexed_value.group(self.group)
+        value = self._run_validation(value)
+        try:
+            # If the value is None, this raises and
+            # error, hence the try-catch function
+            regexed_value = self.pattern.search(value)
+        except TypeError:
+            self._cached_result = None
+        else:
+            if regexed_value:
+                result = regexed_value.group(self.group)
 
-            if self.output_field is not None:
-                if not isinstance(self.output_field, Field):
-                    raise TypeError((f"Output field should be a instance of " 
-                    "zineb.fields.Field. Got: {self.output_field}"))
-                self._cached_result = self.output_field.resolve(result)
-            else:
-                self._cached_result = result
+                if self.output_field is not None:
+                    if not isinstance(self.output_field, Field):
+                        raise TypeError((f"Output field should be a instance of " 
+                        "zineb.fields.Field. Got: {self.output_field}"))
+                    self._cached_result = self.output_field.resolve(result)
+                else:
+                    self._cached_result = result
 
 
 class BooleanField(Field):
