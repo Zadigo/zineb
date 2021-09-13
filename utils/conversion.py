@@ -145,3 +145,14 @@ def detect_object_in_string(value: Any):
 def convert_to_dataframe(data: Union[list, dict], columns: list=[]):
     import pandas
     return pandas.DataFrame(data=data, columns=columns)
+
+
+def convert_if_number(value: str):
+    try:
+        return int(value)
+    except:
+        return float(value)
+    else:
+        raise ValueError(
+            LazyFormat('Cannot convert {value} to number.', value=value)
+        )
