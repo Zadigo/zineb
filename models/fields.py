@@ -37,6 +37,8 @@ class Field:
 
     def __init__(self, max_length: int=None, null: bool=True, 
                  default: Union[str, int, float]=None, validators=[]):
+        self._meta_attributes = {'field_name': None}
+
         self.max_length = max_length
         self.null = null
 
