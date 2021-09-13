@@ -19,9 +19,7 @@ class ExpressionMixin:
                 f" retrieve the field object for '{self.field_name}'."))
             )
 
-        field = self.model._get_field_by_name(self.field_name)
-        field.resolve(self._cached_data)
-        return field
+        return self.model._get_field_by_name(self.field_name)
 
     def resolve(self):
         raise NotImplementedError('Expression resolution should be implement by child classes')
@@ -191,6 +189,53 @@ class When:
         return result
 
 
+class DateExtractorMixin:
+    lookup_name = None
+    field_name = None
+
+    def __init__(self, value: Any, output_field: Callable=None, date_format: str=None):
+        self.value = value
+        self.date = None
+        self.output_field = output_field
+        self.date_format = date_format
+
+    def resolve(self):
+        from zineb.models.fields import DateField
+
+        # IMPORTANT: In order to extract a year, a month
+        # a day... from the incoming value, we logically 
+        # should only get to deal with a DateField
+        source_field = super().get_field_object()
+        if not isinstance(source_field, DateField):
+            raise TypeError(LazyFormat('{field} should be an instance of DateField.', field=source_field))
+
+        if self.output_field is None:
+            self.output_field = source_field
+
+        source_field.date_formats.add(self.date_format)
+        source_field.resolve(self.value)
+
+        self._cached_data = source_field._cached_result
+        result = getattr(self._cached_data, self.lookup_name)
+        if isinstance(self.output_field, DateField):
+            return result
+        else:
+            self.output_field._simple_resolve(result, convert=True)
+            return self.output_field._cached_result
+
+
+class ExtractYear(DateExtractorMixin, ExpressionMixin):
+    lookup_name = 'year'
+
+
+class ExtractMonth(DateExtractorMixin, ExpressionMixin):
+    lookup_name = 'month'
+
+
+class ExtractDay(DateExtractorMixin, ExpressionMixin):
+    lookup_name = 'day'
+
+
 # class PositionMixin:
 #     def __init__(self, field: str):
 #         self.field_name = field
@@ -232,52 +277,6 @@ class When:
 #     def resolve(self):
 #         cached_values = self.get_field_cached_values()
 #         return max(cached_values)
-
-
-class DateExtractorMixin:
-    field_name = None
-
-    def __init__(self, value: Any, output_field: Callable=None, date_format: str=None):
-        self.value = value
-        self.date = None
-        self.output_field = output_field
-        self.date_format = date_format
-
-    def resolve(self):
-        from zineb.models.fields import DateField
-
-        output_field = super().get_field_object()
-        if self.output_field is None:
-            self.output_field = output_field
-
-        resolution_field = None
-        if not isinstance(output_field, DateField):
-            resolution_field = DateField()
-
-        resolution_field.date_formats.add(self.date_format)
-        resolution_field.resolve(self.value)
-        
-        # if not isinstance(resolution_field._cached_result, datetime.datetime.date):
-        #     raise TypeError('Date should be a datetime object')
-        self._cached_data = resolution_field._cached_result
-
-
-class ExtractYear(DateExtractorMixin, ExpressionMixin):
-    def resolve(self):
-        super().resolve()
-        return self._cached_data.year
-
-
-class ExtractMonth(DateExtractorMixin, ExpressionMixin):
-    def resolve(self):
-        super().resolve()
-        return self._cached_data.month
-
-
-class ExtractDay(DateExtractorMixin, ExpressionMixin):
-    def resolve(self):
-        super().resolve()
-        return self._cached_data.day
 
 
 # class F(ExpressionMixin):
