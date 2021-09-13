@@ -494,7 +494,7 @@ class DataStructure(metaclass=Base):
             # stored. In that case, we have to resolve to
             # the true value of the field. Otherwise the
             # user might get something unexpected
-            resolved_value = str(obj._cached_result.date())
+            resolved_value = str(obj._cached_result)
         
         self._cached_result.update(name, resolved_value)
 
