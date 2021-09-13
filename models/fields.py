@@ -113,11 +113,11 @@ class Field:
         for validator in self._validators:
             if not callable(validator):
                 raise TypeError('A Validator should be a callable.')
-
-            if validator_return_value is None:
-                validator_return_value = validator(value)
-            else:
-                validator_return_value = validator(validator_return_value)
+            try:
+                if validator_return_value is None:
+                    validator_return_value = validator(value)
+                else:
+                    validator_return_value = validator(validator_return_value)
             except:
                 message = ("A validation error occured on "
                 "field '{name}' with value '{value}'.")
@@ -155,12 +155,13 @@ class Field:
         not apply any kind of formatting (spaces, escape
         characters or HTML tags)
         """
-        self._cached_result = self._run_validation(clean_value)
-
         if convert:
             if dtype is None:
                 dtype = self._dtype
-            self._cached_result = self._to_python_object(self._cached_result)
+            self._cached_result = self._to_python_object(clean_value)
+            # self._cached_result = self._to_python_object(self._cached_result)
+
+        self._cached_result = self._run_validation(self._cached_result)
         return self._cached_result
 
     def resolve(self, value: Any, convert: bool=False, dtype: Any=None):
@@ -373,7 +374,8 @@ class DateFieldsMixin:
                     break
         
         if d is None:
-            message = LazyFormat('Could not find a valid format for date ({d}).', d=result)
+            message = LazyFormat("Could not find a valid format for "
+            "date '{d}' on field '{name}'.", d=result, name=self._meta_attributes.get('field_name'))
             raise ValidationError(message)
         return d.date()
 
@@ -422,23 +424,12 @@ class FunctionField(Field):
     its result to a set of different custom definitions
     before returning the final value
 
-    Example
-    -------
-
-            def addition(value):
-                return value + 1
-
-            class MyModel(Model):
-                age = Function(NumberField(), addition)
-
-    Args:
+    Parameters
+    ----------
+    
         output_field (Field, optional): [description]. Defaults to None.
         default (Any, optional): [description]. Defaults to None.
         validators (Validators, optional): [description]. Defaults to [].
-
-    Raises:
-        TypeError: [description]
-        TypeError: [description]
     """
     name = 'function'
 
