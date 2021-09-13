@@ -316,8 +316,9 @@ class IntegerField(Field):
     name = 'integer'
     _dtype = int
 
-    def __init__(self, default: Any=None, min_value: int=None, max_value: int=None):
-        super().__init__(default=default)
+    def __init__(self, default: Any=None, min_value: int=None, 
+                 max_value: int=None, validators: list=[]):
+        super().__init__(default=default, validators=validators)
 
         if min_value is not None:
             self._validators.add(model_validators.MinLengthValidator(min_value))
