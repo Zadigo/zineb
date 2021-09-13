@@ -80,7 +80,7 @@ def check_or_convert_to_type(value: Any, object_to_check_against: Union[int, flo
     return value
 
 
-def convert_to_type(value: Any, t: Union[int, str, bool, list, tuple]):
+def convert_to_type(value: Any, t: Union[int, str, bool, list, tuple], field_name=None):
     from zineb.models.fields import Empty
 
     if value is None or value == Empty:
@@ -89,10 +89,12 @@ def convert_to_type(value: Any, t: Union[int, str, bool, list, tuple]):
     try:
         return t(value)
     except Exception:
-        attrs = {'value': value, 't': t, 'type1': type(value), 'type2': t}
+        attrs = {'value': value, 't': t, 
+                'type1': type(value), 'type2': t, 
+                    'name': field_name}
         raise ValueError(
-            LazyFormat('The value {value} does not match the type provided '
-            'in {t}. Got {type1} instead of {type2}', **attrs)
+            LazyFormat("The value '{value}' does not match the type provided "
+            "in {t}. Got {type1} instead of {type2} for model field '{name}'.", **attrs)
         )
 
 
