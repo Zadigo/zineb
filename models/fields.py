@@ -122,20 +122,6 @@ class Field:
         Subclasses should implement their own resolve function
         with it's own custom logic because definition a more
         standardized resolution
-
-        Parameters
-        ----------
-
-                value (str, int, float): a valid python object
-                convert (bool): convert the value to it's true Pyhon
-                                representation. Default to False
-                dtype (str, int, float, list, set, dict): the type to
-                                which the value should be converted to
-
-        Returns
-        -------
-
-                str, int, float, dict, set: a valid python object
         """
         # Deal with true empty values that
         # are factually None but get passed
