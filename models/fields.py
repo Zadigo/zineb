@@ -60,6 +60,14 @@ class Field:
         if not self.null:
             self._validators.add(model_validators.validate_is_not_null)
 
+    def _bind(self, field_name, model=None):
+        # Bind the field's name on the model
+        # to the current field instance
+        self._meta_attributes.update(field_name=field_name)
+        current_model = self._meta_attributes.get('model', None)
+        if current_model is None and model is not None:
+            self._meta_attributes['model'] = model
+
     def _true_value_or_default(self, value):
         if self.default is not None and value is None:
             return self.default
@@ -85,7 +93,7 @@ class Field:
             Any: [description]
         """
         dtype = use_dtype or self._dtype
-        return convert_to_type(value, t=dtype)
+        return convert_to_type(value, t=dtype, field_name=self._meta_attributes.get('field_name'))
 
     def _run_validation(self, value):
         # Default values should be validated

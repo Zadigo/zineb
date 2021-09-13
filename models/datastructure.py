@@ -265,9 +265,10 @@ class Base(type):
             return super_new(cls, name, bases, attrs)
 
         declared_fields = set()
-        for key, item in attrs.items():
-            if isinstance(item, Field):
-                declared_fields.add((key, item))
+        for key, field_obj in attrs.items():
+            if isinstance(field_obj, Field):
+                field_obj._bind(key)
+                declared_fields.add((key, field_obj))
 
         if declared_fields:
             descriptor = FieldDescriptor()
