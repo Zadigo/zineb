@@ -37,6 +37,8 @@ class Field:
 
     def __init__(self, max_length: int=None, null: bool=True, 
                  default: Union[str, int, float]=None, validators=[]):
+        self._meta_attributes = {'field_name': None}
+
         self.max_length = max_length
         self.null = null
 
@@ -59,6 +61,14 @@ class Field:
 
         if not self.null:
             self._validators.add(model_validators.validate_is_not_null)
+
+    def _bind(self, field_name, model=None):
+        # Bind the field's name on the model
+        # to the current field instance
+        self._meta_attributes.update(field_name=field_name)
+        current_model = self._meta_attributes.get('model', None)
+        if current_model is None and model is not None:
+            self._meta_attributes['model'] = model
 
     def _true_value_or_default(self, value):
         if self.default is not None and value is None:
@@ -85,7 +95,7 @@ class Field:
             Any: [description]
         """
         dtype = use_dtype or self._dtype
-        return convert_to_type(value, t=dtype)
+        return convert_to_type(value, t=dtype, field_name=self._meta_attributes.get('field_name'))
 
     def _run_validation(self, value):
         # Default values should be validated
@@ -103,12 +113,20 @@ class Field:
         for validator in self._validators:
             if not callable(validator):
                 raise TypeError('A Validator should be a callable.')
-
-            if validator_return_value is None:
-                validator_return_value = validator(value)
-            else:
-                validator_return_value = validator(validator_return_value)
-        return validator_return_value or value
+            try:
+                if validator_return_value is None:
+                    validator_return_value = validator(value)
+                else:
+                    validator_return_value = validator(validator_return_value)
+            except:
+                message = ("A validation error occured on "
+                "field '{name}' with value '{value}'.")
+                raise Exception(
+                    LazyFormat(message, name=self._meta_attributes.get('field_name'), value=value)
+                )
+        if self._validators:
+            return validator_return_value
+        return value
 
     def _check_emptiness(self, value):
         """
@@ -138,11 +156,12 @@ class Field:
         characters or HTML tags)
         """
         self._cached_result = self._run_validation(clean_value)
-
+        
         if convert:
             if dtype is None:
                 dtype = self._dtype
             self._cached_result = self._to_python_object(self._cached_result)
+
         return self._cached_result
 
     def resolve(self, value: Any, convert: bool=False, dtype: Any=None):
@@ -308,8 +327,9 @@ class IntegerField(Field):
     name = 'integer'
     _dtype = int
 
-    def __init__(self, default: Any=None, min_value: int=None, max_value: int=None):
-        super().__init__(default=default)
+    def __init__(self, default: Any=None, min_value: int=None, 
+                 max_value: int=None, validators: list=[]):
+        super().__init__(default=default, validators=validators)
 
         if min_value is not None:
             self._validators.add(model_validators.MinLengthValidator(min_value))
@@ -354,7 +374,8 @@ class DateFieldsMixin:
                     break
         
         if d is None:
-            message = LazyFormat('Could not find a valid format for date ({d}).', d=result)
+            message = LazyFormat("Could not find a valid format for "
+            "date '{d}' on field '{name}'.", d=result, name=self._meta_attributes.get('field_name'))
             raise ValidationError(message)
         return d.date()
 
@@ -403,23 +424,12 @@ class FunctionField(Field):
     its result to a set of different custom definitions
     before returning the final value
 
-    Example
-    -------
-
-            def addition(value):
-                return value + 1
-
-            class MyModel(Model):
-                age = Function(NumberField(), addition)
-
-    Args:
+    Parameters
+    ----------
+    
         output_field (Field, optional): [description]. Defaults to None.
         default (Any, optional): [description]. Defaults to None.
         validators (Validators, optional): [description]. Defaults to [].
-
-    Raises:
-        TypeError: [description]
-        TypeError: [description]
     """
     name = 'function'
 

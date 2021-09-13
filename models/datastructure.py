@@ -265,17 +265,18 @@ class Base(type):
             return super_new(cls, name, bases, attrs)
 
         declared_fields = set()
-        for key, item in attrs.items():
-            if isinstance(item, Field):
-                declared_fields.add((key, item))
+        for key, field_obj in attrs.items():
+            if isinstance(field_obj, Field):
+                field_obj._bind(key)
+                declared_fields.add((key, field_obj))
 
         if declared_fields:
             descriptor = FieldDescriptor()
             descriptor.cached_fields = OrderedDict(declared_fields)
             attrs['_fields'] = descriptor
 
+        meta = ModelOptions([])
         if 'Meta' in attrs:
-            meta = ModelOptions([])
             meta_dict = attrs.pop('Meta').__dict__
             authorized_options = ['ordering']
             non_authorized_options = []
@@ -296,7 +297,7 @@ class Base(type):
                 raise ValueError("Meta received an illegal "
                 f"option. Valid options are: {', '.join(authorized_options)}")
             meta = meta(options)
-            attrs['_meta'] = meta
+        attrs['_meta'] = meta
 
         if declared_fields:
             # That's where is explicitely register
@@ -493,7 +494,7 @@ class DataStructure(metaclass=Base):
             # stored. In that case, we have to resolve to
             # the true value of the field. Otherwise the
             # user might get something unexpected
-            resolved_value = str(obj._cached_result.date())
+            resolved_value = str(obj._cached_result)
         
         self._cached_result.update(name, resolved_value)
 

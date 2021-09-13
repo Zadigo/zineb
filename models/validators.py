@@ -3,7 +3,7 @@ from typing import Any, Callable, Tuple, Union
 
 from w3lib.url import is_url
 from zineb.exceptions import ValidationError
-
+from zineb.utils.conversion import convert_if_number
 
 def regex_compiler(pattern: str):
     def compiler(func: Callable[[Tuple], Any]):
@@ -62,11 +62,11 @@ def validate_extension(clean_value, extensions: list = []):
 
 
 def max_length_validator(a, b) -> bool:
-    return a > b
+    return a >= b
 
 
 def min_length_validator(a, b) -> bool:
-    return a < b
+    return a <= b
 
 
 @regex_compiler(r'^(\-?\d+[\W]\d?)(?=\%$)')
@@ -87,17 +87,26 @@ def validate_url(url: str):
 
 class LengthValidator:
     error_message = {
-        'length_error': "%(value)s does not respect the %(validator)s constraint"
+        'length_error': "'%(value)s' does not respect the %(validator)s constraint."
     }
 
     def __init__(self, constraint):
         self.constraint = constraint
 
     def __call__(self, value_to_test):
-        value_length = value_to_test
+        # On this validator, values come
+        # exclusively as a string but if
+        # the string contains a number, we
+        # need to get its true represention
+        # in order for the comparision to
+        # be valid
+        if value_to_test.isnumeric():
+            return convert_if_number(value_to_test)
+
         if isinstance(value_to_test, str):
-            value_length = self._get_string_length(value_length)
-        return value_length
+            return self._get_string_length(value_to_test)
+            
+        return value_to_test
 
     @staticmethod
     def _get_string_length(value):
@@ -111,12 +120,9 @@ class LengthValidator:
         Parameters
         ----------
 
-            value (Any): value to test
-            state (bool): result of the comparision
-            expected (bool): expected result from the comparision
-
-        Raises:
-            ValidationError: [description]
+            - value (Any): value to test
+            - state (bool): result of the comparision
+            - expected (bool): expected result from the comparision
         """
         if state != expected:
             message = self.error_message['length_error']
