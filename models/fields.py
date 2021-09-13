@@ -118,7 +118,15 @@ class Field:
                 validator_return_value = validator(value)
             else:
                 validator_return_value = validator(validator_return_value)
-        return validator_return_value or value
+            except:
+                message = ("A validation error occured on "
+                "field '{name}' with value '{value}'.")
+                raise Exception(
+                    LazyFormat(message, name=self._meta_attributes.get('field_name'), value=value)
+                )
+        if self._validators:
+            return validator_return_value
+        return value
 
     def _check_emptiness(self, value):
         """
