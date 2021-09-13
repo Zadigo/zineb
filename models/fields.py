@@ -155,13 +155,13 @@ class Field:
         not apply any kind of formatting (spaces, escape
         characters or HTML tags)
         """
+        self._cached_result = self._run_validation(clean_value)
+        
         if convert:
             if dtype is None:
                 dtype = self._dtype
-            self._cached_result = self._to_python_object(clean_value)
-            # self._cached_result = self._to_python_object(self._cached_result)
+            self._cached_result = self._to_python_object(self._cached_result)
 
-        self._cached_result = self._run_validation(self._cached_result)
         return self._cached_result
 
     def resolve(self, value: Any, convert: bool=False, dtype: Any=None):
