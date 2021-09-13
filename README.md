@@ -23,11 +23,11 @@ def start(self, response, **kwargs):
 To create a project do `python -m zineb start_project <project name>` which will create a directory which will have the following structure.
 
 .myproject
-|
-|--media
-|
-|-- models
-|-- base.py
+    |
+    |--media
+    |
+    |-- models
+        |-- base.py
 |
 |-- __init__.py
 |
@@ -100,13 +100,13 @@ This option writer as `verbose_name` will specific a different name to your spid
 
 #### Start
 
-Triggers the execution of all the spiders present in the given the project. This command will be the main one that you will be using to execute your project.
+Triggers the execution of all the spiders present in the given the project.
 
 #### Shell
 
 Start a iPython shell on which you can test various elements on the HTML page.
 
-When the shell is started, the `zineb.http.HTTPRequest`, the `zineb.response.HTMLResponse`, and the BeautifulSoup instance of the page are all injected in the shell.
+When the shell is started, the `zineb.http.HTTPRequest`, the `zineb.response.HTMLResponse`, and the BeautifulSoup instance of the page are injected.
 
 Extractors are passed using aliases:
 
@@ -117,7 +117,7 @@ Extractors are passed using aliases:
 
 The extractors are also all passed within the shell in addition to the project settings.
 
-In that regards, the shell becomes a interesting place where you can test various querying on an HTML page before using it in your project. For example, using the shell with http://example.com.
+In that regards, the shell becomes a interesting place where you can test various querying before using it in your project. For example, using the shell with `http://example.com`.
 
 We can get a simple url :
 
@@ -151,7 +151,7 @@ In [6]: response.page_title
 Out [6]: 'Example Domain'
 ```
 
-Remember that in addition to the custom functions created for the class, all the rest called on `zineb.response.HTMLResponse` are BeautifulSoup functions (find, find_all, find_next...)
+Remember that in addition to the custom functions created for the class, all the rest called on `zineb.response.HTMLResponse` are BeautifulSoup ones (find, find_all, find_next, next_sibling...)
 
 ## Queries on the page
 
@@ -259,7 +259,7 @@ class Spider(FileCrawler):
 You might have thousands of files and certainly might not want to reference each file one by one. You can then also use a utility function `collect_files`.
 
 ```
-from zineb.utils.general import collect_files
+from zineb.utils.iterator import collect_files
 
 class Spider(FileCrawler):
     start_files = collect_files("media/folder")
@@ -269,7 +269,7 @@ Read more on `collect_files` [here](#-File-collection).
 
 # Models
 
-Models are a simple way to structure your scrapped data before saving them to a file. The Model class is built around Panda's excellent DataFrame class in order to simplify as a much as possible the fact of dealing with your data.
+Models are a simple way to structure your scrapped data before saving them to a file.
 
 ## Creating a custom Model
 
@@ -277,17 +277,17 @@ In order to create a model, subclass the Model object from `zineb.models.Model` 
 
 ```
 from zineb.models.datastructure import Model
-from zineb.models.fields import CharField
+from zineb.models import fields
 
 class Player(Model):
-    name = CharField()
+    name = fields.CharField()
+    date_of_birth = fields.DateField()
+    height = fields.IntegerField()
 ```
 
 ### Using the custom model
 
 On its own, a model does nothing. In order to make it work, you have to add values to it and then resolve the fields.
-
-You can add values to your model in two main ways.
 
 #### Adding a free custom value
 
@@ -302,13 +302,32 @@ player.add_value('name', 'Kendall Jenner')
 Addind expression based values requires a BeautifulSoup HTML page object. You can add one value at a time.
 
 ````
-player.add_using_expression("name", "a", attrs={"class": "title"})
+player.add_using_expression(''name', 'a', attrs={'class': 'title'})
 ````
+
+#### Add case based values
+
+If you want to add a value to the model based on certain conditions, use `add_case` in combination wih an expression class.
+
+For instance, suppose you are scrapping a fashion website and for certain prices, let's say 25 you want to replace them by 25.5.
+
+```
+from zineb.models.expressions import When
+
+my_model.add_case(25, When('price__eq=25', 25.5))
+```
 
 #### Adding multiple values with expressions
 
-
 #### Adding calculated values
+
+If you wish to operate a calculation on a field before passing to your model, you can use expression classes in combination with the `add_calculated_value`.
+
+```
+from zineb.models.expressions import Add
+
+my_model.add_calculatd_value('price', Add(25, 5))
+```
 
 #### Adding related values
 
@@ -340,9 +359,9 @@ This will insert date of birth based on the DateField and then insert another on
 By adding a Meta to your model, you can pass custom behaviours.
 
 * Ordering
-* Indexing
+* Constraints
 
-### Indexes
+### Constraints
 
 ### Ordering
 
@@ -363,38 +382,47 @@ Fields are a very simple way to passing HTML data to your model in a very struct
 - DateField
 - AgeField
 - FunctionField
-- ArrayField
 - CommaSeparatedField
+- ListField
+- BooleanField
 
 ### How fields work
 
-The `resolve` function is called on the field instance which turn stores the resulting value within it.
+Each fields comes with a  `resolve` function when called stores the resulting value within itself.
 
 By default, the resolve function will do the following things.
 
-First, it will run all cleaning functions on the original value for example by stripping tags like "<" or ">".
+First, it will run all cleaning functions on the original value for example by stripping tags like "<" or ">" which normalizes the value before additional processing.
 
 Second, a `deep_clean` method is run on the result by taking out out any useless spaces, removing escape characters and finally reconstructing the value to ensure that any none-detected white space be eliminated.
 
-Finally, all the registered validators (default and custom created) are called.
+Finally, all the registered validators (default and custom) are called on the final value.
 
 ### CharField
 
-The CharField represents the normal character element on an HTML page. You constrain the length.
+The CharField represents the normal character element on an HTML page.
+
+`CharField(max_length=None, null=None, default=None, validators=[])`
 
 ### TextField
 
 The text field is longer which allows you then to add paragraphs of text.
 
+`TextField(max_length=None, null=None, default=None, validators=[])`
+
 ### NameField
 
-The name field allows to implement names in your model. The `title` method is called on the string in order to represent the value correctly e.g. Kendall Jenner.
+The name field allows you to implement capitalized text in your model. The `title` method is called on the string in order to represent the value correctly e.g. Kendall Jenner.
+
+`NameField(max_length=None, null=None, default=None, validators=[])`
 
 ### EmailField
 
 The email field represents emails. The default validator, `validators.validate_email`, is automatically called on the resolve function fo the class in order to ensure that that the value is indeed an email.
 
 - `limit_to_domains`: Check if email corresponds to the list of specified domains
+
+`EmailField(limit_to_domains=[], max_length=None, null=None, default=None, validators=[])`
 
 ### UrlField
 
@@ -467,7 +495,7 @@ Every time the resolve function will be called on this field, the methods provid
 
 An output field is not compulsory but if not provided, each value will be returned as a character.
 
-### ArrayField
+### ListField
 
 An array field will store an array of values that are all evalutated to an output field that you would have specified.
 
@@ -479,9 +507,21 @@ Create a comma separated field in your model.
 
 __N.B.__ Note that the value of a CommaSeperatedField is implemented as is in the final DataFrame. Make sure you are using this field correctly in order to avoid unwanted results.
 
+### RegexField
+
+Parse an element within a given value using a regex expression before storing it in your model.
+
+```
+RegexField(r'(\d+)(?<=\€)')
+```
+
+### BooleanField
+
+Adds a boolean based value to your model. Uses classic boolean represenations such as `on, off, 1, 0, True, true, False or false` to resolve the value.
+
 ### Creating your own field
 
-You an also create a custom field by suclassing `zineb.models.fields.Field`. When doing so, your custom field has to provide a `resolve` function in order to determine how the value should be treated. For example:
+You an also create a custom field by suclassing `zineb.models.fields.Field`. When doing so, your custom field has to provide a `resolve` function in order to determine how the value should be parsed.
 
 ```
 class MyCustomField(Field):
@@ -491,7 +531,7 @@ class MyCustomField(Field):
         # Rest of your code here
 ```
 
-If you want to use the cleaning functionalities from the super class in your own resolve function, make sure to call super beforehand as indicated above.
+__NOTE:__ If you want to use the cleaning functionalities from the super class in your own resolve function, make sure to call super beforehand as indicated above.
 
 ## Validators [initial validators]
 
@@ -504,11 +544,11 @@ Validators make sure that the value that was passed respects the constraints tha
 
 ### Maximum or Minimum length
 
-The maximum or minimum length check ensures that the value does not exceed a certain length using `zineb.models.validators.max_length_validator` or `zineb.models.validators.min_length_validator` which are encapsulated and used within the `zineb.models.validators.MinLengthValidator` or `zineb.models.validators.MaxLengthValidator` class.
+The maximum or minimum length check ensures that the value does not exceed a certain length using `validators.max_length_validator` or `validators.min_length_validator`.
 
 ### Nullity
 
-The nullity validation ensures that the value is not null and that if a default is provided, that null value be replaced by the latter. It uses `zineb.models.validators.validate_is_not_null`.
+The nullity validation ensures that the value is not null and that if a default is provided, that null value be replaced by the latter. It uses `validators.validate_is_not_null`.
 
 The defaultness provides a default value for null or none existing ones.
 
@@ -556,7 +596,7 @@ class Player(Model):
     age = IntegerField(validators=[custom_validator])
 ```
 
-IN this specific situation, it is important to understand that the result of the regex compiler is reinjected into your custom validator on which you can then do various other checks.
+__NOTE:__ It is important to understand that the result of the regex compiler is reinjected into your custom validator on which you can then do various other checks.
 
 #### Field resolution
 
@@ -566,7 +606,7 @@ In order to get the complete structured data, you need to call `resolve_values` 
 player.add_value("name", "Kendall Jenner")
 player.resolve_values()
 
-    -> pandas.DataFrame
+-> pandas.DataFrame
 ```
 
 Practically though, you'll be using the `save` method which also calls the `resolve_values` under the hood:
@@ -574,14 +614,42 @@ Practically though, you'll be using the `save` method which also calls the `reso
 ```
 player.save(commit=True, filename=None, **kwargs)
 
-    -> pandas.DataFrame or new file
+-> pandas.DataFrame or new file
 ```
 
 By calling the save method, you'll be able to store the data directly to a JSON or CSV file.
 
+## Expressions
+
+Expressions a built-in functions that can modify the incoming value in some kind of way before storing to your model.
+
+### Math
+
+Run a calculation such as addition, substraction, division or multiplication on the value.
+
+```
+from zineb.models.expressions import Add
+
+player.add_calculated_field('height', Add(175, 5))
+
+-> {'height': [180]}
+```
+
+### ExtractYear, ExtractDate, ExtractDay
+
+From a date string, extract the year, the date or the day.
+
+```
+from zineb.models.expressions import ExtractYear
+
+player.add_value('competition_year', ExtractYear('11-1-2021'))
+
+-> {'competition_year': [2021]}
+```
+
 # Extractors
 
-Extractors are utilities that facilitates extracting certain specific pieces of data from a web page such as links, images [...] quickly. They can be found in `zineb.extactors`.
+Extractors are utilities that facilitates extracting certain specific pieces of data from a web page such as links, images [...] quickly.
 
 Some extractors can be used in various manners. First, with a context processor:
 
@@ -734,91 +802,6 @@ The signals function has to be able to accept a `sender` object and additional p
 
 You custom signals do not have to return anything.
 
-# Pipelines
-
-Pipelines are a great way to send chained requests to the internet or treat a set of responses by processing them afterwards through a set of functions of your choice.
-
-Some Pipeplines are also perfect for donwloading images.
-
-## ResponsesPipeline
-
-The response pipepline allows you to chain a group of responses and treat all of them at once through a function:
-
-```
-from zineb.http.pipelines import ResponsesPipeline
-
-pipeline = ResponsesPipeline([response1, response2], [function1, function2])
-pipeline.results
-    -> list
-```
-
-It comes with three main parameters:
-
-* `responses` - which corresponds to a list of HTMLResponses
-* `functions` - a list of functions to pass each individual response and additional parameters
-* `paramaters` - a set of additional parameters to pass to the functions
-
-The best way to use the ResponsesPipeline is within the functions of your custom spider:
-
-```
-class MySpider(Zineb):
-   start_urls = ["https://example.com"]
-
-   def start(self, response, soup=None, **kwargs):
-       extractor = LinksExtractor()
-       extractor.resolve(soup)
-       responses = request.follow_all(*list(extractor))
-       ResponsesPipeline(responses, [self.do_something_here])
-
-   def do_something_here(self, response, soup=None, **kwargs):
-       # Continue parsing data here
-```
-
-**N.B.** Each function is executed sequentially. So, the final result will come from the final function of the list
-
-## HTTPPipeline
-
-This pipeline takes a set of urls, creates HTTPResquests for each of them and then sends them to the internet.
-
-If you provided a set of functions, it will pass each request through them.
-
-````
-from zineb.http.pipelines import HTTPPipeline
-from zineb.utils.general import download_image
-
-HTTPPipeline([https://example.com], [download_image])
-````
-
-Each function should be able to accept an HTTP Response object.
-
-You can also pass additional parameters to your functions by doing the following:
-
-```
-HTTPPipeline([https://example.com], [download_image], parameters={'extra': False})
-```
-
-In this specific case, your function should accept an `extra` parameter which result would be False.
-
-## Callback
-
-The Callback class allows you to run a callback function once each url is processed and passed through the main start function of your spider.
-
-The `__call__` method is triggerd on the instance in order to resolve the function to use.
-
-```
-class Spider(Zineb):
-    start_urls = ["https://example.com"]
-
-    def start(self, response, **kwargs):
-        request = kwargs.get("request")
-        model = MyModel()
-        return Callback(request.follow, self.another_function, model=model)
-
-    def another_function(self, response, **kwargs):
-        model = kwargs.get("model")
-        model.add_value("name", "Kendall Jenner")
-        model.save()
-```
 
 # Utilities
 
@@ -935,3 +918,8 @@ Specificies the amount of times the the request is sent before eventually failin
 **RETRY_HTTP_CODES**
 
 Indicates which status codes should trigger a retry. By default, the following codes: 500, 502, 503, 504, 522, 524, 408 and 429 will trigger it.
+
+###### TIME_ZONE
+
+
+

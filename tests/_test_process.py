@@ -1,17 +1,3 @@
-# a = {'a': [1, 2], 'b': 1}
-
-# def test():
-#     for key, values in a.items():
-#         if isinstance(values, (list, tuple)):
-#             for value in values:
-#                 yield {key: value}
-#         else:
-#             yield {key: values}
-
-# from collections.abc import Mapping, MutableMapping, KeysView
-# from typing import OrderedDict
-
-
 # import datetime
 
 # import pytz
@@ -26,13 +12,25 @@
 # print(d.date())
 
 
+# from zineb.models.datastructure import Model
+# from zineb.models import fields
+# from zineb.models.expressions import When
+
+# class TestModel(Model):
+#     date = fields.IntegerField()
+
+# model = TestModel()
+# model.add_case(15, When('google__gt', 0))
+# print(model)
+
+from models.expressions import ExtractYear
 from zineb.models.datastructure import Model
 from zineb.models import fields
-from zineb.models.expressions import When
+from zineb.models.expressions import Add
 
 class TestModel(Model):
-    date = fields.IntegerField()
+    dob = fields.RegexField(r'(\d+)', output_field=fields.CharField())
 
 model = TestModel()
-model.add_case(15, When('google__gt', 0))
+model.add_value('dob', Add('100€', 10))
 print(model)
