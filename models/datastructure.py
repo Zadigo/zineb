@@ -1,18 +1,20 @@
+import copy
+from zineb.models.expressions import ExpressionMixin
 import os
 import secrets
 from collections import OrderedDict, defaultdict
 from functools import cached_property
-from typing import Any, List, Union
+from typing import Any, Callable, List, Union
 
 from bs4 import BeautifulSoup
 from pydispatch import dispatcher
 from zineb.exceptions import FieldError, ModelExistsError
 from zineb.http.responses import HTMLResponse
-from zineb.models.expressions import Calculate, When
-from zineb.models.fields import Field
-from zineb.models.functions import Function
+from zineb.models.expressions import Math, When
+from zineb.models.fields import Empty, Field
 from zineb.settings import settings
 from zineb.signals import signal
+# from zineb.utils.formatting import remap_to_dict
 
 
 class DataContainer:
@@ -43,13 +45,12 @@ class DataContainer:
         # parameter from reinstantiating with
         # the names when using this class,
         # we'll always use a new instance
-        # of this class.
         for name in names:
             cls.values[name]
         instance = cls()
         setattr(instance, 'names', list(names))
         return instance
-
+        
     @property
     def _last_id(self) -> int:
         """
@@ -92,6 +93,9 @@ class DataContainer:
             name (str): name of the field to update
             value (Any): value to add
         """
+        if value == Empty:
+            value = None
+
         def row_generator():
             for _, field_name in enumerate(self.names, start=1):
                 if name == field_name:
@@ -130,17 +134,19 @@ class DataContainer:
         """
         Return collected values by removing the index part 
         in the tuple e.g [(1, ...), ...] becomes [..., ...]
-
-        Returns
-        -------
-
-            dict: 
         """
         container = {}
         for key, values in self.values.items():
             values_only = map(lambda x: x[-1], values)
             container.update({key: list(values_only)})
         return container
+
+    # def as_list(self):
+    #     """
+    #     Return a collection of dictionnaries
+    #     e.g. [{a: 1}, {a: 2}, ...]
+    #     """
+    #     return list(remap_to_dict(self.as_values()))
 
 
 class ModelRegistry:
@@ -184,22 +190,24 @@ class FieldDescriptor:
 
     cached_fields = OrderedDict()
     
-    def __getitem__(self, key) -> Field:
-        return self.cached_fields[key]
+    def __getitem__(self, name) -> Field:
+        return self.get_field(name)
 
     @cached_property
     def field_names(self):
         return list(self.cached_fields.keys())
 
+    def get_field(self, name) -> Field:
+        try:
+            return self.cached_fields[name]
+        except:
+            raise FieldError(name, self.field_names)
+
 
 class ModelOptions:
-    """A container that stores all the options
-    of a given model
-
-    Parameters
-    ----------
-
-        - options (Union[List[tuple[str]], dict]): list of options
+    """
+    A container that stores the options
+    of a given model Meta
     """
     def __init__(self, options: Union[List[tuple[str]], dict]):
         self.cached_options = OrderedDict(options)
@@ -225,9 +233,9 @@ class ModelOptions:
             ]
 
             # Convert each ordering field on the
-            # model Booleans. This is what a
-            # DataFrame accepts in or to order
-            # the data
+            # model to Booleans. This is what a
+            # DataFrame accepts in order to sort
+            # a particular column
             def convert_to_boolean(value):
                 if value.startswith('-'):
                     return False
@@ -256,47 +264,45 @@ class Base(type):
         if not parents:
             return super_new(cls, name, bases, attrs)
 
-        if name != 'Model':
-            # Normally, we should have all the fields
-            # and/or remaining methods of the class
-            declared_fields = set()
-            for key, item in attrs.items():
-                if isinstance(item, Field):
-                    declared_fields.add((key, item))
+        declared_fields = set()
+        for key, item in attrs.items():
+            if isinstance(item, Field):
+                declared_fields.add((key, item))
 
+        if declared_fields:
             descriptor = FieldDescriptor()
             descriptor.cached_fields = OrderedDict(declared_fields)
+            attrs['_fields'] = descriptor
 
+        if 'Meta' in attrs:
             meta = ModelOptions([])
-            if 'Meta' in attrs:
-                # TODO: If the user does not pass
-                # a 'class Meta', this could be a
-                # serious issue and break
-                meta_dict = attrs.pop('Meta').__dict__
-                authorized_options = ['ordering']
-                non_authorized_options = []
+            meta_dict = attrs.pop('Meta').__dict__
+            authorized_options = ['ordering']
+            non_authorized_options = []
 
-                def check_option(item):
-                    key, _ = item
-                    if key.startswith('__'):
-                        return False
-
-                    if key in authorized_options:
-                        return True
-                    
-                    non_authorized_options.append(key)
+            def check_option(item):
+                key, _ = item
+                if key.startswith('__'):
                     return False
 
-                options = list(filter(check_option, meta_dict.items()))
-                if non_authorized_options:
-                    raise ValueError("Meta received an illegal "
-                    f"option. Valid options are: {', '.join(authorized_options)}")
-                meta = meta(options)
+                if key in authorized_options:
+                    return True
+                
+                non_authorized_options.append(key)
+                return False
 
+            options = list(filter(check_option, meta_dict.items()))
+            if non_authorized_options:
+                raise ValueError("Meta received an illegal "
+                f"option. Valid options are: {', '.join(authorized_options)}")
+            meta = meta(options)
+            attrs['_meta'] = meta
+
+        if declared_fields:
+            # That's where is explicitely register
+            # models that have declared fields and
+            # that are actually user created models
             new_class = super_new(cls, name, bases, attrs)
-            setattr(new_class, '_fields', descriptor)
-            setattr(new_class, '_meta', meta)
-
             model_registry.add(name, new_class)
             return new_class
 
@@ -306,8 +312,6 @@ class Base(type):
 class DataStructure(metaclass=Base):
     def __init__(self, html_document: BeautifulSoup=None, 
                  response: HTMLResponse=None):
-        # self._cached_result = {}
-
         self._cached_result = DataContainer.as_container(
             *self._fields.field_names
         )
@@ -325,22 +329,9 @@ class DataStructure(metaclass=Base):
         Parameters
         ----------
 
-            - name (str): the field name to get
-
-        Raises
-        ------
-
-            - FieldError: if the field does not exist
-
-        Returns
-        -------
-
-            - Field (type): zineb.fields.Field
+            - field_name (str): the field name to get
         """
-        try:
-            return self._fields.cached_fields[field_name]
-        except:
-            raise FieldError(field_name, self._fields.field_names)
+        return self._fields.get_field(field_name)
 
     def _choose_parser(self):
         if self.html_document is not None:
@@ -368,51 +359,54 @@ class DataStructure(metaclass=Base):
         cached_values.append(value)
         self._cached_result.update({ field_name: cached_values })
 
-    def add_calculated_value(self, value: Any, *funcs):
-        funcs = list(funcs)
+    # TODO: Think of how to better implement calculated
+    # fields onto the model especially in the manner how
+    # we should get the fields in the Calculate methods
+    # def add_calculated_value(self, value: Any, *funcs):
+    #     funcs = list(funcs)
 
-        all_field_names = []
-        unique_field_names = set()
-        for func in funcs:
-            if not isinstance(func, Calculate):
-                raise TypeError('Function should be an instance of Calculate')
+    #     all_field_names = []
+    #     unique_field_names = set()
+    #     for func in funcs:
+    #         if not isinstance(func, Calculate):
+    #             raise TypeError('Function should be an instance of Calculate')
 
-            setattr(func, 'model', self)
-            # Technically, the funcs should
-            # apply to the same field on the
-            # model or this could create
-            # inconsistencies
-            all_field_names.append(func.field_name)
-            unique_field_names.add(func.field_name)
+    #         setattr(func, 'model', self)
+    #         # Technically, the funcs should
+    #         # apply to the same field on the
+    #         # model or this could create
+    #         # inconsistencies
+    #         all_field_names.append(func.field_name)
+    #         unique_field_names.add(func.field_name)
 
-        all_field_names = set(all_field_names)
-        result = unique_field_names.difference(all_field_names)
-        if result:
-            raise ValueError('Functions should apply to the same field')
+    #     all_field_names = set(all_field_names)
+    #     result = unique_field_names.difference(all_field_names)
+    #     if result:
+    #         raise ValueError('Functions should apply to the same field')
 
-        if len(funcs) == 1:
-            func._cached_data = value
-            func.resolve()
-            self.add_value(func.field_name, func._calculated_result)
-        else:
-            for i in range(len(funcs)):
-                if i == 0:
-                    funcs[0]._cached_data = value
-                else:
-                    # When there a multiple functions, the
-                    # _cached_data of the current function
-                    # should be the _caclulat_result of the
-                    # previous one. This technique allows
-                    # us to run multiple expressions on
-                    # one single value
-                    funcs[i]._cached_data = funcs[i - 1]._calculated_result
-                funcs[i].resolve()
-            # Once everything has been calculated,
-            # use the data of the last function to
-            # add the given value to the model
-            self.add_value(funcs[-1].field_name, funcs[-1]._calculated_result)
+    #     if len(funcs) == 1:
+    #         func._cached_data = value
+    #         func.resolve()
+    #         self.add_value(func.field_name, func._calculated_result)
+    #     else:
+    #         for i in range(len(funcs)):
+    #             if i == 0:
+    #                 funcs[0]._cached_data = value
+    #             else:
+    #                 # When there a multiple functions, the
+    #                 # _cached_data of the current function
+    #                 # should be the _caclulat_result of the
+    #                 # previous one. This technique allows
+    #                 # us to run multiple expressions on
+    #                 # one single value
+    #                 funcs[i]._cached_data = funcs[i - 1]._calculated_result
+    #             funcs[i].resolve()
+    #         # Once everything has been calculated,
+    #         # use the data of the last function to
+    #         # add the given value to the model
+    #         self.add_value(funcs[-1].field_name, funcs[-1]._calculated_result)
 
-    def add_case(self, value: Any, case):
+    def add_case(self, value: Any, case: Callable):
         """
         Add a value to the model based on a specific
         conditions determined by a When-function.
@@ -420,8 +414,8 @@ class DataStructure(metaclass=Base):
         Parameters
         ----------
 
-            value (Any): the value to test
-            case (Type): When function
+            - value (Any): the value to test
+            - case (Callable): When-function
         """
         if not isinstance(case, When):
             raise TypeError('Case should be a When class.')
@@ -483,6 +477,10 @@ class DataStructure(metaclass=Base):
             - name (str): the name of field on which to add a given value
             - value (Any): the value to add to the model
         """
+        if isinstance(value, (ExpressionMixin, Math)):
+            value.model = self
+            value.field_name = name
+            return self._cached_result.update(name, value.resolve())
 
         obj = self._get_field_by_name(name)
         obj.resolve(value)
