@@ -1,5 +1,6 @@
 from typing import Any, Union
 import ast
+from zineb.utils.formatting import LazyFormat
 
 def string_to_number(value: str, strict: bool=False):
     """
@@ -88,10 +89,10 @@ def convert_to_type(value: Any, t: Union[int, str, bool, list, tuple]):
     try:
         return t(value)
     except Exception:
+        attrs = {'value': value, 't': t, 'type1': type(value), 'type2': t}
         raise ValueError(
-            (f"The value '{value}' does not match"
-             f" the type provided in {t}. Got {type(value)}"
-             f" instead of {t}.")
+            LazyFormat('The value {value} does not match the type provided '
+            'in {t}. Got {type1} instead of {type2}', **attrs)
         )
 
 
