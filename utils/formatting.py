@@ -1,4 +1,4 @@
-from w3lib.html import replace_escape_chars, strip_html5_whitespace
+from collections import defaultdict
 
 
 class LazyFormat:
@@ -34,23 +34,59 @@ class LazyFormat:
         return str(self) % value
 
 
-def deep_clean(value: str):
+# def remap_to_dict(data: dict):
+#     """
+#     From a dictionnary of values, remap the different
+#     items to create a list of dictionnaries
+
+#     Example
+#     -------
+        
+#         > {'a': [1, 2], 'b': 1} becomes
+#           [{'a': 1}, {'a': 2}, {'b': 1}] 
+
+#     Yields
+#     ------
+
+#         list:  list of dictionnaries
+#     """
+#     base = {}
+#     for key in data.keys():
+#         base.setdefault(key, None)
+
+#     number_of_items = len(data[list(data.keys())[-0]])
+#     container = []
+#     for i in range(number_of_items):
+#         container.append(base)
+
+#     for key, values in data.items():
+#         if isinstance(values, (list, tuple)):
+#             for i, value in enumerate(values, start=0):
+#                 container[i][key] = value
+#     return container
+
+
+def reverse_remap_to_dict(data: list):
     """
-    Special helper for cleaning words that have a
-    spaces and "\\n" values between them
+    From a list of dictionnaries of values, remap the 
+    different items to create a dict where the keys
+    are a list of values
 
     Parameters
     ----------
 
-        value (str): value to clean
+        data (list): [{'a': 1}, {'a': 2}]
 
     Returns
     -------
 
-        str: words in clean form
+        list: list of dictionnaries
     """
-    value = replace_escape_chars(
-        strip_html5_whitespace(value), replace_by=''
-    )
-    cleaned_words = filter(lambda x: x != '', value.split(' '))
-    return ' '.join(cleaned_words).strip()
+    items = dict()
+    for key in data[-0].keys():
+        items.setdefault(key, [])
+
+    for item in data:
+        for key, value in item.items():
+            items[key].append(value)
+    return items

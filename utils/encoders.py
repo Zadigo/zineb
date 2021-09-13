@@ -1,7 +1,12 @@
-from json.encoder import JSONEncoder
 import datetime
 import decimal
 import uuid
+from json.encoder import JSONEncoder
+from typing import Any, Type
+
+import six
+from zineb.utils.formatting import LazyFormat
+
 
 class DefaultJsonEcoder(JSONEncoder):
     """
@@ -50,3 +55,18 @@ class DefaultJsonEcoder(JSONEncoder):
             return tuple(item for item in obj)
 
         return super().default(obj)
+
+
+def convert_to_unicode(value: Any, encoding='utf-8', errors='strict'):
+    """
+    Return the unicode representation of a bytes object `text`.
+    If the value is already a text, return it.
+    """
+    if isinstance(value, six.text_type):
+        return value
+
+    if not isinstance(value, (bytes, six.text_type)):
+        raise TypeError(LazyFormat(('Value must be of type bytes, '
+        'str or unicode. Got {value_type}'), value_type=type(value)))
+
+    return value.decode(encoding, errors)
