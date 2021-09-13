@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
+import re
 from os import path
 
 import setuptools
-
 
 ROOT = path.abspath(path.dirname(__file__))
 
@@ -12,6 +12,14 @@ def read_files(filename):
     with open(path.join(ROOT, filename), 'r', encoding='utf-8') as f:
         data = f.read()
         return data
+
+
+def get_version(filename):
+    data = read_files(filename)
+    is_match = re.match(r"^__version__.*['](.*)[']", data)
+    if not is_match:
+        raise ValueError('Could not get version')
+    return is_match.group(1)
 
 
 classifiers = [
@@ -54,11 +62,11 @@ install_requires = [
     'scikit-learn'
 ]
 
-
 setuptools.setup(
     name='zineb-scrapper',
     # packages: [],
-    version='2.0.0',
+    # version='3.0.0',
+    version=get_version('version.py'),
     author='John Pendenque',
     author_email='pendenquejohn@gmail.com',
     classifiers=classifiers,
