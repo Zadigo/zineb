@@ -19,7 +19,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": ["start"],
+            "args": ["createspider", "Temptation"],
             // "env": {
             //     "celebrity": "Kendall"
             // }

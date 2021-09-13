@@ -1,6 +1,5 @@
 import importlib
 import os
-import warnings
 
 from pydispatch import dispatcher
 from zineb._functionnal import LazyObject

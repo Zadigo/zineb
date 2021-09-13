@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from PIL import Image
 from pydispatch import dispatcher
 from zineb.signals import signal
-from zineb.utils.general import create_new_name
+from zineb.utils.generate import create_new_name
 
 
 def download_image_from_tag(tag: BeautifulSoup, download_to=None, 

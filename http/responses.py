@@ -15,7 +15,7 @@ from zineb.extractors.base import (ImageExtractor, LinkExtractor,
                                    MultiTablesExtractor)
 from zineb.http.headers import ResponseHeaders
 from zineb.signals import signal
-from zineb.utils.general import create_new_name, random_string
+from zineb.utils.generate import create_new_name, random_string
 
 
 class BaseResponse:

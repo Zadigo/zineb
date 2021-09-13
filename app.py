@@ -284,7 +284,7 @@ class FileCrawler:
     def __init__(self):
         self.buffers = []
 
-        start_files = []
+        start_files = [] 
         if isinstance(self.start_files, Iterator):
             # This is for collect_files or any
             # other kind of generator/iterator
@@ -293,10 +293,13 @@ class FileCrawler:
             if self.root_dir is not None:
                 warnings.warn('Skipping root dir attribute.')
                 self.root_dir = None
+        else:
+            start_files = self.start_files
 
         if self.root_dir is not None:
             def full_path(path):
                 return os.path.join(global_settings.PROJECT_PATH, self.root_dir, path)
+
             start_files = list(map(full_path, self.start_files))
             for start_file in start_files:
                 if not self._check_path(start_file):
@@ -325,5 +328,5 @@ class FileCrawler:
         ]
         return all(checks)
 
-    def start(self, soup: BeautifulSoup):
+    def start(self, soup: BeautifulSoup, **kwargs):
         pass

@@ -1,0 +1,85 @@
+# Pipelines
+
+Pipelines are a great way to send chained requests to the internet or treat a set of responses by processing them afterwards through a set of functions of your choice.
+
+Some Pipeplines are also perfect for donwloading images.
+
+## ResponsesPipeline
+
+The response pipepline allows you to chain a group of responses and treat all of them at once through a function:
+
+```
+from zineb.http.pipelines import ResponsesPipeline
+
+pipeline = ResponsesPipeline([response1, response2], [function1, function2])
+pipeline.results
+    -> list
+```
+
+It comes with three main parameters:
+
+* `responses` - which corresponds to a list of HTMLResponses
+* `functions` - a list of functions to pass each individual response and additional parameters
+* `paramaters` - a set of additional parameters to pass to the functions
+
+The best way to use the ResponsesPipeline is within the functions of your custom spider:
+
+```
+class MySpider(Zineb):
+   start_urls = ["https://example.com"]
+
+   def start(self, response, soup=None, **kwargs):
+       extractor = LinksExtractor()
+       extractor.resolve(soup)
+       responses = request.follow_all(*list(extractor))
+       ResponsesPipeline(responses, [self.do_something_here])
+
+   def do_something_here(self, response, soup=None, **kwargs):
+       # Continue parsing data here
+```
+
+**N.B.** Each function is executed sequentially. So, the final result will come from the final function of the list
+
+## HTTPPipeline
+
+This pipeline takes a set of urls, creates HTTPResquests for each of them and then sends them to the internet.
+
+If you provided a set of functions, it will pass each request through them.
+
+````
+from zineb.http.pipelines import HTTPPipeline
+from zineb.utils.general import download_image
+
+HTTPPipeline([https://example.com], [download_image])
+````
+
+Each function should be able to accept an HTTP Response object.
+
+You can also pass additional parameters to your functions by doing the following:
+
+```
+HTTPPipeline([https://example.com], [download_image], parameters={'extra': False})
+```
+
+In this specific case, your function should accept an `extra` parameter which result would be False.
+
+## Callback
+
+The Callback class allows you to run a callback function once each url is processed and passed through the main start function of your spider.
+
+The `__call__` method is triggerd on the instance in order to resolve the function to use.
+
+```
+class Spider(Zineb):
+    start_urls = ["https://example.com"]
+
+    def start(self, response, **kwargs):
+        request = kwargs.get("request")
+        model = MyModel()
+        return Callback(request.follow, self.another_function, model=model)
+
+    def another_function(self, response, **kwargs):
+        model = kwargs.get("model")
+        model.add_value("name", "Kendall Jenner")
+        model.save()
+```

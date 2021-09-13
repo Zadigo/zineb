@@ -11,14 +11,20 @@
 
 # print(container.values)
 
-from zineb.models.expressions import When
-from zineb.models.datastructure import Model
-from zineb.models import fields
-from zineb.models.expressions import Substract
+from zineb.management import execute_command_inline
+import sys
+import os
 
-class TestModel(Model):
-    age = fields.IntegerField()
-    age2 = fields.IntegerField()
+os.environ.setdefault('ZINEB_SPIDER_PROJECT', 'tests.testproject.settings')
 
-model = TestModel()
-print(model)
+# execute_command_inline([os.path.abspath(__file__), 'createspider', 'Temptation'])
+execute_command_inline(sys.argv)
+
+# from argparse import ArgumentParser
+
+# parser = ArgumentParser()
+# parser.add_argument('command')
+# parser.add_argument('project')
+# parser.add_argument('--settings')
+# namespace = parser.parse_args()
+# print(namespace)

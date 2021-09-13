@@ -7,7 +7,7 @@ from zineb.settings import settings as global_settings
 
 class Command(BaseCommand):
     def add_arguments(self, parser):
-        parser.add_argument('-p', '--project', type=str, help='Project name')
+        parser.add_argument('project', help='Name of the project', type=str)
 
     @staticmethod
     def _clean_file_name(name_or_path:str):
@@ -30,7 +30,7 @@ class Command(BaseCommand):
     def execute(self, namespace):
         project_name = namespace.project
         if project_name is None:
-            raise ValueError('Project does not have a name')
+            raise ValueError('Project does not have a name.')
 
         # Construct a full path the project's
         # root directory

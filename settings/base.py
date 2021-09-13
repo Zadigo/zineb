@@ -122,3 +122,37 @@ MEDIA_FOLDER = None
 STORAGE = 'zineb.storages.core.LocalStorage'
 
 STORAGES = []
+
+
+# Default date formats used for resolving
+# DateField and AgeField values
+
+DEFAULT_DATE_FORMATS = (
+    '%Y-%M-%d',
+    '%Y.%M.%d',
+    '%Y/%M/%d',
+    '%y-%M-%d',
+    '%y.%M.%d',
+    '%y/%M/%d',
+    '%d-%M-%Y',
+    '%d/%M/%Y',
+    '%d.%M.%Y',
+    '%d-%M-%y',
+    '%d/%M/%y',
+    '%d.%M.%y',
+    '%Y %b %d',
+    '%Y %b, %d',
+    '%y %b %d',
+    '%y %b, %d',
+    '%d %b %Y',
+    '%d %b, %Y',
+    '%d %b %y',
+    '%d %b, %y',
+)
+
+
+# The default timezone to use for the
+# application available choices can be
+# found at https://en.wikipedia.org/wiki/List_of_tz_zones_by_name
+
+TIME_ZONE = 'America/Chicago'
