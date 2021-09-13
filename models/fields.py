@@ -110,70 +110,33 @@ class Field:
                 validator_return_value = validator(validator_return_value)
         return validator_return_value or value
 
-    def resolve(self, value: Any, convert: bool=False, dtype: Any=None):
+    def _check_emptiness(self, value):
         """
-        Resolves a given value by cleaning it, calling
-        a series of default validators before
-        returning the normalized item.
-
-        The value can be converted to it's true Pythonic
-        representation
-
-        Subclasses should implement their own resolve function
-        with it's own custom logic because definition a more
-        standardized resolution
-
-        Parameters
-        ----------
-
-                value (str, int, float): a valid python object
-                convert (bool): convert the value to it's true Pyhon
-                                representation. Default to False
-                dtype (str, int, float, list, set, dict): the type to
-                                which the value should be converted to
-
-        Returns
-        -------
-
-                str, int, float, dict, set: a valid python object
-        """
-        # Deal with true empty values that
-        # are factually None but get passed
-        # around as valid. The Empty class
-        # is the pythonic representation
-        # for these kinds of strings
-        if value == '':
-            value = Empty
-            result = self._run_validation(value)
-            self._cached_result = result
-            return self._cached_result
-
-        true_value = None
-        if isinstance(value, beautiful_soup_tag):
-            true_value = value.text
-
-        # There might be a case where a None
-        # value slides in and breaks the
-        # rest of the process -;
-        # deal with that here by running
-        # validations directly and returning
-        # either a default value or the value
-        if value is None:
-            return self._run_validation(value)
+        Deals with true empty values e.g. '' that
+        are factually None but get passed
+        around as containing data
         
-        # To simplify the whole process,
-        # make sure we are dealing with 
-        # a string even though it's an
-        # integer, float etc.
-        true_value = str(value)
+        The Empty class is the pythonic representation
+        for these kinds of strings
+        """
+        value = Empty
+        result = self._run_validation(value)
+        self._cached_result = result
+        return self._cached_result
 
-        # Ensure the value to work with
-        # is as clean as possible
-        if '>' in true_value or '<' in true_value:
-            true_value = html.remove_tags(value)
+    def _simple_resolve(self, clean_value, convert=False, dtype=None):
+        """
+        A value resolution method that only runs validations.
 
-        clean_value = deep_clean(true_value)
+        This definition is useful for example for revalidating the end
+        result value of a field that does not require any cleaning
+        or normalization.
 
+        NOTE: This should ONLY be used internally and
+        not on incoming data from the web since it does
+        not apply any kind of formatting (spaces, escape
+        characters or HTML tags)
+        """
         self._cached_result = self._run_validation(clean_value)
 
         if convert:
@@ -181,6 +144,55 @@ class Field:
                 dtype = self._dtype
             self._cached_result = self._to_python_object(self._cached_result)
         return self._cached_result
+
+    def resolve(self, value: Any, convert: bool=False, dtype: Any=None):
+        """
+        This is the main resolution function that deals with
+        making and incoming scrapped value from the internet
+        as normal and usabled as possible by the framework
+
+        The value can also be converted to it's true 
+        Pythonic representation
+
+        NOTE: Subclasses should implement their own resolve function
+        and/or call super().resolve() to benefit from the cleaning
+        and normalizing logic
+        """
+        if value == '':
+            return self._check_emptiness(value)
+
+        true_value = None
+        if isinstance(value, beautiful_soup_tag):
+            try:
+                true_value = value.text
+            except AttributeError:
+                raise AttributeError(
+                    LazyFormat("Could not get attribute text from '{value}'.", value=true_value)
+                )
+
+        # There might be a case where a None
+        # value slides in and breaks everything.
+        # We should just run th validation process
+        # in that case and avoid cleaning anything.
+        if value is None:
+            return self._run_validation(value)
+
+        if not isinstance(value, (str, int, float)):
+            raise ValueError(
+                LazyFormat('{value} should be a string, an interger or a float.', value=value)
+            )
+        
+        # To make things easier, we'll just
+        # be dealing with a string even though
+        # its true Python representation is not
+        true_value = str(value)
+
+        if '>' in true_value or '<' in true_value:
+            true_value = html.remove_tags(value)
+
+        clean_value = deep_clean(true_value)
+
+        return self._simple_resolve(clean_value, convert=convert, dtype=dtype)
             
 
 class CharField(Field):
