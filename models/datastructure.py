@@ -9,8 +9,8 @@ from bs4 import BeautifulSoup
 from pydispatch import dispatcher
 from zineb.exceptions import FieldError, ModelExistsError
 from zineb.http.responses import HTMLResponse
-from zineb.models.expressions import ExpressionMixin, Math, When
 from zineb.models.fields import Empty, Field
+from zineb.models.functions import ExpressionMixin, Math, When
 from zineb.settings import settings
 from zineb.signals import signal
 from zineb.utils.formatting import LazyFormat
