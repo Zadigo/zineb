@@ -32,13 +32,15 @@ def validate_email(email) -> str:
 
 
 def validate_is_not_null(value: Any):
+    from zineb.models.fields import Empty
+
     message = ('{prefix} values are not '
     'permitted on this field')
     
     if value is None:
         raise TypeError(message.format(prefix='None'))
     
-    if value == '':
+    if value == '' or value == Empty:
         raise ValueError(message.format(prefix='Empty'))
     return value
 

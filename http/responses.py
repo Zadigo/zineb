@@ -6,7 +6,6 @@ from mimetypes import guess_extension
 from typing import Any, Union
 from urllib.parse import urljoin
 
-import pandas
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 from PIL import Image
@@ -16,7 +15,7 @@ from zineb.extractors.base import (ImageExtractor, LinkExtractor,
                                    MultiTablesExtractor)
 from zineb.http.headers import ResponseHeaders
 from zineb.signals import signal
-from zineb.utils.general import create_new_name, random_string
+from zineb.utils.generate import create_new_name, random_string
 
 
 class BaseResponse:
@@ -223,6 +222,8 @@ class JsonResponse(BaseResponse):
         TypeError: [description]
     """
     def __init__(self, response, **kwargs):
+        import pandas
+        
         super().__init__(response)
         content_type = self.headers.get('content-type')
         if 'application/json' not in content_type:

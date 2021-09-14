@@ -1,5 +1,5 @@
+import os
 import unittest
-from importlib import import_module
 
 from zineb.settings import LazySettings, Settings, UserSettings
 
@@ -27,6 +27,28 @@ class TestSettings(unittest.TestCase):
         # a manage.py file that sets a project path in the
         # environment variable e.g. project.settings
         self.assertFalse(self.settings._user_settings.configured)
+
+    def test_user_settings_configured_after_reload(self):
+        # When the Settings() class is first configured,
+        # it is done without the user's settings because
+        # the environment variable ZINEB_SPIDER_PROJECT
+        # is not yet set (this is true when the settings
+        # file is called outside of the cmd).
+        # By calling and therefore reloading settings
+        # after setting the environment variable, a
+        # new instance of settings is reloaded using
+        # the user personalized settings.
+        # That's why we have to load settings twice.
+
+        # This becomes false when using the cmd to
+        # call the project because the first thing
+        # that is set in manage.py is the
+        # environment variable.
+        self.assertListEqual(self.settings.SPIDERS, [])
+        os.environ.setdefault('ZINEB_SPIDER_PROJECT', 'zineb.tests.testproject.settings')
+
+        settings = Settings()
+        self.assertListEqual(settings.SPIDERS, ['MySpider', 'KendallJenner'])
 
 
 class TestUserSettings(unittest.TestCase):

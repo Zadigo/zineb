@@ -32,6 +32,8 @@ class TestSimpleModel(unittest.TestCase):
 
     def test_can_get_field(self):
         self.assertIsInstance(self.model._get_field_by_name('name'), fields.CharField)
+        self.assertIsInstance(self.model._fields.get_field('name'), fields.CharField)
+        self.assertIsInstance(self.model._fields['name'], fields.CharField)
 
     def test_can_add_value_without_resolution(self):
         self.model._add_without_field_resolution('name', 'Kendall')
@@ -141,6 +143,19 @@ class TestModelRegistery(unittest.TestCase):
         model_registry.add('SimpleModel', SimpleModel)
         with self.assertRaises(ModelExistsError):
             print('Model exists.')
+
+
+
+class ModelWithMeta(Model):
+    name = fields.CharField()
+
+    class Meta:
+        ordering = ['name']
+
+
+class TestModelWithOptions(unittest.TestCase):
+    def test_options(self):
+        pass
 
 
 if __name__ == '__main__':

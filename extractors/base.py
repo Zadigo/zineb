@@ -5,15 +5,16 @@ from functools import cached_property
 from itertools import chain
 from typing import Dict, Generator, List, NoReturn, Tuple, Union
 
-import pandas
 from bs4 import BeautifulSoup
 from bs4.element import ResultSet, Tag
-from sklearn.feature_extraction.text import CountVectorizer
 from w3lib.html import safe_url_string
 from w3lib.url import is_url, urljoin
 from zineb.extractors._mixins import MultipleRowsMixin
 from zineb.settings import settings as global_settings
-from zineb.utils._html import decode_email, deep_clean, is_path
+from zineb.utils.decoders import decode_email
+from zineb.utils.characters import deep_clean
+from zineb.utils.paths import is_path
+from zineb.utils.iteration import keep_while
 
 
 class Extractor:
@@ -114,6 +115,9 @@ class TableExtractor(Extractor):
     def __getitem__(self, index):
         return self.values[index]
 
+    def __len__(self):
+        return len(self.values)
+
     # def __add__(self, table_instance):
     #     if not isinstance(table_instance, TableExtractor):
     #         raise TypeError("The table to add should be an instance of TableExtractor")
@@ -128,6 +132,8 @@ class TableExtractor(Extractor):
 
     @property
     def get_values(self):
+        import pandas
+        
         values = self.values.copy()
         if self.header_position is not None:
             values.pop(self.header_position)
@@ -204,17 +210,38 @@ class TableExtractor(Extractor):
         # else:
         #     return self._raw_rows
 
+    # def _run_processors(self, rows):
+    #     if self.processors:
+    #         processed_rows = []
+    #         for row in rows:
+    #             for processor in self.processors:
+    #                 if not callable(processor):
+    #                     raise TypeError(f"Processor should be a callable. Got {processor}")
+    #                 row = [processor(value, index=index) for index, value in enumerate(row)]
+    #             processed_rows.append(row)
+    #         return processed_rows
+    #     return rows
+
     def _run_processors(self, rows):
+        new_row = []
+        processed_rows = []
         if self.processors:
-            processed_rows = []
             for row in rows:
                 for processor in self.processors:
                     if not callable(processor):
-                        raise TypeError(f"Processor should be a callable. Got {processor}")
-                    row = [processor(value, index=index) for index, value in enumerate(row)]
-                processed_rows.append(row)
+                        raise TypeError(f"Processor should be a callable. Got {processor}.")
+                    
+                    if not new_row:
+                        new_row = processor(row)
+                    else:
+                        new_row = processor(new_row)
+
+                processed_rows.append(new_row)
+                new_row = []
             return processed_rows
-        return rows
+        else:
+            return rows
+                    
 
     def get_row(self, index) -> Tag:
         try:
@@ -305,16 +332,14 @@ class TableExtractor(Extractor):
             return self.values
 
     def resolve_to_dataframe(self, soup: BeautifulSoup=None, columns: list=[]):
+        import pandas
+        
         if soup is not None:
             self.resolve(soup)
             
         if columns:
             return pandas.DataFrame(data=self.values, columns=columns)
         return pandas.DataFrame(data=self.values)
-
-        # if columns:
-        #     return df.rename(columns=columns)
-        # return df
 
 
 class MultiTablesExtractor(Extractor):
@@ -338,16 +363,6 @@ class MultiTablesExtractor(Extractor):
 
     def __getitem__(self, key):
         return self.tables_list[key]
-
-    # def __add__(self, obj):
-    #     if isinstance(obj, MultiTablesExtractor):
-    #         keys = obj.tables_list.keys()
-    #         this_tables_list_keys = self.tables_list.keys()
-    #         last_key = this_tables_list_keys[-1]
-    #         if keys[-1] == this_tables_list_keys[-1]:
-    #             last_key = last_key + 1
-    #         for i in range(last_key + 1, len(keys)):
-    #             self.tables_list.setdefault(i, obj[])
 
     @staticmethod
     def _filter_tables(tables, with_attrs):
@@ -383,10 +398,6 @@ class MultiTablesExtractor(Extractor):
                 limit_to_columns=limit_to_columns
             )
             self.tables_list.update({i: instance})
-
-    def resolve_to_dataframe(self, soup, table_index=0, columns: dict={}):
-        self.resolve(soup)
-        return pandas.DataFrame(self.get_table_parsed_values(table_index), columns=columns)
 
 
 class TextExtractor(Extractor):
@@ -432,6 +443,7 @@ class TextExtractor(Extractor):
 
     def vectorize(self, min_df=1, max_df=1, return_matrix=False):
         from nltk import PunktSentenceTokenizer
+        from sklearn.feature_extraction.text import CountVectorizer
 
         if self.raw_text is not None:
             tokenizer = PunktSentenceTokenizer()
@@ -553,12 +565,6 @@ class LinkExtractor(Extractor):
         return urljoin(self.base_url, path)
 
     def resolve(self, soup: BeautifulSoup):
-        """
-        Parameters
-        ----------
-
-                soup (type): BeautifulSoup object
-        """
         from zineb.tags import Link
         if soup is None:
             return None

@@ -9,9 +9,3 @@ class MySpider(Zineb):
 
     def start(self, response, request, **kwargs):
         print(response.find('a'))
-
-
-class KendallJenner(Zineb):
-    start_urls = [
-        'http://example.com'
-    ]

@@ -229,4 +229,5 @@ class TableTag(HTMLTag):
     def data(self):
         from zineb.extractors.base import TableExtractor
         extractor = TableExtractor()
-        return extractor, extractor.resolve(self.tag)
+        extractor.resolve(self.tag)
+        return extractor

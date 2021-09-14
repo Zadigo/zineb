@@ -1,11 +1,12 @@
-from bs4 import BeautifulSoup
-from zineb.signals import signal
 from io import BytesIO
-from pydispatch import dispatcher
-from zineb.utils.general import create_new_name
-from PIL import Image
 from typing import Callable
-from mimetypes import guess_extension, guess_type
+
+from bs4 import BeautifulSoup
+from PIL import Image
+from pydispatch import dispatcher
+from zineb.signals import signal
+from zineb.utils.generate import create_new_name
+
 
 def download_image_from_tag(tag: BeautifulSoup, download_to=None, 
                             as_thumbnail=None, link_processor=None):
@@ -23,6 +24,7 @@ def download_image_from_tag(tag: BeautifulSoup, download_to=None,
 def download_image_from_url(url:str, download_to=None,
                             as_thumbnail=None, link_processor: Callable=None):
     from zineb.http.request import HTTPRequest
+
     if link_processor is not None:
         url = link_processor(url)
     request = HTTPRequest(url=url)

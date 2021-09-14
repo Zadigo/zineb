@@ -1,10 +1,15 @@
 import os
 from collections import OrderedDict
-from functools import lru_cache
 from importlib import import_module
 from os.path import basename
-from typing import Type, Union
 
+
+# NOTE: In order for certain commands to work when
+# testing ex. startproject myproject, in order for
+# the second command to work correctly, its better
+# to call a file with the vscode debugger and the
+# arguments that we want. Otherwise, for whatever
+# reason there is an error on the second command.
 
 def collect_commands():
     """
@@ -88,7 +93,7 @@ class Utility:
         remaining_tokens = args[1:]
         return name, remaining_tokens
 
-    def call_command(self, name: Union[list, str]):
+    def call_command(self, name: list):
         """
         Call a specific command from the registry
 
@@ -110,7 +115,6 @@ class Utility:
 
         parser = command_instance.create_parser()
         namespace = parser.parse_args()
-        command_called = namespace.command
         command_instance.execute(namespace)
         return command_instance
 
@@ -122,7 +126,7 @@ def execute_command_inline(argv):
     Parameters
     ----------
 
-        argv (List): a list where [command name, value]
+        argv (list): [file, command, ...]
     """
     utility = Utility()
     utility.call_command(argv)

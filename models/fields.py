@@ -2,17 +2,27 @@ import ast
 import datetime
 import json
 import re
-from typing import Any, Callable, Iterable, List, Tuple, Union
+from typing import Any, Callable, List, Tuple, Union
 
-import numpy
-import pandas
 import pytz
 from bs4.element import Tag as beautiful_soup_tag
 from w3lib import html
 from w3lib.url import canonicalize_url, safe_download_url
+from zineb.exceptions import ValidationError
 from zineb.models import validators as model_validators
-from zineb.utils._html import deep_clean
+from zineb.settings import settings
+from zineb.utils.characters import deep_clean
+from zineb.utils.conversion import convert_to_type, detect_object_in_string
+from zineb.utils.formatting import LazyFormat
 from zineb.utils.images import download_image_from_url
+
+
+class Empty:
+    """
+    Class that represents '' as a Python object.
+    These string are not considered None in Python
+    but do no have any value
+    """
 
 
 class Field:
@@ -23,7 +33,7 @@ class Field:
     name = None
     _cached_result = None
     _default_validators = []
-    _dtype = numpy.str
+    _dtype = str
 
     def __init__(self, max_length: int=None, null: bool=True, 
                  default: Union[str, int, float]=None, validators=[]):
@@ -53,13 +63,36 @@ class Field:
     def _true_value_or_default(self, value):
         if self.default is not None and value is None:
             return self.default
+        
+        if self.default is not None and value == Empty:
+            return self.default
+
         return value
+
+    def _to_python_object(self, value: Any, use_dtype=None):
+        """
+        Returns the true python representation
+        of a given value
+
+        Parameters
+        ----------
+
+            value (Any): [description]
+
+        Returns
+        -------
+
+            Any: [description]
+        """
+        dtype = use_dtype or self._dtype
+        return convert_to_type(value, t=dtype)
 
     def _run_validation(self, value):
         # Default values should be validated
         # too ? Otherwise the user might enter
         # anykind of none validated value ??
         value = self._true_value_or_default(value)
+
         # If the value is None, makes no sense
         # to continue the validation, just return
         # None instead
@@ -77,129 +110,90 @@ class Field:
                 validator_return_value = validator(validator_return_value)
         return validator_return_value or value
 
-    def _check_or_convert_to_type(self, value, object_to_check_against,
-                                  message, enforce=True, force_conversion=False,
-                                  use_default=False):
+    def _check_emptiness(self, value):
         """
-        Checks the validity of a value against a Python object for example
-        an int, a str or a list
-
-        This check is used only to make sure that a value corresponds
-        specifically to a python object with the possibility of raising
-        an error if not or force converting the value to the python
-        object in question
-
-        Parameters
-        ----------
-
-            - value (str, int, type): value to test
-            - object_to_check_against (type): int, str, type
-            - message (str): message to display
-            - enforce (bool, optional): whether to raise an error. Defaults to True
-            - force_conversion (bool, optional): try to convert the value to obj. Defaults to False
-
-        Raises
-        ------
-
-                TypeError: the value is not of the same type of the python object
-
-        Returns
-        -------
-
-                Any: int, str
+        Deals with true empty values e.g. '' that
+        are factually None but get passed
+        around as containing data
+        
+        The Empty class is the pythonic representation
+        for these kinds of strings
         """
-        if force_conversion:
-            try:
-                value = object_to_check_against(value)
-            except:
-                # Thing is the validators know how to use
-                # the default value which is not the case
-                # when calling this specific function
-                if use_default:
-                    return self.default
+        value = Empty
+        result = self._run_validation(value)
+        self._cached_result = result
+        return self._cached_result
 
-        result = isinstance(value, object_to_check_against)
-        if not result:
-            if enforce:
-                raise TypeError(message)
-
-        return value
-
-    def _convert_to_type(self, value, t=None):
-        try:
-            return t(value) if t is not None else self._dtype(value)
-        except Exception:
-            raise ValueError((f"The value {value} does not match"
-            f" the type provided in {self._dtype}. Got {type(value)}"
-            f"instead of {self._dtype}"))
-
-    def resolve(self, value: Any):
+    def _simple_resolve(self, clean_value, convert=False, dtype=None):
         """
-        Resolves a given value by cleaning it and calling
-        a series of default validators and checks before
-        returning the normalized item
+        A value resolution method that only runs validations.
 
-        Subclasses should implement their own resolve function
-        with it's own custom logic because this resolve definition
-        is more to implement some standardized resolution more than
-        anything else
+        This definition is useful for example for revalidating the end
+        result value of a field that does not require any cleaning
+        or normalization.
 
-        Parameters
-        ----------
-
-                value (str, int, float): a valid python object
-
-        Returns
-        -------
-
-                str, int, float: a valid python object
+        NOTE: This should ONLY be used internally and
+        not on incoming data from the web since it does
+        not apply any kind of formatting (spaces, escape
+        characters or HTML tags)
         """
+        self._cached_result = self._run_validation(clean_value)
+
+        if convert:
+            if dtype is None:
+                dtype = self._dtype
+            self._cached_result = self._to_python_object(self._cached_result)
+        return self._cached_result
+
+    def resolve(self, value: Any, convert: bool=False, dtype: Any=None):
+        """
+        This is the main resolution function that deals with
+        making and incoming scrapped value from the internet
+        as normal and usabled as possible by the framework
+
+        The value can also be converted to it's true 
+        Pythonic representation
+
+        NOTE: Subclasses should implement their own resolve function
+        and/or call super().resolve() to benefit from the cleaning
+        and normalizing logic
+        """
+        if value == '':
+            return self._check_emptiness(value)
+
         true_value = None
         if isinstance(value, beautiful_soup_tag):
-            true_value = value.text
+            try:
+                true_value = value.text
+            except AttributeError:
+                raise AttributeError(
+                    LazyFormat("Could not get attribute text from '{value}'.", value=true_value)
+                )
 
         # There might be a case where a None
-        # value slides in and breaks the
-        # rest of the process -;
-        # deal with that here by running
-        # validations directly and returning
-        # either a default value or the value
+        # value slides in and breaks everything.
+        # We should just run th validation process
+        # in that case and avoid cleaning anything.
         if value is None:
-            # return self._true_value_or_default(value)
-            self._cached_result = self._run_validation(value)
-            return self._cached_result
+            return self._run_validation(value)
+
+        if not isinstance(value, (str, int, float)):
+            raise ValueError(
+                LazyFormat('{value} should be a string, an interger or a float.', value=value)
+            )
         
-        # To simplify the whole process,
-        # make sure we are dealing with 
-        # a string even though it's an
-        # integer, float etc.
+        # To make things easier, we'll just
+        # be dealing with a string even though
+        # its true Python representation is not
         true_value = str(value)
 
-        # Ensure the value to work with
-        # is as clean as possible
         if '>' in true_value or '<' in true_value:
             true_value = html.remove_tags(value)
 
         clean_value = deep_clean(true_value)
 
-        # Here, try to convert the value to it's
-        # true self (instead of returning) string but
-        # the problem is when a subclass that has a _dtype
-        # of int invoks this superclass e.g. AgeField
-        # through another subclass e.g. AgeField(DateField),
-        # this creates an error because the value
-        # that is passed (a data string) is obviously
-        # not an integer. This then creates and error.
-        if clean_value.isnumeric():
-            if self._dtype == numpy.int:
-                clean_value = int(clean_value)
-
-            if self._dtype == numpy.float:
-                clean_value = float(clean_value)
+        return self._simple_resolve(clean_value, convert=convert, dtype=dtype)
             
-        self._cached_result = self._run_validation(clean_value)
-        return self._cached_result
-
 
 class CharField(Field):
     """
@@ -216,13 +210,7 @@ class CharField(Field):
     name = 'char'
 
     def resolve(self, value):
-        result = self._check_or_convert_to_type(
-            value,
-            str,
-            'Value should be a string',
-            force_conversion=True
-        )
-        self._cached_result = super().resolve(result)
+        return super().resolve(value, convert=True)
 
 
 class TextField(CharField):
@@ -246,21 +234,19 @@ class NameField(CharField):
 class EmailField(Field):
     _default_validators = [model_validators.validate_email]
 
-    def __init__(self, limit_to_domains: Union[List[str], Tuple[str]] = [], **kwargs):
-        null = kwargs.get('null')
-        default = kwargs.get('default')
-        validators = kwargs.get('validators', [])
+    def __init__(self, limit_to_domains: Union[List[str], Tuple[str]] = [],
+                 null: bool=False, default: Any=None, validators: list=[]):
         super().__init__(null=null, default=default, validators=validators)
         self.limit_to_domains = limit_to_domains
 
     def _check_domain(self, domain):
         if self.limit_to_domains:
             if domain not in self.limit_to_domains:
-                self._cached_result = self.default
+                raise ValidationError(f'{domain} is not in valid domains.')
 
     def resolve(self, value):
-        value = super().resolve(value)
-        if value is not None:
+        result = super().resolve(value)
+        if result is not None or result != Empty:
             _, domain = value.split('@')
             self._check_domain(domain)
 
@@ -270,14 +256,9 @@ class UrlField(Field):
     _default_validators = [model_validators.validate_url]
 
     def resolve(self, url):
-        # TODO: This can be simplified into a single
-        # unified check ????
-        # result = self._check_or_convert_to_type(
-        #     url, str, 'Link should be of type string', force_conversion=True
-        # )
-        url = super().resolve(url)
-        if url is not None:
-            self._cached_result = safe_download_url(canonicalize_url(url))
+        result = super().resolve(url)
+        if result is not None:
+            result = safe_download_url(canonicalize_url(url))
 
 
 class ImageField(UrlField):
@@ -287,14 +268,15 @@ class ImageField(UrlField):
     Parameters
     ----------
 
-            download (bool, optional): download the image. Defaults to False
-            as_thumbnail (bool, optional): download as a thumnail. Defaults to False
-            download_to (str, optional): download image to a specific path. Defaults to None
+        - download (bool, optional): download the image. Defaults to False
+        - as_thumbnail (bool, optional): download as a thumnail. Defaults to False
+        - download_to (str, optional): download image to a specific path. Defaults to None
     """
     name = 'image'
 
-    def __init__(self, download=False, as_thumnail=False, download_to: str=None):
+    def __init__(self, download: bool=False, as_thumnail: bool=False, download_to: str=None):
         super().__init__()
+
         self.download = download
         self.as_thumbnail = as_thumnail
         self.image_data = None
@@ -306,7 +288,7 @@ class ImageField(UrlField):
 
         if self.download:
             download_image_from_url(
-                url,
+                self._cached_result,
                 download_to=self.download_to,
                 as_thumbnail=self.as_thumbnail
             )
@@ -324,7 +306,7 @@ class IntegerField(Field):
         - max_value (int, optional): Maximum value. Defaults to None.
     """
     name = 'integer'
-    _dtype = numpy.int
+    _dtype = int
 
     def __init__(self, default: Any=None, min_value: int=None, max_value: int=None):
         super().__init__(default=default)
@@ -335,66 +317,84 @@ class IntegerField(Field):
         if max_value is not None:
             self._validators.add(model_validators.MaxLengthValidator(max_value))
 
-    def resolve(self, value):
-        result = super().resolve(value)
-        self._cached_result = self._convert_to_type(result)
+    def resolve(self, value: Any):
+        super().resolve(value, convert=True)
 
 
-class DecimalField(Field):
+class DecimalField(IntegerField):
     name = 'float'
     _dtype = float
 
-    def __init__(self, default: Any=None, 
-                 min_value: int=None, max_value: int=None):
-        if min_value is not None:
-            self._validators.add(model_validators.MinLengthValidator)
 
-        if max_value is not None:
-            self._validators.add(model_validators.MaxLengthValidator)
-
+class DateFieldsMixin:
+    def __init__(self, date_format: str=None, 
+                 default: Any=None, tz_info: str=None):
         super().__init__(default=default)
 
-    def resolve(self, value):
-        result = super().resolve(value)
-        self._cached_result = self._convert_to_type(result)
+        self.date_parser = datetime.datetime.strptime
+
+        formats = set(getattr(settings, 'DEFAULT_DATE_FORMATS'))
+        formats.add(date_format)
+        self.date_formats = formats
+
+        # TODO: Implement
+        if tz_info is None:
+            tz_info_string = getattr(settings, 'TIME_ZONE', pytz.UTC)
+            tz_info = pytz.timezone(tz_info_string)
+        self.tz_info = tz_info
+
+    def _to_python_object(self, result: str):
+        for date_format in self.date_formats:
+            try:
+                d = self.date_parser(result, date_format)
+            except:
+                d = None
+            else:
+                if d:
+                    break
+        
+        if d is None:
+            message = LazyFormat('Could not find a valid format for date ({d}).', d=result)
+            raise ValidationError(message)
+        return d.date()
+
+    # def _implement_timezone(self):
+    #     TODO: Implement logic for awareness or not
+    #     # Datetime is aware
+    #     if self._cached_result.utcoffset() is not None:
+    #         try:
+    #             return self._cached_result.astimezone(self.tz_info)
+    #         except:
+    #             raise
+    #     else:
+    #         pass
 
 
-class DateField(Field):
+class DateField(DateFieldsMixin, Field):
     name = 'date'
 
-    def __init__(self, date_format: str, 
-                 default: Any=None, tz_info=None):
-        super().__init__(default=default)
-        self.date_format = date_format
-        if tz_info is None:
-            tz_info = pytz.UTC
-        self.tz_info = tz_info
-    
-    def resolve(self, date: str):
-        result = super().resolve(date)
-        self._cached_result = datetime.datetime.strptime(
-            result, self.date_format
-        )
+    def resolve(self, date: str):        
+        super().resolve(date, convert=True)
 
 
-class AgeField(DateField):
+class AgeField(DateFieldsMixin, Field):
     name = 'age'
-    _dtype = numpy.int
+    _dtype = int
 
-    def __init__(self, date_format: str,
-                 default: Any = None, tz_info=None):
+    def __init__(self, date_format: str=None,
+                 default: Any = None, tz_info: str=None):
         super().__init__(date_format=date_format, 
                          default=default, tz_info=tz_info)
         self._cached_date = None
 
     def _substract(self) -> int:
         current_date = datetime.datetime.now()
-        return current_date.year - self._cached_result.year
-
-    def resolve(self, date):
-        super().resolve(date)
-        self._cached_date = self._cached_result
-        self._cached_result = self._convert_to_type(self._substract())
+        return current_date.year - self._cached_date.year
+    
+    def resolve(self, date: str):
+        result = super().resolve(date)
+        self._cached_date = self._to_python_object(self._cached_result)
+        self._cached_result = self._substract()
 
 
 class FunctionField(Field):
@@ -422,7 +422,6 @@ class FunctionField(Field):
         TypeError: [description]
     """
     name = 'function'
-    _dtype = numpy.object
 
     def __init__(self, *methods: Callable[[Any], Any], output_field: Field = None, 
                  default: Any = None, validators = []):
@@ -449,7 +448,7 @@ class FunctionField(Field):
                 f"Instead got: {incorrect_elements}"))
 
     def resolve(self, value):
-        self._cached_result = super().resolve(value)
+        self._cached_result = super().resolve(value, convert=True)
 
         new_cached_result = None
         if self.filtered_methods:
@@ -458,20 +457,14 @@ class FunctionField(Field):
                     new_cached_result = method(self._cached_result)
                 else:
                     new_cached_result = method(new_cached_result)
-            self._cached_result = new_cached_result
+
             self.output_field.resolve(self._cached_result)
             self._cached_result = self.output_field._cached_result
 
 
-class ObjectFieldMixins:
-    @staticmethod
-    def _detect_object_in_string(value):
-        return ast.literal_eval(value)
-
-
-class ArrayField(ObjectFieldMixins, Field):
+class ListField(Field):
     name = 'list'
-    _dytpe = numpy.array
+    _dytpe = list
 
     def __init__(self, default: Any = None, 
                  validators = []):
@@ -479,22 +472,20 @@ class ArrayField(ObjectFieldMixins, Field):
 
     def resolve(self, value):
         if isinstance(value, str):
-            value = self._detect_object_in_string(value)
+            value = detect_object_in_string(value)
 
-        result = self._convert_to_type(value, t=list)
-
-        self._cached_result = pandas.Series(result)
-        return self._cached_result
+        self._cached_result = self._to_python_object(value)
 
 
-class JsonField(ObjectFieldMixins, Field):
+class JsonField(Field):
     def __init__(self, validators=[]):
         super().__init__(validators=validators)
 
     def resolve(self, value):
-        result = super().resolve(value)
-        if isinstance(result, str):
-            result = self._detect_object_in_string(result)
+        result = None
+
+        if isinstance(value, str):
+            result = self._detect_object_in_string(value)
 
         if not isinstance(result, dict):
             raise ValueError(f"JsonField should receive a dict as value.")
@@ -509,9 +500,14 @@ class CommaSeperatedField(Field):
         super().__init__(max_length=max_length)
 
     def resolve(self, values: Union[List[Any]]):
-        values = self._convert_to_type(values, t=list)
-        resolved_values = map(lambda x: str(x), values)
-        self._cached_result = ','.join(resolved_values)
+        if isinstance(values, str):
+            values = detect_object_in_string(values)
+
+        if not isinstance(values, (list, tuple)):
+            raise TypeError('The values parameter should be of type str, list or tuple.')
+        
+        container = ','.join(map(lambda x: str(x), values))
+        self._cached_result = self._to_python_object(container)
 
 
 class RegexField(Field):
@@ -524,22 +520,61 @@ class RegexField(Field):
         super().__init__(**kwargs)
 
     def resolve(self, value: str):
-        regexed_value = self.pattern.search(value)
-        if regexed_value:
-            result = regexed_value.group(self.group)
+        value = self._run_validation(value)
+        try:
+            # If the value is None, this raises and
+            # error, hence the try-catch function
+            regexed_value = self.pattern.search(value)
+        except TypeError:
+            self._cached_result = None
+        else:
+            if regexed_value:
+                result = regexed_value.group(self.group)
 
-            if self.output_field is not None:
-                if not isinstance(self.output_field, Field):
-                    raise TypeError((f"Output field should be a instance of " 
-                    "zineb.fields.Field. Got: {self.output_field}"))
-                self._cached_result = self.output_field.resolve(result)
-            else:
-                self._cached_result = super().resolve(result)
+                if self.output_field is not None:
+                    if not isinstance(self.output_field, Field):
+                        raise TypeError((f"Output field should be a instance of " 
+                        "zineb.fields.Field. Got: {self.output_field}"))
+                    self._cached_result = self.output_field.resolve(result)
+                else:
+                    self._cached_result = result
 
+
+class BooleanField(Field):
+    name = 'boolean'
+    _dtype = bool
+    
+    REP_TRUE = ['True', 'true', '1', 
+                'ON', 'On', 'on', True]
+
+    REP_FALSE = ['False', 'false', '0', 
+                 'OFF', 'Off', 'off', False]
+
+    def __init__(self, default: Any=None, null: bool=True):
+        super().__init__(null=null, default=default)
+
+    def _true_value_or_default(self, value):
+        if isinstance(self.default, bool) and (value is None or value == Empty):
+            return self.default
+        return super()._true_value_or_default(value)
+
+    def resolve(self, value: Any):
+        if value in self.REP_TRUE:
+            self._cached_result = True
+        elif value in self.REP_FALSE:
+            self._cached_result = False
+        else:
+            if value == '':
+                value = Empty
+            result = self._run_validation(value)              
+
+            if not isinstance(result, bool) and not self.null:
+                raise ValueError('BooleanField accepts booleans as value.')
+            self._cached_result = result
 
 class Value:
     """
-    The simplest Python representation of a value
+    A simple container 
 
     Parameters
     ----------
@@ -558,15 +593,6 @@ class Value:
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.result})"
-
-    def __add__(self, value):
-        if isinstance(self.result, tuple):
-            self.result = list(self.value)
-
-        if isinstance(self.result, list):
-            self.result.extend([value])
-            return self.result
-        return self.result + str(value)
 
     def __setattr__(self, name, value):
         if name == 'result':

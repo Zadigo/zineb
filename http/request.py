@@ -17,7 +17,7 @@ from zineb.http.user_agent import UserAgent
 from zineb.settings import settings as global_settings
 from zineb.signals import signal
 from zineb.tags import ImageTag, Link
-from zineb.utils.general import transform_to_bytes
+from zineb.utils.conversion import transform_to_bytes
 
 EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9-_.]+@\w+\.\w+$')
 
@@ -48,6 +48,8 @@ class BaseRequest:
     http_methods = ['GET', 'POST']
 
     def __init__(self, url: Union[Link, str, ImageTag], method='GET', **kwargs):
+        self.local_logger = global_logger.new(name=self.__class__.__name__, to_file=True)
+
         if method not in self.http_methods:
             raise ValueError("The provided method is not valid. Should be "
             f"one of {''.join(self.http_methods)}.")
@@ -187,7 +189,7 @@ class BaseRequest:
         response = None
 
         if not self.can_be_sent:
-            global_logger.logger.critical(("A request was not sent for the following "
+            self.local_logger.info(("A request was not sent for the following "
             f"url {self.url} because self.can_be_sent is marked as False. Ensure that "
             "the url is not part of a restricted DOMAIN or that ENSURE_HTTPS does not"
             "force only secured requests."))
@@ -323,9 +325,9 @@ class HTTPRequest(BaseRequest):
                 )
                 self.session.close()
             else:
-                global_logger.logger.error('Response failed.')
+                self.local_logger.error('Response failed.')
         else:
-            global_logger.error(f'An error occured on this request: {self.url} with status code {http_response.status_code}')
+            self.local_logger.error(f'An error occured on this request: {self.url} with status code {http_response.status_code}')
 
     @classmethod
     def follow(cls, url: Union[str, Link]):

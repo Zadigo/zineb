@@ -18,14 +18,14 @@ class SpiderConfig:
     via the `_meta` attribute.
     """
 
-    def __init__(self, name: str, project_module):
+    def __init__(self, name: str, spiders_module):
         self.name = name
         
-        # The root module of the project
+        # The root spiders module of the project
         # ex. myproject.spiders that contains
         # the spiders that we need to grab
         # when the get_spider is called
-        self.MODULE = project_module
+        self.MODULE = spiders_module
 
         if not hasattr(self, 'label'):
             self.label = self.name.rpartition('.')[2]
@@ -70,6 +70,7 @@ class Registry:
     current settings
     """
     def __init__(self, spiders={}):
+        self.local_logger = global_logger.new(name=self.__class__.__name__, to_file=True)
         self.spiders = OrderedDict(**spiders)
 
     def __str__(self):
@@ -88,11 +89,15 @@ class Registry:
     def get_spiders(self):
         return self.spiders.values()
 
+    @property
+    def has_spiders(self):
+        return len(self.spiders.keys()) > 0
+
     def has_spider(self, name):
         return self.__contains__(name)
 
     def check_spiders_ready(self):
-        if not self.spiders:
+        if not self.has_spiders:
             raise ValueError(("Spiders are not yet loaded or "
             "there are no registered ones."))
 
@@ -104,10 +109,10 @@ class Registry:
         try:
             return self.spiders[spider_name]
         except KeyError:
-            global_logger.logger.error((f"The spider with the name '{spider_name}' does not "
+            self.local_logger.error((f"The spider with the name '{spider_name}' does not "
             f"exist in the registry. Available spiders are {', '.join(self.spiders.keys())}. "
             f"If you forgot to register {spider_name}, check your settings file."), stack_info=True)
-            raise
+            raise SpiderExistsError(spider_name)
 
     def populate(self, project_spiders_module):
         """
@@ -121,7 +126,7 @@ class Registry:
 
             project_spiders_module (Module): the `spiders.py` module of the project
         """
-        from zineb.settings import lazy_settings, settings
+        from zineb.settings import settings
 
         for spider in settings.SPIDERS:
             spider_config = SpiderConfig(spider, project_spiders_module)
@@ -129,10 +134,10 @@ class Registry:
 
         settings.REGISTRY = self
 
-        # Load all the middlewares once everything
+        # TODO: Load all the middlewares once everything
         # is setup and ready to run
-        middlewares = Middleware(settings=settings)
-        middlewares._load
+        # middlewares = Middleware(settings=settings)
+        # middlewares._load
 
         signal.send(dispatcher.Any, self, spiders=self)
 
@@ -147,8 +152,7 @@ class Registry:
                 try:
                     spider_config.run()
                 except Exception as e:
-                    new_logger = global_logger(name=self.__class__.__name__, to_file=True)
-                    new_logger.error((f"Could not start {spider_config}. "
+                    self.local_logger.critical((f"Could not start {spider_config}. "
                     "Did you use the correct class name?"), stack_info=True)
                     raise
                 else:

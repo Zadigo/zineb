@@ -1,8 +1,10 @@
 from functools import cached_property, lru_cache
+from models.fields import DateField
 
 from bs4 import BeautifulSoup
 from zineb.http.request import HTTPRequest
-
+from zineb.models.datastructure import Model
+from zineb.models import fields
 
 @lru_cache(maxsize=10)
 def create_test_request() -> HTTPRequest:
@@ -22,3 +24,9 @@ def file_opener(path):
     with open(path, mode='r', encoding='utf-8') as f:
         soup = BeautifulSoup(f, 'html.parser')
     return soup
+
+
+class TestModel(Model):
+    age = fields.IntegerField()
+
+test_model = TestModel()

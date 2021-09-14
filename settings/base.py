@@ -39,7 +39,7 @@ ENSURE_HTTPS = False
 
 LOG_TO_FILE = True
 
-LOG_FILE = None
+LOG_FILE = 'zineb.log'
 
 LOG_FORMAT = '%(asctime)s [%(name)s] %(levelname)s: %(message)s'
 
@@ -124,16 +124,35 @@ STORAGE = 'zineb.storages.core.LocalStorage'
 STORAGES = []
 
 
-# Specific settings for Google sheet.
-# Check https://developers.google.com/sheets/api/quickstart/python
-# for additonal settings that can be used.
+# Default date formats used for resolving
+# DateField and AgeField values
 
-GOOGLE_SHEET_SCOPES = [
-    'https://www.googleapis.com/auth/spreadsheets.readonly'
-]
+DEFAULT_DATE_FORMATS = (
+    '%Y-%M-%d',
+    '%Y.%M.%d',
+    '%Y/%M/%d',
+    '%y-%M-%d',
+    '%y.%M.%d',
+    '%y/%M/%d',
+    '%d-%M-%Y',
+    '%d/%M/%Y',
+    '%d.%M.%Y',
+    '%d-%M-%y',
+    '%d/%M/%y',
+    '%d.%M.%y',
+    '%Y %b %d',
+    '%Y %b, %d',
+    '%y %b %d',
+    '%y %b, %d',
+    '%d %b %Y',
+    '%d %b, %Y',
+    '%d %b %y',
+    '%d %b, %y',
+)
 
-GOOGLE_SHEET_ID = None
 
-GOOGLE_SHEET_RANGE_NAME = None
+# The default timezone to use for the
+# application available choices can be
+# found at https://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 
-GOOGLE_SHEET_CREDENTIALS = None
+TIME_ZONE = 'America/Chicago'
