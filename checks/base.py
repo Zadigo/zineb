@@ -106,7 +106,7 @@ def check_proxies_valid(project_settings):
     return errors
 
 
-@checks_registry.register(tag='media_foler')
+@checks_registry.register(tag='media_folder')
 def check_media_folder(project_settings):
     media_folder = project_settings.MEDIA_FOLDER
     if media_folder is not None and not isinstance(media_folder, str):
