@@ -1,11 +1,11 @@
-from datetime import datetime
 import unittest
+from datetime import datetime
 
-from zineb.models import expressions
+from zineb.models import functions
 from zineb.models.datastructure import Model
-from zineb.models.expressions import (DateExtractorMixin, ExtractMonth,
-                                      ExtractYear, When)
 from zineb.models.fields import AgeField, DateField, IntegerField
+from zineb.models.functions import (DateExtractorMixin, ExtractMonth,
+                                    ExtractYear, When)
 from zineb.tests._utils import test_model
 
 
@@ -14,35 +14,35 @@ class TestCalculate(unittest.TestCase):
         self.model = test_model
     
     def test_addition(self):
-        instance = expressions.Add(35, 5)
+        instance = functions.Add(35, 5)
         instance.field_name = 'age'
         instance.model = self.model
         instance.resolve()
         self.assertEqual(instance._cached_data, 40)
 
     def test_substraction(self):
-        instance = expressions.Substract(35, 5)
+        instance = functions.Substract(35, 5)
         instance.model = self.model
         instance.field_name = 'age'
         instance.resolve()
         self.assertEqual(instance._cached_data, 30)
 
     def test_multiplication(self):
-        instance = expressions.Multiply(35, 2)
+        instance = functions.Multiply(35, 2)
         instance.model = self.model
         instance.field_name = 'age'
         instance.resolve()
         self.assertEqual(instance._cached_data, 70)
 
     def test_division(self):
-        instance = expressions.Divide(30, 2)
+        instance = functions.Divide(30, 2)
         instance.model = self.model
         instance.field_name = 'age'
         instance.resolve()
         self.assertEqual(instance._cached_data, 15)
 
     def test_can_add_calculated_value(self):
-        self.model.add_value('age', expressions.Add(25, 5))
+        self.model.add_value('age', functions.Add(25, 5))
         self.assertEqual(self.model._cached_result.get_container('age'), [(1, 30)])
 
     # def test_with_string(self):
@@ -54,7 +54,7 @@ class TestCalculate(unittest.TestCase):
 class TestWhen(unittest.TestCase):
     def setUp(self):
         self.model = test_model
-        instance = expressions.When('age__gt=15', 20, else_condition=15)
+        instance = functions.When('age__gt=15', 20, else_condition=15)
 
         # Value that was originally
         # retrived from the HTML page
@@ -75,7 +75,7 @@ class TestWhen(unittest.TestCase):
         self.assertRaises(TypeError)
 
     def test_wrong_expression_in_when(self):
-        instance = expressions.When('fast', 0, else_condition=0)
+        instance = functions.When('fast', 0, else_condition=0)
         self.assertRaises(TypeError)
 
     def test_comparision(self):
@@ -111,15 +111,15 @@ class TestExtractDates(unittest.TestCase):
 
     def test_can_extract_year(self):
         self.model.add_value('age', ExtractYear('11-1-1987'))
-        self.assertListEqual(self.model._cached_result.get_container('age'), [1987])
+        self.assertListEqual(self.model._cached_result.get_container('age'), [(1, 1987)])
 
     def test_can_extract_month(self):
         self.model.add_value('age', ExtractMonth('11-1-1987'))
-        self.assertListEqual(self.model._cached_result.get_container('age'), [1])
+        self.assertListEqual(self.model._cached_result.get_container('age'), [(1, 1)])
 
     def test_can_extract_day(self):
         self.model.add_value('age', ExtractMonth('11-1-1987'))
-        self.assertListEqual(self.model._cached_result.get_container('age'), [11])
+        self.assertListEqual(self.model._cached_result.get_container('age'), [(1, 1)])
 
     def test_global_resolution(self):
         mixin = DateExtractorMixin('11-1-2002')

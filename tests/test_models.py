@@ -5,7 +5,7 @@ from models import fields
 from models.datastructure import FieldDescriptor, ModelOptions
 from zineb.exceptions import FieldError, ModelExistsError
 from zineb.models.datastructure import Model, model_registry
-from zineb.models.expressions import Add, First, Last, When
+from zineb.models.functions import Add, When
 
 
 def simple_validator(value):
@@ -14,20 +14,20 @@ def simple_validator(value):
 
 class SimpleModel(Model):
     name = fields.CharField()
-    date_of_birth = fields.DateField('%Y-%M-%d')
-    age = fields.AgeField('%Y-%M-%d')
+    date_of_birth = fields.DateField()
+    age = fields.AgeField()
     height = fields.CharField(validators=[simple_validator])
 
 
 class TestSimpleModel(unittest.TestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         self.model = SimpleModel()
 
     def test_fields_descriptor(self):
         self.assertIsInstance(self.model._fields, FieldDescriptor)
         self.assertListEqual(self.model._fields.field_names, ['name', 'age'])
 
-    def test_meta(self):
+    def test_model_meta(self):
         self.assertIsInstance(self.model._meta, ModelOptions)
 
     def test_can_get_field(self):
@@ -114,12 +114,6 @@ class TestSimpleModel(unittest.TestCase):
         
         # Expected: {name: [None], date_of_birth: [None], age: [15], height: [202]}
         self.model.resolve_fields()
-
-    def test_can_get_last(self):
-        self.model.add_value(Last('age'))
-
-    def test_can_get_first(self):
-        self.model.add_value(First('age'))
 
 
 class TestModelRegistery(unittest.TestCase):

@@ -1,11 +1,10 @@
 import unittest
 
 import pandas
+from bs4.element import Tag
 from zineb.http.responses import HTMLResponse, ImageResponse, JsonResponse
 from zineb.tests import create_test_request
-from bs4.element import Tag
-
-from tests import create_test_image_request, create_test_json_request
+from zineb.tests._utils import create_test_image_request
 
 _request = create_test_request()
 

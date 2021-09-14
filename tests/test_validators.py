@@ -55,5 +55,6 @@ class TestValidators(TestCase):
         with self.assertRaises(TypeError):
             print('Value is None')
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     unittest.main()

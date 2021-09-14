@@ -1,9 +1,9 @@
 import unittest
 from typing import OrderedDict
 
-from models.fields import CharField
 from zineb.models import fields
 from zineb.models.datastructure import FieldDescriptor
+from zineb.models.fields import CharField
 
 
 class TestFieldDescriptor(unittest.TestCase):
