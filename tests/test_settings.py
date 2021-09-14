@@ -4,7 +4,7 @@ import unittest
 from zineb.settings import LazySettings, Settings, UserSettings
 
 
-class TestSettings(unittest.TestCase):
+class TestSettingsNotConfigured(unittest.TestCase):
     def setUp(self):
         self.settings = Settings()
 
@@ -17,6 +17,7 @@ class TestSettings(unittest.TestCase):
     def test_can_be_reloaded(self):
         _ = self.settings(MYSETTING='Kendall')
         self.assertEqual(self.settings.MYSETTING, 'Kendall')
+        self.assertTrue(self.settings.has_setting('MYSETTING'))
 
     def test_can_change(self):
         self.settings.PROJECT_PATH = None
@@ -27,6 +28,11 @@ class TestSettings(unittest.TestCase):
         # a manage.py file that sets a project path in the
         # environment variable e.g. project.settings
         self.assertFalse(self.settings._user_settings.configured)
+
+
+class TestSettingsNotConfigured(unittest.TestCase):
+    def setUp(self):
+        self.settings = Settings()
 
     def test_user_settings_configured_after_reload(self):
         # When the Settings() class is first configured,
@@ -48,7 +54,7 @@ class TestSettings(unittest.TestCase):
         os.environ.setdefault('ZINEB_SPIDER_PROJECT', 'zineb.tests.testproject.settings')
 
         settings = Settings()
-        self.assertListEqual(settings.SPIDERS, ['MySpider', 'KendallJenner'])
+        self.assertListEqual(settings.SPIDERS, ['MySpider'])
 
 
 class TestUserSettings(unittest.TestCase):
@@ -84,6 +90,12 @@ class TestLazySettings(unittest.TestCase):
     def test_can_change(self):
         self.settings.PROJECT_PATH = None
         self.assertIsNone(self.settings.PROJECT_PATH)
+
+
+class TestUserSettings(unittest.TestCase):
+    def setUp(self):
+        user_settings = UserSettings('zineb.tests.testproject.settings')
+        self.assertTrue(user_settings.is_configured)
 
 
 if __name__ == '__main__':
