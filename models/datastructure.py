@@ -212,8 +212,10 @@ class ModelOptions:
     A container that stores the options
     of a given model Meta
     """
+    authorized_options = ['ordering', 'label']
+
     def __init__(self, options: Union[List[tuple[str]], dict]):
-        self.cached_options = OrderedDict(options)
+        self.cached_options = OrderedDict(self._add_options(options, only_check=True))
 
         self.ordering_field_names = set()
         self.ascending_fields = []
@@ -245,25 +247,50 @@ class ModelOptions:
                 return True
             self.ordering_booleans = list(map(convert_to_boolean, ordering))
 
-        if self.has_option('constraints'):
-            constraints = self.get_option_by_name('constraints')
-            for constraint in constraints:
-                if not isinstance(constraint):
-                    raise TypeError('Constraint should be an instance of BaseConstraint.')
-
     def __call__(self, options):
+        old_options = self.cached_options.copy()
         self.__init__(options)
+        self.cached_options = old_options | self.cached_options
         return self
 
     def __getitem__(self, name):
         return self.cached_options[name]
+
+    def _add_options(self, options: dict, only_check: bool=False):
+        if isinstance(options, list):
+            options = OrderedDict(options)
+
+        non_authorized_options = []
+
+        def _check_option_authorized(item):
+            key, _ = item
+            if key.startswith('__'):
+                return False
+
+            if key in self.authorized_options:
+                return True
+
+            non_authorized_options.append(key)
+            return False
+
+        options = list(filter(_check_option_authorized, options.items()))
+        if non_authorized_options:
+            raise ValueError(LazyFormat(
+                "Meta received an illegal option. Valid options are {options}.",
+                options=', '.join(self.authorized_options)
+            ))
+
+        if only_check:
+            return options
+
+        return self.__call__(options)
 
     def get_option_by_name(self, name):
         return self.cached_options.get(name)
 
     def has_option(self, name):
         return name in self.cached_options
-
+    
 
 class Base(type):
     def __new__(cls, name, bases, attrs):
@@ -279,33 +306,35 @@ class Base(type):
                 field_obj._bind(key)
                 declared_fields.add((key, field_obj))
 
+        descriptor = FieldDescriptor()
+        attrs['_fields'] = descriptor
         if declared_fields:
-            descriptor = FieldDescriptor()
             descriptor.cached_fields = OrderedDict(declared_fields)
             attrs['_fields'] = descriptor
 
-        meta = ModelOptions([])
+        default_options = {'label': f"models.base.{name}"}
+        meta = ModelOptions(default_options)
         if 'Meta' in attrs:
             meta_dict = attrs.pop('Meta').__dict__
-            authorized_options = ['ordering', 'constraints']
-            non_authorized_options = []
+            # authorized_options = ['ordering']
+            # non_authorized_options = []
 
-            def check_option(item):
-                key, _ = item
-                if key.startswith('__'):
-                    return False
+            # def check_option(item):
+            #     key, _ = item
+            #     if key.startswith('__'):
+            #         return False
 
-                if key in authorized_options:
-                    return True
+            #     if key in authorized_options:
+            #         return True
                 
-                non_authorized_options.append(key)
-                return False
+            #     non_authorized_options.append(key)
+            #     return False
 
-            options = list(filter(check_option, meta_dict.items()))
-            if non_authorized_options:
-                raise ValueError("Meta received an illegal "
-                f"option. Valid options are: {', '.join(authorized_options)}")
-            meta = meta(options)
+            # options = list(filter(check_option, meta_dict.items()))
+            # if non_authorized_options:
+            #     raise ValueError("Meta received an illegal "
+            #     f"option. Valid options are: {', '.join(authorized_options)}")
+            meta = meta._add_options(meta_dict)
         attrs['_meta'] = meta
 
         if declared_fields:
