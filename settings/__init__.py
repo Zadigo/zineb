@@ -2,9 +2,10 @@ import importlib
 import os
 
 from pydispatch import dispatcher
-from zineb._functionnal import LazyObject
 from zineb.settings import base as initial_project_settings
 from zineb.signals import signal
+from zineb.utils.functionnal import LazyObject
+
 
 class UserSettings:
     SETTINGS_MODULE = None
