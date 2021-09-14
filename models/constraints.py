@@ -2,7 +2,7 @@ from zineb.models.datastructure import Model
 from zineb.exceptions import ModelConstrainError
 
 class BaseConstraint:
-    def __init__(self, *fields, tag: str=None, raise_exception: bool=False):
+    def __init__(self, *fields, tag: str=None, condition=None, raise_exception: bool=False):
         if not fields:
             raise ValueError('At least one field is required.')
 
@@ -27,6 +27,11 @@ class BaseConstraint:
     
 
 class UniqueConstraint(BaseConstraint):
+    """
+    Overrides the default update with a unique constraint
+    that writes a value only it is not present in one of
+    the contains specified by the fields
+    """
     def __repr__(self):
         return (f"{self.__class__.__name__}"
         "(fields={''.join(self.fields)})")
