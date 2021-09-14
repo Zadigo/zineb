@@ -28,10 +28,11 @@ class DataContainer:
 
         - names: list of field names
     """
-    values = defaultdict(list)
+    # values = defaultdict(list)
     current_updated_fields = set()
 
     def __init__(self):
+        self.values = defaultdict(list)
         self._last_created_row = []
 
     def __repr__(self):
@@ -46,9 +47,9 @@ class DataContainer:
         # parameter from reinstantiating with
         # the names when using this class,
         # we'll always use a new instance
-        for name in names:
-            cls.values[name]
         instance = cls()
+        for name in names:
+            instance.values[name]
         setattr(instance, 'names', list(names))
         return instance
         
