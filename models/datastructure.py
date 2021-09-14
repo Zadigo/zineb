@@ -42,11 +42,7 @@ class DataContainer:
         return str(dict(self.as_values()))
 
     @classmethod
-    def as_container(cls, *names, model=None):
-        # In order to prevent the values
-        # parameter from reinstantiating with
-        # the names when using this class,
-        # we'll always use a new instance
+    def as_container(cls, *names):
         instance = cls()
         for name in names:
             instance.values[name]
