@@ -1,5 +1,6 @@
 from typing import Any, Union
 import ast
+from zineb.utils.formatting import LazyFormat
 
 def string_to_number(value: str, strict: bool=False):
     """
@@ -79,7 +80,7 @@ def check_or_convert_to_type(value: Any, object_to_check_against: Union[int, flo
     return value
 
 
-def convert_to_type(value: Any, t: Union[int, str, bool, list, tuple]):
+def convert_to_type(value: Any, t: Union[int, str, bool, list, tuple], field_name=None):
     from zineb.models.fields import Empty
 
     if value is None or value == Empty:
@@ -88,10 +89,12 @@ def convert_to_type(value: Any, t: Union[int, str, bool, list, tuple]):
     try:
         return t(value)
     except Exception:
+        attrs = {'value': value, 't': t, 
+                'type1': type(value), 'type2': t, 
+                    'name': field_name}
         raise ValueError(
-            (f"The value '{value}' does not match"
-             f" the type provided in {t}. Got {type(value)}"
-             f" instead of {t}.")
+            LazyFormat("The value '{value}' does not match the type provided "
+            "in {t}. Got {type1} instead of {type2} for model field '{name}'.", **attrs)
         )
 
 
@@ -142,3 +145,14 @@ def detect_object_in_string(value: Any):
 def convert_to_dataframe(data: Union[list, dict], columns: list=[]):
     import pandas
     return pandas.DataFrame(data=data, columns=columns)
+
+
+def convert_if_number(value: str):
+    try:
+        return int(value)
+    except:
+        return float(value)
+    else:
+        raise ValueError(
+            LazyFormat('Cannot convert {value} to number.', value=value)
+        )
