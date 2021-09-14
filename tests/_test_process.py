@@ -12,16 +12,12 @@
 # print(d.date())
 
 
-from zineb.models.fields import FunctionField, DecimalField
-import datetime
-import re
+from zineb.models.datastructure import Model
+from zineb.models import fields
 
-def method_three(price):
-    is_match = re.search(r'^\$(\d+\.?\d+)$', price)
-    if is_match:
-        return is_match.group(1)
-    return price
+class SimpleModel(Model):
+    pass
 
-field = FunctionField(method_three, output_field=DecimalField())
-field.resolve('$456.7')
-print(field._cached_result)
+
+model = SimpleModel()
+print(model._meta.cached_options)
