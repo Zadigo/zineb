@@ -28,10 +28,11 @@ class DataContainer:
 
         - names: list of field names
     """
-    values = defaultdict(list)
+    # values = defaultdict(list)
     current_updated_fields = set()
 
     def __init__(self):
+        self.values = defaultdict(list)
         self._last_created_row = []
 
     def __repr__(self):
@@ -41,14 +42,10 @@ class DataContainer:
         return str(dict(self.as_values()))
 
     @classmethod
-    def as_container(cls, *names, model=None):
-        # In order to prevent the values
-        # parameter from reinstantiating with
-        # the names when using this class,
-        # we'll always use a new instance
-        for name in names:
-            cls.values[name]
+    def as_container(cls, *names):
         instance = cls()
+        for name in names:
+            instance.values[name]
         setattr(instance, 'names', list(names))
         return instance
         
@@ -277,17 +274,18 @@ class Base(type):
             return super_new(cls, name, bases, attrs)
 
         declared_fields = set()
-        for key, item in attrs.items():
-            if isinstance(item, Field):
-                declared_fields.add((key, item))
+        for key, field_obj in attrs.items():
+            if isinstance(field_obj, Field):
+                field_obj._bind(key)
+                declared_fields.add((key, field_obj))
 
         if declared_fields:
             descriptor = FieldDescriptor()
             descriptor.cached_fields = OrderedDict(declared_fields)
             attrs['_fields'] = descriptor
 
+        meta = ModelOptions([])
         if 'Meta' in attrs:
-            meta = ModelOptions([])
             meta_dict = attrs.pop('Meta').__dict__
             authorized_options = ['ordering', 'constraints']
             non_authorized_options = []
@@ -308,7 +306,7 @@ class Base(type):
                 raise ValueError("Meta received an illegal "
                 f"option. Valid options are: {', '.join(authorized_options)}")
             meta = meta(options)
-            attrs['_meta'] = meta
+        attrs['_meta'] = meta
 
         if declared_fields:
             # That's where is explicitely register
@@ -507,7 +505,7 @@ class DataStructure(metaclass=Base):
             # stored. In that case, we have to resolve to
             # the true value of the field. Otherwise the
             # user might get something unexpected
-            resolved_value = str(obj._cached_result.date())
+            resolved_value = str(obj._cached_result)
         
         self._cached_result.update(name, resolved_value)
 
