@@ -1,4 +1,5 @@
 from zineb.app import Zineb
+from zineb.tests.testproject.models.base import SimpleModel
 
 # Create your spiders here
 
@@ -8,4 +9,7 @@ class MySpider(Zineb):
     ]
 
     def start(self, response, request, **kwargs):
-        print(response.find('a'))
+        model = SimpleModel()
+        model.add_value('url', response.find('a')['href'])
+        print(model)
+        
