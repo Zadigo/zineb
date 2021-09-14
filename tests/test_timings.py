@@ -41,8 +41,9 @@ def test_timing_request():
 @calculate_time
 def test_simple_project_timing():
     os.environ.setdefault('ZINEB_SPIDER_PROJECT', 'zineb.tests.testproject.settings')
+
     cmd = ['python', os.path.join(os.path.dirname(__file__), 'testproject', 'manage.py'), 'start']
     subprocess.call(cmd, stderr=subprocess.STDOUT)
 
 if __name__ == '__main__':
-    test_simple_project_timing()
+    test_timing_model_creation()
