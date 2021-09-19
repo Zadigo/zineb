@@ -39,10 +39,7 @@ class GoogleSheets(API):
     def __init__(self, credentials: str=None):
         super().__init__('sheets', 'v4', credentials=credentials)
 
-        self.manager = SheetManager.copy(self.conn.spreadsheets())
+        self.manager = SheetManager.copy(self.get_connection.spreadsheets())
 
     # def __quit__(self):
-    #     self.conn.close()
-
-g = GoogleSheets()
-g.manager
+    #     self.get_connection.close()

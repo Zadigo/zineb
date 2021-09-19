@@ -10,9 +10,8 @@ class Interface:
         self.__init__(sheet)
 
     @classmethod
-    def copy(cls, sheet):
-        instance = cls(sheet)
-        return instance
+    def copy(cls, sheet_instance):
+        return cls(sheet_instance)
 
 
 class SheetManager(Interface):
