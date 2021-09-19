@@ -1,7 +1,8 @@
+from collections import defaultdict
 from typing import Any, Callable, Dict, Union
 from pydispatch import dispatcher
 from pydispatch.dispatcher import disconnect, getAllReceivers, liveReceivers
-
+import weakref
 
 class Signal:
     custom_signals = {}
