@@ -1,19 +1,20 @@
 import copy
-from zineb.models.expressions import ExpressionMixin
 import os
 import secrets
 from collections import OrderedDict, defaultdict
-from functools import cached_property
+from functools import cached_property, lru_cache
 from typing import Any, Callable, List, Union
 
 from bs4 import BeautifulSoup
 from pydispatch import dispatcher
 from zineb.exceptions import FieldError, ModelExistsError
 from zineb.http.responses import HTMLResponse
-from zineb.models.expressions import Math, When
 from zineb.models.fields import Empty, Field
+from zineb.models.functions import ExpressionMixin, Math, When
 from zineb.settings import settings
 from zineb.signals import signal
+from zineb.utils.formatting import LazyFormat
+
 # from zineb.utils.formatting import remap_to_dict
 
 
@@ -82,13 +83,9 @@ class DataContainer:
 
     def update(self, name: str, value: Any):
         """
-        Adds a new value to the containers
-
-        Parameters
-        ----------
-
-            name (str): name of the field to update
-            value (Any): value to add
+        Adds a new value to the containers by tracking the
+        fields that are being updated. If the name changes,
+        a new row of value is generated 
         """
         if value == Empty:
             value = None
@@ -194,11 +191,20 @@ class FieldDescriptor:
     def field_names(self):
         return list(self.cached_fields.keys())
 
+    # @lru_cache(maxsize=5)
     def get_field(self, name) -> Field:
         try:
             return self.cached_fields[name]
         except:
             raise FieldError(name, self.field_names)
+
+    def has_fields(self, *names, raise_exception=False):
+        result = all(map(lambda x: x in self.field_names, names))
+        if raise_exception:
+            raise FieldError(
+                LazyFormat('Field does not exist: {fields}', fields=', '.join(names))
+            )
+        return result
 
 
 class ModelOptions:
@@ -206,7 +212,10 @@ class ModelOptions:
     A container that stores the options
     of a given model Meta
     """
+    authorized_options = ['ordering', 'label']
+
     def __init__(self, options: Union[List[tuple[str]], dict]):
+        # self.cached_options = OrderedDict(self._add_options(options, only_check=True))
         self.cached_options = OrderedDict(options)
 
         self.ordering_field_names = set()
@@ -240,18 +249,49 @@ class ModelOptions:
             self.ordering_booleans = list(map(convert_to_boolean, ordering))
 
     def __call__(self, options):
+        # old_options = copy.deepcopy(self.cached_options)
         self.__init__(options)
+        # self.cached_options = old_options | self.cached_options
         return self
 
     def __getitem__(self, name):
         return self.cached_options[name]
+
+    # def _add_options(self, options: dict, only_check: bool=False):
+    #     if isinstance(options, list):
+    #         options = OrderedDict(options)
+
+    #     non_authorized_options = []
+
+    #     def _check_option_authorized(item):
+    #         key, _ = item
+    #         if key.startswith('__'):
+    #             return False
+
+    #         if key in self.authorized_options:
+    #             return True
+
+    #         non_authorized_options.append(key)
+    #         return False
+
+    #     options = list(filter(_check_option_authorized, options.items()))
+    #     if non_authorized_options:
+    #         raise ValueError(LazyFormat(
+    #             "Meta received an illegal option. Valid options are {options}.",
+    #             options=', '.join(self.authorized_options)
+    #         ))
+
+    #     if only_check:
+    #         return options
+
+    #     return self.__call__(options)
 
     def get_option_by_name(self, name):
         return self.cached_options.get(name)
 
     def has_option(self, name):
         return name in self.cached_options
-
+    
 
 class Base(type):
     def __new__(cls, name, bases, attrs):
@@ -267,15 +307,17 @@ class Base(type):
                 field_obj._bind(key)
                 declared_fields.add((key, field_obj))
 
+        descriptor = FieldDescriptor()
+        attrs['_fields'] = descriptor
         if declared_fields:
-            descriptor = FieldDescriptor()
             descriptor.cached_fields = OrderedDict(declared_fields)
             attrs['_fields'] = descriptor
 
-        meta = ModelOptions([])
+        default_options = [('label', f"models.base.{name}")]
+        meta = ModelOptions(default_options)
         if 'Meta' in attrs:
             meta_dict = attrs.pop('Meta').__dict__
-            authorized_options = ['ordering']
+            # authorized_options = ['ordering', 'label']
             non_authorized_options = []
 
             def check_option(item):
@@ -283,7 +325,7 @@ class Base(type):
                 if key.startswith('__'):
                     return False
 
-                if key in authorized_options:
+                if key in meta.authorized_options:
                     return True
                 
                 non_authorized_options.append(key)
@@ -292,8 +334,10 @@ class Base(type):
             options = list(filter(check_option, meta_dict.items()))
             if non_authorized_options:
                 raise ValueError("Meta received an illegal "
-                f"option. Valid options are: {', '.join(authorized_options)}")
-            meta = meta(options)
+                f"option. Valid options are: {', '.join(meta.authorized_options)}")
+            # meta = meta._add_options(meta_dict)
+            default_options.extend(options)
+            meta = meta(default_options)
         attrs['_meta'] = meta
 
         if declared_fields:
@@ -347,15 +391,17 @@ class DataStructure(metaclass=Base):
         resolved, just add it to the model. This is
         an internal function used for the purpose of
         other internal functions.
-
-        Parameters
-        ----------
-
-            value (Any): value to add to the the model
         """
         cached_values = self._cached_result.get(field_name, [])
         cached_values.append(value)
-        self._cached_result.update({ field_name: cached_values })
+        self._cached_result.update({field_name: cached_values})
+
+    def _raise_constraints(self, value):
+        from zineb.models.constraints import UniqueConstraint
+        if self._meta.has_option('constraints'):
+            constraints = self._meta.get_option_by_name('constraints')
+            for constraint in constraints:
+                constraint._check_constraint(model=self, value=value)
 
     # TODO: Think of how to better implement calculated
     # fields onto the model especially in the manner how
@@ -523,7 +569,6 @@ class DataStructure(metaclass=Base):
         related_field_object = self._get_field_by_name(related_field)
         related_field_object.resolve(self._cached_result._last_value(name))
         self._cached_result.update_last_item(related_field, related_field_object._cached_result)
-
 
     def resolve_fields(self):
         """

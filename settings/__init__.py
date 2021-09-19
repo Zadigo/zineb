@@ -2,23 +2,24 @@ import importlib
 import os
 
 from pydispatch import dispatcher
-from zineb._functionnal import LazyObject
 from zineb.settings import base as initial_project_settings
 from zineb.signals import signal
+from zineb.utils.functionnal import LazyObject
+
 
 class UserSettings:
     SETTINGS_MODULE = None
 
-    def __init__(self, user_settings_module: str):
-        # user_settings_module should be a
-        # dotted Python path  
+    def __init__(self, dotted_path: str):
         self.configured  = False
-        if user_settings_module is None:
-            # warnings.warn((f"[{self.__class__.__name__}]: Using initial Zineb "
-            # "settings as user did not define project settings"))
+        if dotted_path is None:
+            # If this class is called outside of a project,
+            # the dotted path will be None. Just ignore
+            # and consider that there is not project
+            # settings.py file to be used
             pass
         else:
-            module = importlib.import_module(user_settings_module)
+            module = importlib.import_module(dotted_path)
             for key in dir(module):
                 if key.isupper():
                     setattr(self, key, getattr(module, key))
@@ -36,39 +37,31 @@ class UserSettings:
 
 class Settings:
     """ 
-    Represents the settings file of the project
+    Represents the settings file of the project. On project start,
+    the project.settings file is parsed and stored in UserSettings.
 
-    Returns
-    -------
-
-        OrderedDict: [description]
+    The base settings and user settings are merged and stored
+    withing this class.
     """
     def __init__(self):
         for key in dir(initial_project_settings):
             if key.isupper():
-                # Also allow something like
-                # settings.MY_SETTING when using
-                # the Settings instance
                 setattr(self, key, getattr(initial_project_settings, key, None))
 
-        # Load the user settings and update the global
-        # settings with what the user has defined
-        settings_containing_data = ['RETRY_HTTP_CODES', 'MIDDLEWARES', 'DEFAULT_REQUEST_HEADERS']
-        
+        list_or_tuple_settings = ['RETRY_HTTP_CODES', 'MIDDLEWARES', 'DEFAULT_REQUEST_HEADERS']
         # This is the section that implements the settings that
         # the user modified or implemented to the global settings
-        # object
-        user_settings_module = os.environ.get('ZINEB_SPIDER_PROJECT')
-        self._user_settings = UserSettings(user_settings_module)
+        project_settings_dotted_path = os.environ.get('ZINEB_SPIDER_PROJECT')
+        self._user_settings = UserSettings(project_settings_dotted_path)
         for key in self._user_settings.__dict__.keys():
             if key.isupper():
-                if key not in settings_containing_data:
+                if key not in list_or_tuple_settings:
                     setattr(self, key, getattr(self._user_settings, key))
                 else:
                     # In order to ensure that both the user setting
                     # and the global setting are used simultanuously, 
-                    # when when dealing with tuples, lits...we have to 
-                    # collide/extend these elements
+                    # when when dealing with tuples, lists [...] we have 
+                    # to collide/extend these elements
                     user_setting = getattr(self._user_settings, key)
                     global_setting = getattr(self, key)
                     
@@ -134,8 +127,7 @@ class LazySettings(LazyObject):
     """
     This class implements a lazy loading of the settings
     for the application. In other words, the Settings class
-    is cached and used only when functionnalities are used
-    via the proxy class.
+    is cached and used only when called via the proxy class.
     """
     def _init_object(self):
         self.cached_object = Settings()

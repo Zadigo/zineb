@@ -12,14 +12,12 @@
 # print(d.date())
 
 
-from zineb.models.expressions import ExtractYear
 from zineb.models.datastructure import Model
 from zineb.models import fields
-from zineb.models.expressions import Add
 
-class TestModel(Model):
-    year = fields.DateField(default='*')
+class SimpleModel(Model):
+    pass
 
-model = TestModel()
-model.add_value('year', ExtractYear('11-1-2021', output_field=fields.ListField()))
-print(model)
+
+model = SimpleModel()
+print(model._meta.cached_options)
