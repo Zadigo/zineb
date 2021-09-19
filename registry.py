@@ -139,7 +139,8 @@ class Registry:
         # middlewares = Middleware(settings=settings)
         # middlewares._load
 
-        signal.send(dispatcher.Any, self, spiders=self)
+        # TODO:
+        # signal.send(dispatcher.Any, self, spiders=self)
 
     def run_all_spiders(self):
         spiders = self.get_spiders()
@@ -159,6 +160,8 @@ class Registry:
                     # Send a signal to all applications that might
                     # be interested that the spiders have started
                     # successfully
-                    signal.send(dispatcher.Any, self)
+                    # TODO:
+                    # signal.send(dispatcher.Any, self)
+                    pass
 
 registry = Registry()
