@@ -1,7 +1,3 @@
-"""
-Default Zineb settings
-"""
-
 import os
 import logging
 
@@ -51,7 +47,7 @@ LOG_LEVEL = logging.DEBUG
 
 MIDDLEWARES = [
     # 'zineb.middlewares.referer.Referer',
-    'zineb.middlewares.history.History',
+    # 'zineb.middlewares.history.History',
     # 'zineb.middlewares.statistics.GeneralStatistics'
     # 'zineb.middlewares.wireframe.WireFrame',
 ]
