@@ -633,7 +633,8 @@ class Model(DataStructure):
 
             dataframe: pandas dataframe object
         """
-        signal.send(dispatcher.Any, self, tag='Pre.Save')
+        # TODO:
+        # signal.send(dispatcher.Any, self, tag='Pre.Save')
         dataframe = self.resolve_fields()
 
         self.clean(dataframe=dataframe)
@@ -645,7 +646,8 @@ class Model(DataStructure):
                 if not filename.endswith('json'):
                     filename = f'{filename}.json'
 
-            signal.send(dispatcher.Any, self, tag='Post.Save')
+            # TODO:
+            # signal.send(dispatcher.Any, self, tag='Post.Save')
 
             if settings.MEDIA_FOLDER is not None:
                 filename = os.path.join(settings.MEDIA_FOLDER, filename)

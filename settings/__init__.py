@@ -100,7 +100,8 @@ class Settings:
         # Alert all middlewares and registered
         # signals on Any that the settings
         # have changed
-        signal.send(dispatcher.Any, self)
+        # TODO:
+        # signal.send(dispatcher.Any, self)
         return self.__dict__
 
     def __repr__(self):

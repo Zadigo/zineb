@@ -51,7 +51,8 @@ def download_image(response, download_to=None, as_thumbnail=False):
         raise TypeError(f'The response argument requires an HTMLResponse or a Response object. Got: {response}')
 
     response_content = response.content
-    signal.send(dispatcher.Any, response, tag='Pre.Download')
+    # TODO:
+    # signal.send(dispatcher.Any, response, tag='Pre.Download')
     
     buffer = BytesIO(response_content)
     image = Image.open(buffer)
@@ -68,5 +69,6 @@ def download_image(response, download_to=None, as_thumbnail=False):
         return new_image.width, new_image.height
 
     image.save(download_to)
-    signal.send(dispatcher.Any, response, tag='Post.Download', obj=image)
+    # TODO:
+    # signal.send(dispatcher.Any, response, tag='Post.Download', obj=image)
     return image.width, image.height, buffer
