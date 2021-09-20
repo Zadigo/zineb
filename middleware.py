@@ -3,7 +3,6 @@ from functools import cached_property
 from importlib import import_module
 
 from zineb import global_logger
-from zineb.signals import signal
 
 
 class Middleware:

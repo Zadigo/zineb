@@ -12,7 +12,6 @@ from zineb.http.responses import HTMLResponse
 from zineb.models.fields import Empty, Field
 from zineb.models.functions import ExpressionMixin, Math, When
 from zineb.settings import settings
-from zineb.signals import signal
 from zineb.utils.formatting import LazyFormat
 
 # from zineb.utils.formatting import remap_to_dict

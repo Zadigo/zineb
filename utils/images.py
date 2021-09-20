@@ -3,8 +3,6 @@ from typing import Callable
 
 from bs4 import BeautifulSoup
 from PIL import Image
-from pydispatch import dispatcher
-from zineb.signals import signal
 from zineb.utils.generate import create_new_name
 
 

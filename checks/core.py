@@ -37,7 +37,6 @@ class ApplicationChecks(GlobalMixins):
         for module in DEFAULT_CHECKS_MODULES:
             module = import_module(f'zineb.checks.{module}')
             path = getattr(module, '__file__')
-            print(path)
 
             filename = getattr(module, '__name__')
             filename = filename.rpartition('.')[-1]

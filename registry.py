@@ -9,7 +9,6 @@ from pydispatch import dispatcher
 from zineb import global_logger
 from zineb.exceptions import SpiderExistsError
 from zineb.middleware import Middleware
-from zineb.signals import signal
 
 
 class SpiderConfig:

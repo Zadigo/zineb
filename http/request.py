@@ -15,7 +15,6 @@ from zineb.exceptions import RequestAborted, ResponseFailedError
 from zineb.http.responses import HTMLResponse
 from zineb.http.user_agent import UserAgent
 from zineb.settings import settings as global_settings
-from zineb.signals import signal
 from zineb.tags import ImageTag, Link
 from zineb.utils.conversion import transform_to_bytes
 
@@ -192,7 +191,7 @@ class BaseRequest:
             "force only secured requests."))
             return None
 
-        TODO::
+        # TODO:
         # signal.send(dispatcher.Any, self, tag='Pre.Request')
 
         try:

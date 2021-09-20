@@ -13,7 +13,7 @@ from zineb import global_logger
 # from zineb.http.pipelines import CallBack
 from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
-from zineb.signals import signal
+from zineb import signals
 from zineb.settings import settings as global_settings
 
 
@@ -170,6 +170,7 @@ class Spider(metaclass=BaseSpider):
         # and fully loaded
         # TODO:
         # signal.send(dispatcher.Any, self, tag='Pre.Start')
+        # signals.send(sender=self, signal=self)
 
         self._cached_aggregated_results = None
         self._cached_aggregated_results = self._resolve_requests(debug=kwargs.get('debug', False))
