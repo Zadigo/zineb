@@ -170,7 +170,6 @@ class Spider(metaclass=BaseSpider):
         # and fully loaded
         # TODO:
         # signal.send(dispatcher.Any, self, tag='Pre.Start')
-        # signals.send(sender=self, signal=self)
 
         self._cached_aggregated_results = None
         self._cached_aggregated_results = self._resolve_requests(debug=kwargs.get('debug', False))

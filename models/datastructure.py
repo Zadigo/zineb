@@ -395,12 +395,12 @@ class DataStructure(metaclass=Base):
         cached_values.append(value)
         self._cached_result.update({field_name: cached_values})
 
-    def _raise_constraints(self, value):
-        from zineb.models.constraints import UniqueConstraint
-        if self._meta.has_option('constraints'):
-            constraints = self._meta.get_option_by_name('constraints')
-            for constraint in constraints:
-                constraint._check_constraint(model=self, value=value)
+    # def _raise_constraints(self, value):
+    #     from zineb.models.constraints import UniqueConstraint
+    #     if self._meta.has_option('constraints'):
+    #         constraints = self._meta.get_option_by_name('constraints')
+    #         for constraint in constraints:
+    #             constraint._check_constraint(model=self, value=value)
 
     # TODO: Think of how to better implement calculated
     # fields onto the model especially in the manner how
