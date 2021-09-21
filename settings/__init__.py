@@ -29,6 +29,12 @@ class UserSettings:
     def __repr__(self):
         return f"<{self.__class__.__name__}(configured={self.is_configured})>"
 
+    def __getitem__(self, key):
+        return self.__dict__[key]
+
+    def __setitem__(self, key, value):
+        self.__dict__[key] = value
+
     @property
     def is_configured(self):
         return self.configured
