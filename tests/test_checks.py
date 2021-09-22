@@ -16,6 +16,9 @@ settings = settings()
 
 
 class TestApplicationChecks(unittest.TestCase):
+    def test_has_checks(self):
+        self.assertGreater(len(checks_registry._checks), 0)
+        
     @unittest.expectedFailure
     def test_spiders_is_not_a_list(self):
         checks_registry._default_settings['SPIDERS'] = None

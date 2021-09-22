@@ -115,9 +115,9 @@ MEDIA_FOLDER = None
 # that is downloaded from the internet or files
 # that were created with the model
 
-STORAGE = 'zineb.storages.core.LocalStorage'
+# STORAGE = 'zineb.storages.core.LocalStorage'
 
-STORAGES = []
+# STORAGES = []
 
 
 # Default date formats used for resolving
