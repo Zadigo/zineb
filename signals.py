@@ -95,7 +95,7 @@ def resolve_weak_reference(obj):
     if isinstance(obj, WEAKREF_TYPES):
         receiver = obj()
         if receiver is not None:
-            yield receiver
+            return receiver
     return obj
 
 
@@ -116,8 +116,9 @@ def filtered_receivers(sender: str):
         items = RECEIVERS[receiver_id]
         receivers = receivers.union(items)
 
-    for func in receivers:
-        yield resolve_weak_reference(func)
+    # for func in receivers:
+    #     return resolve_weak_reference(func)
+    return [resolve_weak_reference(func) for func in receivers]
 
 
 def connect(receiver, sender: Any = None, weak=True):
@@ -170,7 +171,17 @@ def disconnect(receiver: Any = None, sender: Any = None):
 
 def send(sender=None, signal=None, **named):
     response = []
-    for receiver in filtered_receivers(sender=sender):
+    receivers = filtered_receivers(sender=sender)
+    for receiver in receivers:
         method = partial(receiver, sender=sender)
         response.append(method(**named))
+        # try:
+        # except:
+        #     pass
     return response
+
+
+def receiver(sender, **kwargs):
+    def wrapper(func):
+        connect(func, sender=sender)
+    return wrapper
