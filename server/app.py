@@ -8,7 +8,6 @@ from flask import Flask, request
 from flask.templating import render_template
 from rest_framework.response import Response as RestResponse
 from flask.wrappers import Response
-from zineb.server.serializers import ValidateSpiderCreation
 from zineb.settings import settings
 
 
