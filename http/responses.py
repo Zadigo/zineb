@@ -14,7 +14,6 @@ from w3lib.url import is_url
 from zineb.extractors.base import (ImageExtractor, LinkExtractor,
                                    MultiTablesExtractor)
 from zineb.http.headers import ResponseHeaders
-from zineb.signals import signal
 from zineb.utils.generate import create_new_name, random_string
 
 
@@ -324,6 +323,7 @@ class JsonResponse(BaseResponse):
 
             DataFrame: a pandas DataFrame
         """
+        import pandas
         try:
             return pandas.DataFrame(data=self.raw_data[key])
         except:

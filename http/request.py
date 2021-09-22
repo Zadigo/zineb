@@ -10,7 +10,7 @@ from requests.models import Response
 from requests.sessions import Request, Session
 from w3lib.url import (is_url, safe_download_url, safe_url_string, urljoin,
                        urlparse)
-from zineb import global_logger
+from zineb import global_logger, signals
 from zineb.exceptions import RequestAborted, ResponseFailedError
 from zineb.http.responses import HTMLResponse
 from zineb.http.user_agent import UserAgent
@@ -192,7 +192,7 @@ class BaseRequest:
             return None
 
         # TODO:
-        # signal.send(dispatcher.Any, self, tag='Pre.Request')
+        signals.send(sender=self, signal='pre_request', url=self.url)
 
         try:
             response = self.session.send(self.prepared_request)
