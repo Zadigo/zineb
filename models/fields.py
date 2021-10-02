@@ -299,8 +299,8 @@ class ImageField(UrlField):
 
         self.download = download
         self.as_thumbnail = as_thumnail
-        self.image_data = None
-        self.metadata = {}
+        # self.image_data = None
+        # self.metadata = {}
         self.download_to = download_to
 
     def resolve(self, url):
