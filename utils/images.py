@@ -3,16 +3,24 @@ from typing import Callable
 
 from bs4 import BeautifulSoup
 from PIL import Image
+from zineb.tags import ImageTag
 from zineb.utils.generate import create_new_name
 
 
-def download_image_from_tag(tag: BeautifulSoup, download_to=None, 
+def download_image_from_tag(tag, download_to=None, 
                             as_thumbnail=None, link_processor=None):
     from zineb.http.request import HTTPRequest
+
+    if not isinstance(tag, (BeautifulSoup, ImageTag)):
+        raise ValueError('Tag should be a BeautifulSoup object or an ImageTag')
+
+    if not tag.is_valid:
+        return False
 
     url = tag.attrs.get('src')
     if link_processor is not None:
         url = link_processor(url)
+
     if url is not None:
         request = HTTPRequest(url=url)
         request._send()
@@ -25,6 +33,7 @@ def download_image_from_url(url:str, download_to=None,
 
     if link_processor is not None:
         url = link_processor(url)
+
     request = HTTPRequest(url=url)
     request._send()
     return download_image(request.html_response, download_to=download_to, as_thumbnail=as_thumbnail)
@@ -37,9 +46,9 @@ def download_image(response, download_to=None, as_thumbnail=False):
     Parameters
     ----------
     
-        response (Type): an HTTP response object
-        download_to (String, Optiona): download to a specific path. Defaults to None
-        as_thumbnail (Bool, Optional): download the image as a thumbnail. Defaults to True
+        - response (Type): an HTTP response object
+        - download_to (String, Optiona): download to a specific path. Defaults to None
+        - as_thumbnail (Bool, Optional): download the image as a thumbnail. Defaults to True
     """
     from zineb.http.responses import HTMLResponse
 
