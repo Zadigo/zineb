@@ -45,15 +45,18 @@ class ChoicesMapping(Mapping):
 class ChoicesMeta(type):
     def __new__(cls, name, bases, attrs):
         new_class = super().__new__
+
         mapping = ChoicesMapping()
         for key, value in attrs.items():
             if key.isupper() and not key.startswith('__'):
-                mapping[key] = value
+                mapping[key] = (key, value)
+
         attrs['_choices'] = mapping
         return new_class(cls, name, bases, attrs)
 
     def __iter__(cls):
         return (item for item in cls)
+
 
 class BaseChoices(metaclass=ChoicesMeta):        
     def __str__(self):
@@ -88,4 +91,4 @@ class MyChoices(Choices):
     AGE = 'Age'
 
 
-print('Name' in MyChoices)
+print(MyChoices._choices)
