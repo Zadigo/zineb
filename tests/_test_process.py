@@ -12,12 +12,18 @@
 # print(d.date())
 
 
-from zineb.models.datastructure import Model
-from zineb.models import fields
+# from functools import cached_property, partial
 
-class SimpleModel(Model):
-    pass
+# from bs4 import BeautifulSoup
+# from zineb.extractors.base import ImageExtractor
+# from zineb.models.fields import ImageField
+# from zineb.utils.processors import UrlProcessor
+# from zineb.utils.urls import replace_urls_suffix
 
+# e = ImageExtractor(url_must_contain='130x170', replace_suffix=True, processors=[UrlProcessor(replace_urls_suffix)])
 
-model = SimpleModel()
-print(model._meta.cached_options)
+# with open('tests/html/images.html') as f:
+#     s = BeautifulSoup(f, 'html.parser')
+#     e.resolve()
+
+# print(e[0].attrs)
