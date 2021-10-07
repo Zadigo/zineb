@@ -12,14 +12,22 @@ class ExpressionMixin:
     field_name = None
 
     def get_field_object(self):
-        if self.model is None:
+        # if self.model is None:
+        #     class_name = self.__class__.__name__
+        #     raise ModelNotImplementedError(
+        #         LazyFormat((f"{class_name} could not"
+        #         f" retrieve the field object for '{self.field_name}'."))
+        #     )
+
+        # return self.model._get_field_by_name(self.field_name)
+        try:
+            return self.model._get_field_name(self.field_name)
+        except:
             class_name = self.__class__.__name__
             raise ModelNotImplementedError(
-                LazyFormat((f"{class_name} could not"
-                f" retrieve the field object for '{self.field_name}'."))
+                LazyFormat("{class_name} could not retrieve "
+                "the field object for {field_name}", class_name=class_name, field_name=self.field_name)
             )
-
-        return self.model._get_field_by_name(self.field_name)
 
     def resolve(self):
         raise NotImplementedError('Expression resolution should be implement by child classes')
@@ -38,15 +46,15 @@ class Math(ExpressionMixin):
         class_name = self.__class__.__name__
         
         if class_name == 'Add':
-            result = f"{self.value} {self.ADD} {self.by}"
+            result = f"{self._cached_data} {self.ADD} {self.by}"
         elif class_name == 'Substract':
-            result = f"{self.value} {self.SUBSTRACT} {self.by}"
+            result = f"{self._cached_data} {self.SUBSTRACT} {self.by}"
         elif class_name == 'Divide':
-            result = f"{self.value} {self.DIVIDE} {self.by}"
+            result = f"{self._cached_data} {self.DIVIDE} {self.by}"
         elif class_name == 'Multiply':
-            result = f"{self.value} {self.MULTIPLY} {self.by}"
+            result = f"{self._cached_data} {self.MULTIPLY} {self.by}"
         else:
-            result = f"{self.value} {self.by}"
+            result = f"{self._cached_data} {self.by}"
 
         return f"{class_name}(< {result} >)"
 
