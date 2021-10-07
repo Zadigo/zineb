@@ -1,69 +1,7 @@
-# from collections import defaultdict
-# from typing import Any, Callable, Dict, Union
-# from pydispatch import dispatcher
-# from pydispatch.dispatcher import disconnect, getAllReceivers, liveReceivers
-# import weakref
-
-# class Signal:
-#     custom_signals = {}
-
-#     def disconnect_all(self, sender, signal):
-#         for receiver in liveReceivers(getAllReceivers(sender, signal)):
-#             self.disconnect(receiver, signal=signal, sender=sender) 
-
-#     def receivers(self, sender=dispatcher.Any, signal=dispatcher.Any):
-#         return getAllReceivers(sender=sender, signal=signal)
-
-#     def connect(self, receiver, signal=None, sender=None):
-#         if signal is None:
-#             signal = dispatcher.Any
-
-#         if sender is None:
-#             sender = dispatcher.Any
-
-#         dispatcher.connect(receiver, signal=signal, sender=sender)
-
-#     def disconnect(self, receiver, signal, sender):
-#         dispatcher.disconnect(receiver, signal=signal, sender=sender)
-
-#     def send(self, signal, sender, *arguments, **named):
-#         return dispatcher.send(signal=signal, sender=sender, *arguments, **named)
-
-#     def register(self, receiver: Callable[[str, Union[Dict, None]], None], tag: str=None):
-#         if tag is None:
-#             tag = receiver.__name__
-#         self.custom_signals[tag] = receiver
-#         self.connect(receiver)
-
-
-# signal = Signal()
-
-
-# def receiver(tag: str=None):
-#     """
-#     Connect a receiving function to the global
-#     signals interface
-
-#     Example
-#     -------
-
-#             @receiver(tag="tag")
-#             def my_custom_function():
-#                 # Do something here
-#                 pass
-
-#     Args:
-#         tag (str, optional): [description]. Defaults to None.
-#     """
-#     def wrapper(func):
-#         signal.register(func, tag=tag)
-#     return wrapper
-
-
 import weakref
 from collections import defaultdict
 from functools import partial, wraps
-from typing import Any
+from typing import Any, Callable, Union
 
 # from pydispatch.dispatcher import WEAKREF_TYPES
 
@@ -79,6 +17,18 @@ def create_id(obj):
     return id(obj)
 
 
+def name_if_object(obj: Union[type, Callable, str]):
+    """Returns the object's name if it's a Type
+    or a function"""
+    if isinstance(obj, str):
+        return obj
+
+    types = ['type', 'function']
+    if type(obj).__name__ in types:
+        return obj.__name__.lower()
+    return obj
+
+
 def remove_old(receiver_id):
     def wrapper(obj):
         receivers = RECEIVERS[receiver_id]
@@ -92,7 +42,7 @@ def remove_old(receiver_id):
 def resolve_weak_reference(obj):
     # Resolve the weakref of the receiver
     # by returning the true function
-    if isinstance(obj, WEAKREF_TYPES):
+    if isinstance(obj, (weakref.ReferenceType)):
         receiver = obj()
         if receiver is not None:
             return receiver
@@ -108,16 +58,14 @@ def get_all_receivers():
 def filtered_receivers(sender: str):
     """Return receivers that are explicitely
     linked to a sender including those binded
-    in the globall 'all' scope"""
+    in the global 'all' scope"""
     receivers = set()
-    receiver_ids = CONNECTIONS[sender]
+    receiver_ids = CONNECTIONS.get(name_if_object(sender), set())
     receiver_ids = receiver_ids.union(CONNECTIONS['all'])
+    
     for receiver_id in receiver_ids:
         items = RECEIVERS[receiver_id]
         receivers = receivers.union(items)
-
-    # for func in receivers:
-    #     return resolve_weak_reference(func)
     return [resolve_weak_reference(func) for func in receivers]
 
 
@@ -125,7 +73,21 @@ def connect(receiver, sender: Any = None, weak=True):
     receiver_id = create_id(receiver)
 
     if weak:
-        receiver = weakref.ref(receiver, None)
+        def clean_up(old_func):
+            for key, func in RECEIVERS.items():
+                if old_func is func:
+                    break
+            try:
+                CONNECTIONS.pop(key)
+            except:
+                pass
+
+            try:
+                RECEIVERS.pop(key)
+            except:
+                pass
+
+        receiver = weakref.ref(receiver, clean_up)
 
     receivers = RECEIVERS[receiver_id]
     if receiver not in receivers:
@@ -143,20 +105,20 @@ def connect(receiver, sender: Any = None, weak=True):
         # If the sender is not explicitely named,
         # link the receiver to the glabal sending
         # scope called 'all'
-        # sender_id = create_id(sender)
         sender = 'all'
 
     # Check if sender is a string, a function
     # or a class and get the derived name
-    attrs = ['type', 'function']
-    if type(sender).__name__ in attrs:
-        sender = sender.__name__.lower()
+    # attrs = ['type', 'function']
+    # if type(sender).__name__ in attrs:
+    #     sender = sender.__name__.lower()
+    sender = name_if_object(sender)
 
     connections = CONNECTIONS[sender]
     connections.add(receiver_id)
 
 
-def disconnect(receiver: Any = None, sender: Any = None):
+def disconnect(receiver: Any=None, sender: Any=None):
     disconnected = False
     if sender is not None:
         del CONNECTIONS[sender]
@@ -175,9 +137,6 @@ def send(sender=None, signal=None, **named):
     for receiver in receivers:
         method = partial(receiver, sender=sender)
         response.append(method(**named))
-        # try:
-        # except:
-        #     pass
     return response
 
 
