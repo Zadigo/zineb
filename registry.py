@@ -4,7 +4,7 @@ import warnings
 from collections import OrderedDict
 from functools import lru_cache
 
-from pydispatch import dispatcher
+# from pydispatch import dispatcher
 
 from zineb import global_logger
 from zineb.exceptions import SpiderExistsError

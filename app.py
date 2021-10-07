@@ -6,7 +6,7 @@ from io import StringIO
 from typing import Iterator, Union
 
 from bs4 import BeautifulSoup
-from pydispatch import dispatcher
+# from pydispatch import dispatcher
 
 # from xml.etree import ElementTree
 from zineb import global_logger

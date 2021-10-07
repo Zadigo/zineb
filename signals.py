@@ -65,7 +65,7 @@ from collections import defaultdict
 from functools import partial, wraps
 from typing import Any
 
-from pydispatch.dispatcher import WEAKREF_TYPES
+# from pydispatch.dispatcher import WEAKREF_TYPES
 
 # {'some-sender': [222, 333, ...]}
 CONNECTIONS = defaultdict(set)

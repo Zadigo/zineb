@@ -6,7 +6,7 @@ from functools import cached_property, lru_cache
 from typing import Any, Callable, List, Union
 
 from bs4 import BeautifulSoup
-from pydispatch import dispatcher
+# from pydispatch import dispatcher
 from zineb.exceptions import FieldError, ModelExistsError
 from zineb.http.responses import HTMLResponse
 from zineb.models.fields import Empty, Field
