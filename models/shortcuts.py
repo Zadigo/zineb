@@ -17,6 +17,7 @@ class InlineModel:
         instance = type(name, (model,), dict(attrs))
         instance.__qualname__ = name.lower().title()
         instance.__name__ = name.lower().title()
+        setattr(instance, 'inline_model', True)
         return instance
 
 inline_model = InlineModel()

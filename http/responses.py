@@ -14,7 +14,6 @@ from w3lib.url import is_url
 from zineb.extractors.base import (ImageExtractor, LinkExtractor,
                                    MultiTablesExtractor)
 from zineb.http.headers import ResponseHeaders
-from zineb.signals import signal
 from zineb.utils.generate import create_new_name, random_string
 
 
@@ -129,6 +128,7 @@ class HTMLResponse(BaseResponse):
     @staticmethod
     def _writer(content):
         name = f"{random_string(length=5)}.html"
+        # TODO:
         # result = signal.send('Storage', self, filename=name)
         with open(name, mode='w', encoding='utf-8') as f:
             f.write(content)
@@ -323,6 +323,7 @@ class JsonResponse(BaseResponse):
 
             DataFrame: a pandas DataFrame
         """
+        import pandas
         try:
             return pandas.DataFrame(data=self.raw_data[key])
         except:

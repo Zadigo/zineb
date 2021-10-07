@@ -13,10 +13,11 @@ from zineb import global_logger
 # from zineb.http.pipelines import CallBack
 from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
-from zineb.signals import signal
+from zineb import signals
 from zineb.settings import settings as global_settings
 
-# class Options:
+
+# class SpiderOptions(dict):
 #     spider_options = defaultdict(set)
 
 #     def __init__(self, **kwargs):
@@ -167,7 +168,8 @@ class Spider(metaclass=BaseSpider):
         # Tell all middlewares and signals registered
         # to receive Any that the Spider is ready
         # and fully loaded
-        signal.send(dispatcher.Any, self, tag='Pre.Start')
+        # TODO:
+        # signal.send(dispatcher.Any, self, tag='Pre.Start')
 
         self._cached_aggregated_results = None
         self._cached_aggregated_results = self._resolve_requests(debug=kwargs.get('debug', False))
@@ -223,7 +225,8 @@ class Spider(metaclass=BaseSpider):
                     # if return_value is not None:
                     #     return_values_container.append(return_value)
 
-                signal.send(dispatcher.Any, self, tag='Post.Initial.Requests', urls=self._prepared_requests)
+                # TODO:
+                # signal.send(dispatcher.Any, self, tag='Post.Initial.Requests', urls=self._prepared_requests)
                 # return self._resolve_return_containers(return_values_container)
             else:
                 global_logger.logger.warn(f'You are using {self.__class__.__name__} in DEBUG mode')

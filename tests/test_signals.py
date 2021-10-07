@@ -1,17 +1,8 @@
-from signals import pre_start
-import unittest
-from zineb.signals import signal
+from zineb.http.request import HTTPRequest
+from zineb import signals
 
+request = HTTPRequest('http://example.com')
+signals.send(sender='a')
+request._send()
 
-class Spider:
-    def __init__(self):
-        pass
-
-
-class TestSignals(unittest.TestCase):
-    def setUp(self):
-        spider = Spider()
-        
-        
-if __name__ == "__main__":
-    unittest.main()
+print(signals.RECEIVERS)

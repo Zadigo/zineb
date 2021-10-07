@@ -12,7 +12,6 @@ from zineb.http.responses import HTMLResponse
 from zineb.models.fields import Empty, Field
 from zineb.models.functions import ExpressionMixin, Math, When
 from zineb.settings import settings
-from zineb.signals import signal
 from zineb.utils.formatting import LazyFormat
 
 # from zineb.utils.formatting import remap_to_dict
@@ -396,12 +395,12 @@ class DataStructure(metaclass=Base):
         cached_values.append(value)
         self._cached_result.update({field_name: cached_values})
 
-    def _raise_constraints(self, value):
-        from zineb.models.constraints import UniqueConstraint
-        if self._meta.has_option('constraints'):
-            constraints = self._meta.get_option_by_name('constraints')
-            for constraint in constraints:
-                constraint._check_constraint(model=self, value=value)
+    # def _raise_constraints(self, value):
+    #     from zineb.models.constraints import UniqueConstraint
+    #     if self._meta.has_option('constraints'):
+    #         constraints = self._meta.get_option_by_name('constraints')
+    #         for constraint in constraints:
+    #             constraint._check_constraint(model=self, value=value)
 
     # TODO: Think of how to better implement calculated
     # fields onto the model especially in the manner how
@@ -678,7 +677,8 @@ class Model(DataStructure):
 
             dataframe: pandas dataframe object
         """
-        signal.send(dispatcher.Any, self, tag='Pre.Save')
+        # TODO:
+        # signal.send(dispatcher.Any, self, tag='Pre.Save')
         dataframe = self.resolve_fields()
 
         self.clean(dataframe=dataframe)
@@ -690,7 +690,8 @@ class Model(DataStructure):
                 if not filename.endswith('json'):
                     filename = f'{filename}.json'
 
-            signal.send(dispatcher.Any, self, tag='Post.Save')
+            # TODO:
+            # signal.send(dispatcher.Any, self, tag='Post.Save')
 
             if settings.MEDIA_FOLDER is not None:
                 filename = os.path.join(settings.MEDIA_FOLDER, filename)

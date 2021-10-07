@@ -1,3 +1,4 @@
+import copy
 import os
 import re
 from collections import OrderedDict
@@ -11,10 +12,11 @@ from w3lib.html import safe_url_string
 from w3lib.url import is_url, urljoin
 from zineb.extractors._mixins import MultipleRowsMixin
 from zineb.settings import settings as global_settings
-from zineb.utils.decoders import decode_email
 from zineb.utils.characters import deep_clean
+from zineb.utils.decoders import decode_email
+from zineb.utils.iteration import drop_while, keep_while
 from zineb.utils.paths import is_path
-from zineb.utils.iteration import keep_while
+from zineb.utils.urls import replace_urls_suffix
 
 
 class Extractor:
@@ -27,15 +29,25 @@ class Extractor:
     def __exit__(self, exc_type, exc_val, exc_tb):
         return False
 
-    def resolve(self, soup: BeautifulSoup) -> NoReturn:
-        raise NotImplementedError(('Provide functionnalities for quickly '
-        'extracting items from the HTML page'))
+    @cached_property
+    def cached_items(self):
+        """
+        Return the original list of extracted
+        elements on the page
+        """
+        raise NotImplementedError(('Subclasses should provide a way'
+        ' to return the orginal data'))
 
     def _check_response(self, response):
         from zineb.http.responses import HTMLResponse
         if isinstance(response, HTMLResponse):
             return response.html_page
         return response
+
+    def resolve(self, soup: BeautifulSoup) -> NoReturn:
+        raise NotImplementedError(('Provide functionnalities for quickly '
+        'extracting items from the HTML page'))
+
 
 
 class TableExtractor(Extractor):
@@ -441,39 +453,36 @@ class TextExtractor(Extractor):
         self.tokens = self.tokenizer.tokenize(text)
         self.raw_text = text
 
-    def vectorize(self, min_df=1, max_df=1, return_matrix=False):
-        from nltk import PunktSentenceTokenizer
-        from sklearn.feature_extraction.text import CountVectorizer
+    # def vectorize(self, min_df=1, max_df=1, return_matrix=False):
+    #     from nltk import PunktSentenceTokenizer
+    #     from sklearn.feature_extraction.text import CountVectorizer
 
-        if self.raw_text is not None:
-            tokenizer = PunktSentenceTokenizer()
-            sentences = tokenizer.sentences_from_text(self.raw_text)
+    #     if self.raw_text is not None:
+    #         tokenizer = PunktSentenceTokenizer()
+    #         sentences = tokenizer.sentences_from_text(self.raw_text)
 
-            vectorizer = CountVectorizer(
-                min_df=min_df, max_df=max_df, stop_words=self._stop_words
-            )
-            matrix = vectorizer.fit_transform(sentences)
-            return matrix if return_matrix else vectorizer.get_feature_names()
-        return None
+    #         vectorizer = CountVectorizer(
+    #             min_df=min_df, max_df=max_df, stop_words=self._stop_words
+    #         )
+    #         matrix = vectorizer.fit_transform(sentences)
+    #         return matrix if return_matrix else vectorizer.get_feature_names()
+    #     return None
 
 
 class LinkExtractor(Extractor):
     """
-    Extract all links using a BeautifulSoup object
-
-    This helper class is a useful wrapper for rapidly getting
-    the links from a BeautifulSoup element
+    Extract all the links on a given HTML page
 
     Parameters
     ----------
 
-        url_must_contain (str, optional): only get items which url contains x. Defaults to None.
-        unique (bool, optional): links must be unique accross document. Defaults to False.
-        base_url (str, optional): [description]. Defaults to None.
-        only_valid_links (bool, optional): links must be valid (start with http). Defaults to False.
+        - url_must_contain (str, optional): only get items which url contains x. Defaults to None.
+        - unique (bool, optional): links must be unique accross document. Defaults to False.
+        - base_url (str, optional): [description]. Defaults to None.
+        - only_valid_links (bool, optional): links must be valid (start with http). Defaults to False.
     """
-    def __init__(self, url_must_contain=None, unique=False,
-                 base_url=None, only_valid_links=False):
+    def __init__(self, url_must_contain: str=None, unique: bool=False,
+                 base_url: str=None, only_valid_links: bool=False):
         self.base_url = base_url
         self.unique = unique
         self.validated_links = []
@@ -515,34 +524,30 @@ class LinkExtractor(Extractor):
         """
         Return all the document's links
 
-        Parameters
-        ----------
-
-            soup (type): BeautifulSoup object
-
-        Returns
+        Returns        
         -------
 
             list: list of links
         """
-        from zineb.http.responses import HTMLResponse
-        if isinstance(soup, HTMLResponse):
-            soup = soup.html_page
+        # from zineb.http.responses import HTMLResponse
+        # if isinstance(soup, HTMLResponse):
+        #     soup = soup.html_page
+        soup = self._check_response(soup)
         return soup.find_all('a')
 
-    def _link_iterator(self, soup) -> Generator[Tuple[Tag, Dict], None, None]:
+    def _link_iterator(self, soup):
         """
         Iterate on link BeautifulSoup ResultSet
 
         Parameters
         ----------
 
-            soup (type): BeautifulSoup object
+            - soup (type): BeautifulSoup object
 
         Yields
         ------
 
-            tuple: url and link attributes
+            - Generator[tuple[PageElement | Any, Any], None, None]: url and link attributes
         """
         for tag in self._document_links(soup):
             element_name = tag.name
@@ -565,6 +570,10 @@ class LinkExtractor(Extractor):
         return urljoin(self.base_url, path)
 
     def resolve(self, soup: BeautifulSoup):
+        """
+        Pass either a BeautifulSoup object or an HTMLResponse
+        in order to extract all the links of a given page
+        """
         from zineb.tags import Link
         if soup is None:
             return None
@@ -572,9 +581,9 @@ class LinkExtractor(Extractor):
         tags = self._link_iterator(soup)
         for tag in tags:
             element, attrs = tag
-            href = attrs.get('href', None)
-            if href is not None:
-                attrs['href'] = self._recompose_path(attrs['href'])
+            # href = attrs.get('href', None)
+            # if href is not None:
+            attrs['href'] = self._recompose_path(attrs['href'])
             self.validated_links.append(Link(element, attrs=attrs))
 
         if self.unique:
@@ -583,8 +592,11 @@ class LinkExtractor(Extractor):
             )
 
         if self.only_valid_links:
+            # self.validated_links = list(
+            #     filter(lambda x: x.is_valid, self.validated_links)
+            # )
             self.validated_links = list(
-                filter(lambda x: x.is_valid, self.validated_links)
+                keep_while(lambda x: x.is_valid, self.validated_links)
             )
 
 
@@ -648,28 +660,37 @@ class ImageExtractor(Extractor):
     Parameters
     ----------
 
-        unique (bool, Optional): if images should be unique. Defaults to False
-        as_type (str, Optional): get images only from a specific extension. Defaults to None
-        url_must_contain: (str, Optional): images with a specific url. Defaults to None
-        match_height: (int, Optional): images of a certain height
-        match_width: (int, Optional): images of a certain width
+        - unique (bool, Optional): if images should be unique. Defaults to False
+        - as_type (str, Optional): get images only from a specific extension. Defaults to None
+        - url_must_contain: (str, Optional): images with a specific url. Defaults to None
+        - match_height: (int, Optional): images of a certain height
+        - match_width: (int, Optional): images of a certain width
     """
 
-    def __init__(self, unique=False, as_type=None,
-                 url_must_contain=None, match_height=None,
-                 match_width=None):
+    def __init__(self, unique: bool=False, as_type: str=None,
+                 url_must_contain: str=None, match_height: int=None,
+                 match_width: int=None):
         self.images = []
+        self._cached_images = []
         self.unique = unique
         self.as_type = as_type
         self.url_must_contain = url_must_contain
         self.match_height = match_height
         self.match_width = match_width
+        self.processors = []
 
     def __len__(self):
         return len(self.images)
 
     def __getitem__(self, index):
         return self.images[index] if self.images else []
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.images})'
+
+    @cached_property
+    def cached_items(self):
+        return self._cached_images
 
     def _document_images(self, soup):
         from zineb.http.responses import HTMLResponse
@@ -683,50 +704,57 @@ class ImageExtractor(Extractor):
         for image in self._document_images(soup):
             yield image, image.attrs
 
-    def resolve(self, soup: BeautifulSoup):
+    def resolve(self, soup: BeautifulSoup, processors: list=[]):
         from zineb.tags import ImageTag
+
+        self.processors.extend(processors)
+
         images = self._image_iterator(soup)
         for i, image in enumerate(images):
             tag, attrs = image
-            self.images.append(
+            self._cached_images.append(
                 ImageTag(tag, attrs=attrs, index=i, html_page=soup)
             )
+        self.images = self.filter_images()
+        
+        # processor_result = []
+        # for processor in processors:
+        #     if not processor_result:
+        #         processor_result = processor.get_result
+        #     else:
+                
         return self.images
 
     def filter_images(self, expression: str=None):
-        expression = expression or self.url_must_contain
-
-        images = self.images.copy()
+        images = self._cached_images.copy()
 
         if self.unique:
             images = list(set(images))
 
         if expression is not None:
-            images = list(filter(lambda x: expression in x, images))
+            images = list(keep_while(lambda x: expression in x, images))
 
         if self.as_type is not None:
-            images = list(filter(lambda x: x.endswith(self.as_type), images))
+            images = list(keep_while(lambda x: x.endswith(self.as_type), images))
 
         if self.url_must_contain is not None:
-            images = list(filter(lambda x: self.url_must_contain in x, images))
+            images = list(keep_while(lambda x: self.url_must_contain in x, images))
 
-        if self.match_height is not None:
-            filtered_images = []
+        if (self.match_height is not None 
+                or self.match_width is not None):
+            filtered_images = {}
             for image in images:
-                height = image.attrs.get('height', None)
+                height, width = (image.attrs.get('height'), image.attrs.get('width'))
                 if height is not None:
                     if height == self.match_height:
-                        filtered_images.append(image)
-            images = filtered_images
-
-        if self.match_width is not None:
-            filtered_images = []
-            for image in images:
-                height = image.attrs.get('width', None)
-                if height is not None:
-                    if height == self.match_width:
-                        filtered_images.append(image)
-            images = filtered_images
+                        filtered_images.add(image)
+                    
+                if width is not None:
+                    if width == self.match_width:
+                        filtered_images.add(image)
+            
+            images = list(filtered_images)
+            
         return images
 
 

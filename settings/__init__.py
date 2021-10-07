@@ -3,7 +3,6 @@ import os
 
 from pydispatch import dispatcher
 from zineb.settings import base as initial_project_settings
-from zineb.signals import signal
 from zineb.utils.functionnal import LazyObject
 
 
@@ -29,6 +28,12 @@ class UserSettings:
 
     def __repr__(self):
         return f"<{self.__class__.__name__}(configured={self.is_configured})>"
+
+    def __getitem__(self, key):
+        return self.__dict__[key]
+
+    def __setitem__(self, key, value):
+        self.__dict__[key] = value
 
     @property
     def is_configured(self):
@@ -93,7 +98,8 @@ class Settings:
         # Alert all middlewares and registered
         # signals on Any that the settings
         # have changed
-        signal.send(dispatcher.Any, self)
+        # TODO:
+        # signal.send(dispatcher.Any, self)
         return self.__dict__
 
     def __repr__(self):

@@ -1,6 +1,7 @@
 import os
 from functools import lru_cache
-from typing import Callable, Iterable
+import re
+from typing import Callable, Iterable, Union
 
 from zineb import exceptions
 from zineb.settings import settings
@@ -86,7 +87,7 @@ def collect_files(path: str, func: Callable = None):
     ----------
 
         - path (str): relative path to the directory
-        - func (Callable): a callback function to use on the files 
+        - func (Callable): a func that can be used to filter the files
 
     Raises
     ------
@@ -110,6 +111,25 @@ def collect_files(path: str, func: Callable = None):
         files = map(lambda x: os.path.join(root, x), files)
 
     if func is not None:
-        return map(func, files)
+        return filter(func, files)
 
     return files
+
+
+def regex_iterator(text: str, regexes: Union[tuple, list]):
+    """
+    Check a text string against a set of regex values
+
+    Parameters
+    ----------
+
+        - text (str): a string to test
+        - regexes (Union[tuple, list]): a tuple/list of regexes
+    """
+    result = None
+    for regex in regexes:
+        result = re.search(regex, text)
+        if result:
+            result = result.groups()
+    return result
+

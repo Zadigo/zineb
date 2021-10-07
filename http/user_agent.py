@@ -21,9 +21,6 @@ class UserAgent:
     def get_random_agent(self) -> str:
         """
         Get a random user agent from a list of agents
-
-        Returns:
-            str: a user agent to use for a request
         """
         user_agents_from_settings = global_settings.get('USER_AGENTS', [])
         self.agents.extend(user_agents_from_settings)

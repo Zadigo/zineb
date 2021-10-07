@@ -1,12 +1,21 @@
 import re
-from functools import lru_cache
+from functools import cached_property, lru_cache
 from mimetypes import guess_extension, guess_type
 from typing import Union
 from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
 from bs4.element import Tag
-from w3lib.url import canonicalize_url, is_url, safe_url_string
+from w3lib.url import canonicalize_url, safe_url_string
+
+from zineb.utils.urls import is_url
+
+EMAIL_REGEXES = (
+    # ex. user@domain.com
+
+    # ex. user&commat;domain&period;com
+    r'^mailto\:(?P<netloc>.*)\&commat\;(?P<domain>.*)\&period;(?P<extension>.*)'
+)
 
 
 class BaseTags:
@@ -23,6 +32,10 @@ class BaseTags:
             self.html_page = BeautifulSoup(html_page, 'html.parser')
         elif isinstance(html_page, BeautifulSoup):
             self.html_page = html_page
+
+    @cached_property
+    def get_page(self):
+        return self.html_page
 
 
 class HTMLTag(BaseTags):
@@ -45,14 +58,9 @@ class HTMLTag(BaseTags):
 
 
 class Link(HTMLTag):
-    """
-    Represents a link HTML tag
+    """Represents a link HTML tag"""
+    tag_name = 'a'
 
-    Parameters
-    ----------
-
-        tag (src): a BeautifulSoup image object
-    """
     def __init__(self, tag: Tag, **kwargs):
         self.tag = tag
         self.text = tag.text
@@ -71,8 +79,6 @@ class Link(HTMLTag):
                 is_match = re.search(r'^mailto:(.*)$', href)
                 if is_match:
                     href = is_match.group(1)
-                # else:
-                #     href = href
 
             href = safe_url_string(canonicalize_url(href))
 
@@ -101,15 +107,6 @@ class Link(HTMLTag):
         if self.href is not None:
             logic_to_test.extend([value_to_test in self.href])
 
-        # if self.attrs:
-        #     element_class = self.attrs.get('class')
-        #     element_id = self.attrs.get('id')
-        #     if element_class is not None:
-        #         logic_to_test.extend([value_to_test in element_class])
-
-        #     if element_id is not None:
-        #         logic_to_test.extend([value_to_test in element_id])
-
         if logic_to_test:
             return any(logic_to_test)
             
@@ -123,9 +120,10 @@ class Link(HTMLTag):
 
     def __repr__(self):
         class_name = self.__class__.__name__
+        name = 'url'
         if self.is_email:
-            return f"{class_name}(email={self.href})"
-        return f"{class_name}(url={self.href}, valid={self.is_valid})"
+            name = 'email'
+        return f"{class_name}({name}={self.href}, valid={self.is_valid})"
 
     @property
     def decompose(self):
@@ -133,19 +131,13 @@ class Link(HTMLTag):
 
     @property
     def domain(self):
-        return self.decompose[1]
+        return self.decompose.netloc
 
 
 class ImageTag(HTMLTag):
-    """
-    Represents an image HTML tag
+    """Represents an image HTML tag"""
+    tag_name = 'img'
 
-    Parameters
-    ----------
-
-        tag (src): a BeautifulSoup image object
-        index (int):
-    """
     def __init__(self, tag: Tag, index=None, **kwargs):
         super().__init__(tag, **kwargs)
         self.index = index
@@ -166,15 +158,16 @@ class ImageTag(HTMLTag):
     def __contains__(self, value_to_test):
         # Checks that a value is present in of
         # either the image url, class or id
-        truth_values = [
-            value_to_test in self.src
-        ]
+        truth_values = [value_to_test in self.src]
+        
         class_attr = self.attrs.get('class')
         if class_attr:
             truth_values.append(value_to_test in class_attr)
+
         id_attr = self.attrs.get('id')
         if id_attr:
             truth_values.append(value_to_test in id_attr)
+        
         return any(truth_values)
 
     def __eq__(self, src):
@@ -186,6 +179,9 @@ class ImageTag(HTMLTag):
 
 
 class TableTag(HTMLTag):
+    """Represents a table HTML tag"""
+    tag_name = 'table'
+
     def __init__(self, tag: Tag, html_page: BeautifulSoup, index: int=None, **kwargs):
         self.tag = tag
         self.html_page = html_page
@@ -224,10 +220,3 @@ class TableTag(HTMLTag):
     @property
     def header(self):
         return self.rows[:1]
-
-    @lru_cache(maxsize=2)
-    def data(self):
-        from zineb.extractors.base import TableExtractor
-        extractor = TableExtractor()
-        extractor.resolve(self.tag)
-        return extractor

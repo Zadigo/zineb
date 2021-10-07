@@ -10,16 +10,17 @@ from requests.models import Response
 from requests.sessions import Request, Session
 from w3lib.url import (is_url, safe_download_url, safe_url_string, urljoin,
                        urlparse)
-from zineb import global_logger
+from zineb import global_logger, signals
 from zineb.exceptions import RequestAborted, ResponseFailedError
 from zineb.http.responses import HTMLResponse
 from zineb.http.user_agent import UserAgent
 from zineb.settings import settings as global_settings
-from zineb.signals import signal
 from zineb.tags import ImageTag, Link
 from zineb.utils.conversion import transform_to_bytes
 
 EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9-_.]+@\w+\.\w+$')
+
+USER_AGENT = UserAgent()
 
 class BaseRequest:
     """
@@ -107,13 +108,8 @@ class BaseRequest:
         return f"{self.__class__.__name__}(url={self.url}, resolved={self.resolved})"
 
     def _set_headers(self, request: Request, **extra_headers):
-        user_agent = UserAgent()
-        # This is a specific technique that allows
-        # to call the HTTPRequest class without
-        # having to pass or use the full project
-        # settings
         headers = global_settings.get('DEFAULT_REQUEST_HEADERS', {})
-        headers.update({'User-Agent': user_agent.get_random_agent()})
+        headers.update({'User-Agent': USER_AGENT.get_random_agent()})
         extra_headers.update(headers)
         request.headers = headers
         return request
@@ -195,7 +191,8 @@ class BaseRequest:
             "force only secured requests."))
             return None
 
-        signal.send(dispatcher.Any, self, tag='Pre.Request')
+        # TODO:
+        signals.send(sender=self, signal='pre_request', url=self.url)
 
         try:
             response = self.session.send(self.prepared_request)
@@ -232,13 +229,14 @@ class BaseRequest:
         if response.status_code == 200:
             self.resolved = True
 
-        signal.send(
-            dispatcher.Any,
-            self, 
-            url=response.url, 
-            http_response=response,
-            tag='Post.Request'
-        )
+        # TODO:
+        # signal.send(
+        #     dispatcher.Any,
+        #     self, 
+        #     url=response.url, 
+        #     http_response=response,
+        #     tag='Post.Request'
+        # )
         # policy = response.headers.get('Referer-Policy', 'origin')
 
         # TODO: Why set the root_url param ???
