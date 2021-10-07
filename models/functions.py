@@ -26,20 +26,38 @@ class ExpressionMixin:
 
 
 class Math(ExpressionMixin):
-    def __init__(self, value: Any, by: Union[int, float], 
-                 days: int=None, month: int=None, year: int=None):
-        self.value = value
+    ADD = '+'
+    SUBSTRACT = '-'
+    DIVIDE = '/'
+    MULTIPLY = '*'
+
+    def __init__(self, by: Union[int, float]):
         self.by = by
-        self.days = days
-        self.month = month
-        self.year = year
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(field={self.field_name})"
+        class_name = self.__class__.__name__
+        
+        if class_name == 'Add':
+            result = f"{self.value} {self.ADD} {self.by}"
+        elif class_name == 'Substract':
+            result = f"{self.value} {self.SUBSTRACT} {self.by}"
+        elif class_name == 'Divide':
+            result = f"{self.value} {self.DIVIDE} {self.by}"
+        elif class_name == 'Multiply':
+            result = f"{self.value} {self.MULTIPLY} {self.by}"
+        else:
+            result = f"{self.value} {self.by}"
+
+        return f"{class_name}(< {result} >)"
 
     def resolve(self):
         field = self.get_field_object()
-        field.resolve(self.value)
+
+        if self._cached_data is None:
+            raise ValueError(LazyFormat("{function} requires "
+            "a value. Got: '{value}'", value=self.value))
+
+        field.resolve(self._cached_data)
         return field
         
 
@@ -86,6 +104,9 @@ class Divide(Math):
 
 
 class When:
+    """Returns a parsed value if a condition is
+    respected otherwise, implements the default"""
+    
     _cached_data = None
     model = None
 
@@ -207,12 +228,18 @@ class DateExtractorMixin:
         # should only get to deal with a DateField
         source_field = super().get_field_object()
         if not isinstance(source_field, DateField):
-            raise TypeError(LazyFormat('{field} should be an instance of DateField.', field=source_field))
+            attrs = {
+                'field_name':self.field_name,
+                'field':source_field.__class__.__name__
+            }
+            raise TypeError(LazyFormat("Field object for '{field_name}' should be "
+            "an instance of DateField. Got: {field}", **attrs))
 
         if self.output_field is None:
             self.output_field = source_field
 
-        source_field.date_formats.add(self.date_format)
+        if self.date_format is not None:
+            source_field.date_formats.add(self.date_format)
         source_field.resolve(self.value)
 
         self._cached_data = source_field._cached_result

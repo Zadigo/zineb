@@ -198,9 +198,8 @@ class Field:
             return self._run_validation(value)
 
         if not isinstance(value, (str, int, float)):
-            raise ValueError(
-                LazyFormat('{value} should be a string, an interger or a float.', value=value)
-            )
+            raise ValueError(LazyFormat('{value} should be a string, '
+            'an integer or a float.', value=value))
         
         # To make things easier, we'll just
         # be dealing with a string even though

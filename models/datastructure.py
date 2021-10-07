@@ -14,6 +14,9 @@ from zineb.models.functions import ExpressionMixin, Math, When
 from zineb.settings import settings
 from zineb.utils.formatting import LazyFormat
 
+from models.functions import (Add, Divide, ExtractDay, ExtractMonth,
+                              ExtractYear, Multiply, Substract)
+
 # from zineb.utils.formatting import remap_to_dict
 
 
@@ -395,59 +398,38 @@ class DataStructure(metaclass=Base):
         cached_values.append(value)
         self._cached_result.update({field_name: cached_values})
 
-    # def _raise_constraints(self, value):
-    #     from zineb.models.constraints import UniqueConstraint
-    #     if self._meta.has_option('constraints'):
-    #         constraints = self._meta.get_option_by_name('constraints')
-    #         for constraint in constraints:
-    #             constraint._check_constraint(model=self, value=value)
+    def add_calculated_value(self, name: str, value: Any, *funcs):
+        funcs = list(funcs)
 
-    # TODO: Think of how to better implement calculated
-    # fields onto the model especially in the manner how
-    # we should get the fields in the Calculate methods
-    # def add_calculated_value(self, value: Any, *funcs):
-    #     funcs = list(funcs)
+        for func in funcs:
+            if not isinstance(func, (Add, Substract, Divide, Multiply)):
+                raise TypeError('Function should be '
+                'an instance of Calculate')
 
-    #     all_field_names = []
-    #     unique_field_names = set()
-    #     for func in funcs:
-    #         if not isinstance(func, Calculate):
-    #             raise TypeError('Function should be an instance of Calculate')
+            setattr(func, 'model', self)
+            setattr(func, 'field_name', name)
 
-    #         setattr(func, 'model', self)
-    #         # Technically, the funcs should
-    #         # apply to the same field on the
-    #         # model or this could create
-    #         # inconsistencies
-    #         all_field_names.append(func.field_name)
-    #         unique_field_names.add(func.field_name)
-
-    #     all_field_names = set(all_field_names)
-    #     result = unique_field_names.difference(all_field_names)
-    #     if result:
-    #         raise ValueError('Functions should apply to the same field')
-
-    #     if len(funcs) == 1:
-    #         func._cached_data = value
-    #         func.resolve()
-    #         self.add_value(func.field_name, func._calculated_result)
-    #     else:
-    #         for i in range(len(funcs)):
-    #             if i == 0:
-    #                 funcs[0]._cached_data = value
-    #             else:
-    #                 # When there a multiple functions, the
-    #                 # _cached_data of the current function
-    #                 # should be the _caclulat_result of the
-    #                 # previous one. This technique allows
-    #                 # us to run multiple expressions on
-    #                 # one single value
-    #                 funcs[i]._cached_data = funcs[i - 1]._calculated_result
-    #             funcs[i].resolve()
-    #         # Once everything has been calculated,
-    #         # use the data of the last function to
-    #         # add the given value to the model
-    #         self.add_value(funcs[-1].field_name, funcs[-1]._calculated_result)
+        if len(funcs) == 1:
+            func._cached_data = value
+            func.resolve()
+            self.add_value(func.field_name, func._calculated_result)
+        else:
+            for i in range(len(funcs)):
+                if i == 0:
+                    funcs[0]._cached_data = value
+                else:
+                    # When there a multiple functions, the
+                    # _cached_data of the current function
+                    # should be the _caclulat_result of the
+                    # previous one. This technique allows
+                    # us to run multiple expressions on
+                    # one single value
+                    funcs[i]._cached_data = funcs[i - 1]._cached_data
+                funcs[i].resolve()
+            # Once everything has been calculated,
+            # use the data of the last function to
+            # add the given value to the model
+            self.add_value(funcs[-1].field_name, funcs[-1]._cached_data)
 
     def add_case(self, value: Any, case: Callable):
         """
@@ -484,8 +466,8 @@ class DataStructure(metaclass=Base):
         if self.parser is None:
             raise ValueError(('No valid parser could be used. '
             'Make sure you pass a BeautifulSoup '
-            'or an HTTPRespsone object to your model '
-            'in order to resolve the expression'))
+            'or an HTTPResponse object to your model '
+            'in order to resolve the expression.'))
 
         tag_value = self.parser.find(name=tag, attrs=attrs)
         obj.resolve(tag_value.string)
@@ -520,7 +502,14 @@ class DataStructure(metaclass=Base):
             - name (str): the name of field on which to add a given value
             - value (Any): the value to add to the model
         """
-        if isinstance(value, (ExpressionMixin, Math)):
+        # FIXME: Due the way the mixins are ordered
+        # on the ExtractYear, ExtractDay... classes,
+        # the isinstance check on this fails therefore
+        # trying to add a None string function item
+        # to the model
+        instances = (ExtractDay, ExtractMonth, ExtractYear, 
+                     Add, Substract, Divide, Multiply)
+        if isinstance(value, instances):
             value.model = self
             value.field_name = name
             return self._cached_result.update(name, value.resolve())
@@ -540,34 +529,34 @@ class DataStructure(metaclass=Base):
         
         self._cached_result.update(name, resolved_value)
 
-    def add_related_value(self, name: str, related_field: str, value: Any):
-        """
-        Add a value to a field based on the last
-        result of another field.
+    # def add_related_value(self, name: str, related_field: str, value: Any):
+    #     """
+    #     Add a value to a field based on the last
+    #     result of another field.
 
-        The related fields should be of the same data type
-        or this might raise errors.
+    #     The related fields should be of the same data type
+    #     or this might raise errors.
 
-        Using both add_value and add_related_value simultanuously
-        can create an error because add_related_value adds a value
-        to the first field and then uses that result to add a value
-        to its own column.
+    #     Using both add_value and add_related_value simultanuously
+    #     can create an error because add_related_value adds a value
+    #     to the first field and then uses that result to add a value
+    #     to its own column.
 
-        Parameters
-        ----------
+    #     Parameters
+    #     ----------
 
-            - name (str): name of the field to which to add the value
-            - related_field (str): name of the base field from which to derive a result
-            - value (Any): the value to add to the original field
-        """
-        if name == related_field:
-            raise ValueError('Name and related name should not be the same.')
+    #         - name (str): name of the field to which to add the value
+    #         - related_field (str): name of the base field from which to derive a result
+    #         - value (Any): the value to add to the original field
+    #     """
+    #     if name == related_field:
+    #         raise ValueError('Name and related name should not be the same.')
 
-        self.add_value(name, value)
+    #     self.add_value(name, value)
 
-        related_field_object = self._get_field_by_name(related_field)
-        related_field_object.resolve(self._cached_result._last_value(name))
-        self._cached_result.update_last_item(related_field, related_field_object._cached_result)
+    #     related_field_object = self._get_field_by_name(related_field)
+    #     related_field_object.resolve(self._cached_result._last_value(name))
+    #     self._cached_result.update_last_item(related_field, related_field_object._cached_result)
 
     def resolve_fields(self):
         """
