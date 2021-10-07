@@ -5,7 +5,7 @@ from urllib import parse
 
 import requests
 from bs4 import BeautifulSoup
-from pydispatch import dispatcher
+# from pydispatch import dispatcher
 from requests.models import Response
 from requests.sessions import Request, Session
 from w3lib.url import (is_url, safe_download_url, safe_url_string, urljoin,
