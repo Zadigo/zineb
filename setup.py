@@ -50,16 +50,17 @@ classifiers = [
 
 install_requires = [
     'beautifulsoup4>=4.9.3',
-    'numpy==1.19.3',
+    # 'numpy==1.19.3',
+    'numpy',
     'requests',
     'Pillow>=8.0.1',
     'jupyter',
     'pandas',
     'PyDispatcher',
     'w3lib',
-    'nltk',
+    # 'nltk',
     'pyyaml',
-    'scikit-learn'
+    # 'scikit-learn'
 ]
 
 setuptools.setup(

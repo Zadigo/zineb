@@ -27,3 +27,10 @@ SPIDERS = []
 # https://github.com/Zadigo/zineb#middlewares
 
 MIDDLEWARES = []
+
+
+# The default timezone to used for the
+# application available choices can be
+# found at https://en.wikipedia.org/wiki/List_of_tz_zones_by_name
+
+TIME_ZONE = 'America/Chicago'

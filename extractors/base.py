@@ -453,20 +453,20 @@ class TextExtractor(Extractor):
         self.tokens = self.tokenizer.tokenize(text)
         self.raw_text = text
 
-    def vectorize(self, min_df=1, max_df=1, return_matrix=False):
-        from nltk import PunktSentenceTokenizer
-        from sklearn.feature_extraction.text import CountVectorizer
+    # def vectorize(self, min_df=1, max_df=1, return_matrix=False):
+    #     from nltk import PunktSentenceTokenizer
+    #     from sklearn.feature_extraction.text import CountVectorizer
 
-        if self.raw_text is not None:
-            tokenizer = PunktSentenceTokenizer()
-            sentences = tokenizer.sentences_from_text(self.raw_text)
+    #     if self.raw_text is not None:
+    #         tokenizer = PunktSentenceTokenizer()
+    #         sentences = tokenizer.sentences_from_text(self.raw_text)
 
-            vectorizer = CountVectorizer(
-                min_df=min_df, max_df=max_df, stop_words=self._stop_words
-            )
-            matrix = vectorizer.fit_transform(sentences)
-            return matrix if return_matrix else vectorizer.get_feature_names()
-        return None
+    #         vectorizer = CountVectorizer(
+    #             min_df=min_df, max_df=max_df, stop_words=self._stop_words
+    #         )
+    #         matrix = vectorizer.fit_transform(sentences)
+    #         return matrix if return_matrix else vectorizer.get_feature_names()
+    #     return None
 
 
 class LinkExtractor(Extractor):
