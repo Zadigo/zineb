@@ -11,14 +11,15 @@
 
 # print(container.values)
 
+from zineb.http.request import XMLRequest
 from zineb.management import execute_command_inline
 import sys
 import os
 
-os.environ.setdefault('ZINEB_SPIDER_PROJECT', 'tests.testproject.settings')
+# os.environ.setdefault('ZINEB_SPIDER_PROJECT', 'tests.testproject.settings')
 
 # execute_command_inline([os.path.abspath(__file__), 'createspider', 'Temptation'])
-execute_command_inline(sys.argv)
+# execute_command_inline(sys.argv)
 
 # from argparse import ArgumentParser
 
@@ -28,3 +29,7 @@ execute_command_inline(sys.argv)
 # parser.add_argument('--settings')
 # namespace = parser.parse_args()
 # print(namespace)
+
+
+request = XMLRequest('https://www.shein.com/sitemap-index.xml')
+request._send()

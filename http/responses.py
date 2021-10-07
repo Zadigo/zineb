@@ -39,9 +39,9 @@ class HTMLResponse(BaseResponse):
     Example
     -------
             
-            wrapped_response = HTMLResponse(response)
-            wrapped_response.html_page -> BeautifulSoup object
-            wrapped_response.find("a") -> BeautifulSoup object
+            response = HTMLResponse(response)
+            response.html_page -> BeautifulSoup object
+            response.find("a") -> BeautifulSoup object
     """
     def __init__(self, response, **kwargs):
         # PERFORMANCE: Import this module during
@@ -328,7 +328,3 @@ class JsonResponse(BaseResponse):
             return pandas.DataFrame(data=self.raw_data[key])
         except:
             raise KeyError('The given key does not exist on the response')
-
-
-class XMLResponse(BaseResponse):
-    pass

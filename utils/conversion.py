@@ -150,3 +150,13 @@ def convert_if_number(value: str):
         raise ValueError(
             LazyFormat('Cannot convert {value} to number.', value=value)
         )
+
+
+def transform_to_unicode(text: str, encoding='utf-8', errors='strict'):
+    if isinstance(text, str):
+        return text
+
+    if not isinstance(text, (str, bytes)):
+        raise ValueError('Text should be a string')
+
+    return text.decode(encoding, errors=errors)

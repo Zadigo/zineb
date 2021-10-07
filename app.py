@@ -1,21 +1,22 @@
 import os
+import time
 import warnings
-# import time
 from collections import OrderedDict
 from io import StringIO
-from typing import Iterator, Union
+from typing import Iterator, Type, Union
 
 from bs4 import BeautifulSoup
+from numpy import isfinite
 from pydispatch import dispatcher
 
-# from xml.etree import ElementTree
-from zineb import global_logger
+from utils.formatting import LazyFormat
+from zineb import global_logger, signals
 # from zineb.http.pipelines import CallBack
 from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
-from zineb import signals
 from zineb.settings import settings as global_settings
-
+# from xml.etree import ElementTree
+from zineb.utils.crawling import Rule
 
 # class SpiderOptions(dict):
 #     spider_options = defaultdict(set)
@@ -153,11 +154,6 @@ class Spider(metaclass=BaseSpider):
 
             def start(self, response, **kwargs):
                 ...
-
-    Parameters
-    ----------
-
-        configuration (dict, optional): A set of additional default values. Defaults to None
     """
     _prepared_requests = []
     start_urls = []
@@ -260,16 +256,71 @@ class Spider(metaclass=BaseSpider):
 class Zineb(Spider):
     """
     This is the base class that spiders need to
-    subclass in order to implement a spider
-    for a scrapping project
+    subclass in order to implement the base functionnalities
+    for scrapping or crawling spider
     """
 
 
-class SitemapCrawler(Spider):
-    """
-    Use this class in order to scrap from a
-    websites' sitemaps
-    """
+class CrawlerMixin:
+    """Implements crawling functionalities
+    to a spider"""
+
+    rules = []
+    
+    def resolve_requests(self, debug=False):
+        if not debug:
+            # Get all the initial responses for the starting
+            # urls and then sequentially pass them through
+            # the remaining functions
+            for i in range(0, len(self._prepared_requests)):
+                request = self._prepared_requests[i]
+                request._send()
+                time.sleep(1)
+            
+            for request in self._prepared_requests:
+                self._handle_response(request)
+    
+    def _check_rules(self, request):
+        for rule in self.rules:
+            if not isinstance(rule, Rule):
+                raise TypeError(LazyFormat("'{rule}' should be an "
+                "instance of Rule.", rule=rule))
+            if rule.is_success:
+                return request
+            return False
+    
+    def _failure(self, response):
+        failure_codes = [400, 500]
+        if not response.status_code in failure_codes:
+            return True
+        return False
+
+    def _handle_response(self, request):
+        responses = []
+        initial_response = request.html_response
+        responses.insert(0, initial_response)
+        # A crawler goes from link to link in
+        # order to execute certain functionnalities, collect
+        # all the possible links, run the requests
+        for link in initial_response.links:
+            response = request.follow(link)
+            if not self._failure(response):
+                responses.append(response)
+                self.start(response.html_page, response)
+            self._check_rules(request)
+            time.sleep(1)
+
+    def start(self, soup, response):
+        pass
+
+
+class HTTPCrawler(CrawlerMixin, Zineb):
+    """Base class for creating a HTTP crawler"""
+
+
+class XMLCrawler(CrawlerMixin, Zineb):
+    """Base class for creating a crawler for sitemaps
+    or any other object using XML"""
 
 
 class FileCrawler:

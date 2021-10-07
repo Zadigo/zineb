@@ -1,10 +1,12 @@
 import re
 from collections import OrderedDict
+from functools import cached_property
 from typing import Union
 from urllib import parse
 
 import requests
 from bs4 import BeautifulSoup
+from models.fields import Value
 from pydispatch import dispatcher
 from requests.models import Response
 from requests.sessions import Request, Session
@@ -12,11 +14,15 @@ from w3lib.url import (is_url, safe_download_url, safe_url_string, urljoin,
                        urlparse)
 from zineb import global_logger, signals
 from zineb.exceptions import RequestAborted, ResponseFailedError
+from zineb.http.headers import ResponseHeaders
 from zineb.http.responses import HTMLResponse
 from zineb.http.user_agent import UserAgent
 from zineb.settings import settings as global_settings
 from zineb.tags import ImageTag, Link
 from zineb.utils.conversion import transform_to_bytes
+from zineb.utils.encoders import convert_to_unicode
+from zineb.utils.formatting import LazyFormat
+from zineb.utils.parsers import XML
 
 EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9-_.]+@\w+\.\w+$')
 
@@ -402,3 +408,55 @@ class FormRequestFromResponse(FormRequest):
 
     def _has_key(self, key):
         return key in self._names
+
+
+class XMLRequest(BaseRequest):
+    """Use this class to send requests to an url that
+    ends with `.xml`. The response is cached directly
+    within the request"""
+    http_methods = ['GET']
+
+    def __init__(self, url: Union[Link, str], **kwargs):
+        if not str(url).endswith('xml'):
+            raise ValueError(LazyFormat('{url} should be a '
+            'valid xml link.', url=url))
+
+        super().__init__(url, method='GET', **kwargs)
+
+    def _send(self):
+        try:
+            response = self.session.send(self.prepared_request)
+        except Exception:
+            raise
+        string_content = convert_to_unicode(response.content)
+        self._http_response = XML(string_content)
+
+    @cached_property
+    def xml_tree(self):
+        return self._http_response
+
+class JsonRequest(BaseRequest):
+    """Use this class to send a request to an endpoint that
+    specifically returns a `json` object"""
+
+    def __init__(self, url: Union[Link, str], method='GET', **kwargs):
+        super().__init__(url, method=method, **kwargs)
+
+    def _send(self):
+        try:
+            response = self.session.send(self.prepared_request)
+        except Exception:
+            raise
+
+        if response.status_code == 200:
+            self.resolved = True
+
+        headers = ResponseHeaders(response.headers)
+        if 'application/json' not in headers:
+            raise ValueError("The response doest not return a JSON object")
+            
+        self._http_response = response.json()
+
+    @cached_property
+    def data(self):
+        return self._http_response

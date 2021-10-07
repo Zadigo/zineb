@@ -23,6 +23,9 @@ class ResponseHeaders(OrderedDict):
 
         super().__init__(**self._refix(response_headers))
 
+    def __contains__(self, name):
+        return name in self
+
     def _transform_date_to_python(self, d):
         if isinstance(d, datetime.datetime):
             return d
@@ -46,3 +49,4 @@ class ResponseHeaders(OrderedDict):
         for key, value in refixed_headers.items():
             final_headers.update({key.lower(): value})
         return final_headers
+        

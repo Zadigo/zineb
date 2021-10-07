@@ -1,3 +1,6 @@
+from json.decoder import JSONDecoder
+
+
 def decode_email(value: str):
     """
     Decodes a protected email from an HTML
