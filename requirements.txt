@@ -4,7 +4,7 @@ numpy==
 nltk>=3.6
 # pandas>=1.2.1
 Pillow>=8.1.0
-PyDispatcher==
+# PyDispatcher==
 PyYAML>=5.4.1
 requests==2.25.1
 w3lib==1.22.0

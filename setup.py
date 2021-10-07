@@ -56,7 +56,7 @@ install_requires = [
     'Pillow>=8.0.1',
     'jupyter',
     'pandas',
-    'PyDispatcher',
+    # 'PyDispatcher',
     'w3lib',
     # 'nltk',
     'pyyaml',
