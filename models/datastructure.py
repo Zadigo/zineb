@@ -30,7 +30,6 @@ class DataContainer:
 
         - names: list of field names
     """
-    # values = defaultdict(list)
     current_updated_fields = set()
 
     def __init__(self):
@@ -123,8 +122,7 @@ class DataContainer:
 
     def update_multiple(self, attrs: dict):
         for key, value in attrs.items():
-            container = self.get_container(key)
-            container.append((self._next_id, value))
+            self.update(key,value)
 
     def as_values(self):
         """
@@ -202,10 +200,10 @@ class FieldDescriptor:
 
     def has_fields(self, *names, raise_exception=False):
         result = all(map(lambda x: x in self.field_names, names))
-        if raise_exception:
-            raise FieldError(
-                LazyFormat('Field does not exist: {fields}', fields=', '.join(names))
-            )
+        if raise_exception and not result:
+            # FIXME: Should implement the field names that are
+            # really missing as opposed to the names provided
+            raise FieldError(LazyFormat('Field does not exist: {fields}', fields=', '.join(names)))
         return result
 
 
@@ -474,23 +472,19 @@ class DataStructure(metaclass=Base):
         resolved_value = obj._cached_result
         self._cached_result.update(name, resolved_value)
 
-    # def add_values(self, **attrs):
-    #     """
-    #     Add a single row at once on your model
-    #     using either a dictionnary or keyword
-    #     arguments.
+    def add_values(self, **attrs):
+        """
+        Add a single row at once on your model
+        using either a dictionnary or keyword
+        arguments
 
-    #     Example
-    #     -------
+        Example
+        -------
 
-    #         add_values(name=Kendall, age=22)
-    #     """
-    #     attrs_copy = attrs.copy()
-    #     for key, value in attrs_copy.items():
-    #         field_obj = self._get_field_by_name(key)
-    #         field_obj.resolve(value)
-    #         attrs_copy[key] = field_obj._cached_result
-    #     self.__cached_result.update_multiple(**attrs)
+            add_values(name=Kendall, age=22)
+        """
+        self._fields.has_fields(list(attrs.keys()), raise_exception=True)
+        self._cached_result.update_multiple(**attrs)
 
     def add_value(self, name: str, value: Any):
         """

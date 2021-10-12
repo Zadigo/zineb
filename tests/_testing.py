@@ -15,14 +15,23 @@
 
 
 
-from models.functions import Add, ExtractDay, ExtractYear, Substract
-from zineb.models import fields
-from zineb.models.datastructure import Model
-from zineb.models.functions import When
+# from models.functions import Add, ExtractDay, ExtractYear, Substract
+# from zineb.models import fields
+# from zineb.models.datastructure import Model
+# from zineb.models.functions import When
 
-class TestModel(Model):
-    age = fields.CharField()
+# class TestModel(Model):
+#     age = fields.CharField()
 
-model = TestModel()
+# model = TestModel()
 
-print(model)
+# print(model)
+
+from zineb.utils._datastructures import SmartDict
+
+
+s = SmartDict('name', 'surname')
+s.update('name', 'Kendall')
+s.update('surname', 'Jenner')
+s.update('name', 'Kylie')
+print(s.save(extension='csv'))
