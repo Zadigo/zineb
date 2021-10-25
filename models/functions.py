@@ -12,21 +12,13 @@ class ExpressionMixin:
     field_name = None
 
     def get_field_object(self):
-        # if self.model is None:
-        #     class_name = self.__class__.__name__
-        #     raise ModelNotImplementedError(
-        #         LazyFormat((f"{class_name} could not"
-        #         f" retrieve the field object for '{self.field_name}'."))
-        #     )
-
-        # return self.model._get_field_by_name(self.field_name)
         try:
-            return self.model._get_field_name(self.field_name)
+            return self.model._get_field_by_name(self.field_name)
         except:
             class_name = self.__class__.__name__
+            text= "{class_name} could not retrieve the field object for '{field_name}'"
             raise ModelNotImplementedError(
-                LazyFormat("{class_name} could not retrieve "
-                "the field object for {field_name}", class_name=class_name, field_name=self.field_name)
+                LazyFormat(text, class_name=class_name, field_name=self.field_name)
             )
 
     def resolve(self):
