@@ -10,12 +10,13 @@ from bs4 import BeautifulSoup
 from zineb.exceptions import FieldError, ModelExistsError
 from zineb.http.responses import HTMLResponse
 from zineb.models.fields import Empty, Field
-from zineb.models.functions import (Add, Divide, ExtractDay,
-                                    ExtractMonth, ExtractYear, Math, Multiply,
-                                    Substract, When)
+from zineb.models.functions import (Add, Divide, ExtractDay, ExtractMonth,
+                                    ExtractYear, Math, Multiply, Substract,
+                                    When)
+from zineb.models.related import ForeignKey
 from zineb.settings import settings
-from zineb.utils.formatting import LazyFormat
 from zineb.utils._datastructures import SmartDict
+from zineb.utils.formatting import LazyFormat
 
 
 class DataContainer:
@@ -176,20 +177,23 @@ class ModelRegistry:
 model_registry = ModelRegistry()
 
 
-class FieldDescriptor:
-    """A class that contains and stores
-    all the given fields of a model"""
-
+class FieldMixin:
+    parents = []
+    forward_fields_map = {}
     cached_fields = OrderedDict()
     
-    def __getitem__(self, name) -> Field:
-        return self.get_field(name)
-
     @cached_property
     def field_names(self):
         return list(self.cached_fields.keys())
 
-    # @lru_cache(maxsize=5)
+    @cached_property
+    def fields_map(self):
+        pass
+    
+    @cached_property
+    def true_fields(self):
+        return list(self.cached_fields.values())
+
     def get_field(self, name) -> Field:
         try:
             return self.cached_fields[name]
@@ -201,19 +205,20 @@ class FieldDescriptor:
         if raise_exception and not result:
             # FIXME: Should implement the field names that are
             # really missing as opposed to the names provided
-            raise FieldError(LazyFormat('Field does not exist: {fields}', fields=', '.join(names)))
+            raise FieldError(LazyFormat('Field does not exist: '
+            '{fields}', fields=', '.join(names)))
         return result
 
 
-class ModelOptions:
+class ModelOptions(FieldMixin):
     """
     A container that stores the options
     of a given model Meta
     """
-    authorized_options = ['ordering', 'label']
+    authorized_options = ['ordering', 'label', 'template_model']
 
     def __init__(self, options: Union[List[tuple[str]], dict]):
-        # self.cached_options = OrderedDict(self._add_options(options, only_check=True))
+        self.model_name = None
         self.cached_options = OrderedDict(options)
 
         self.ordering_field_names = set()
@@ -224,9 +229,7 @@ class ModelOptions:
         if self.has_option('ordering'):
             ordering = self.get_option_by_name('ordering')
             for field in ordering:
-                self.ordering_field_names.add(
-                    field.removeprefix('-')
-                )
+                self.ordering_field_names.add(field.removeprefix('-'))
             self.ascending_fields = [
                 field for field in ordering 
                     if not field.startswith('-')
@@ -255,34 +258,26 @@ class ModelOptions:
     def __getitem__(self, name):
         return self.cached_options[name]
 
-    # def _add_options(self, options: dict, only_check: bool=False):
-    #     if isinstance(options, list):
-    #         options = OrderedDict(options)
+    def __repr__(self):
+        return f"{self.__class__.__name__}(model={self.model_name})"
 
-    #     non_authorized_options = []
+    def __getattr__(self, name):
+        if name in self.field_names:
+            try:
+                return self.forward_field_map[name]
+            except:
+                raise ValueError('Forward relationship does not exist')
+        raise AttributeError(LazyFormat('{klass} object has no attribute {attr}', 
+        klass=self.__class__.__name__, attr=name))
 
-    #     def _check_option_authorized(item):
-    #         key, _ = item
-    #         if key.startswith('__'):
-    #             return False
-
-    #         if key in self.authorized_options:
-    #             return True
-
-    #         non_authorized_options.append(key)
-    #         return False
-
-    #     options = list(filter(_check_option_authorized, options.items()))
-    #     if non_authorized_options:
-    #         raise ValueError(LazyFormat(
-    #             "Meta received an illegal option. Valid options are {options}.",
-    #             options=', '.join(self.authorized_options)
-    #         ))
-
-    #     if only_check:
-    #         return options
-
-    #     return self.__call__(options)
+    @property
+    def is_template_model(self):
+        # If the model is a template model,
+        # it means that it can only serve to
+        # add additional fields to a child model.
+        # In that sense, we shouldn't be able to
+        # add values to it or even save.
+        return self.cached_options.get('template_model', False)
 
     def get_option_by_name(self, name):
         return self.cached_options.get(name)
@@ -290,6 +285,7 @@ class ModelOptions:
     def has_option(self, name):
         return name in self.cached_options
     
+
 
 class Base(type):
     def __new__(cls, name, bases, attrs):
@@ -305,17 +301,36 @@ class Base(type):
                 field_obj._bind(key)
                 declared_fields.add((key, field_obj))
 
-        descriptor = FieldDescriptor()
-        attrs['_fields'] = descriptor
-        if declared_fields:
-            descriptor.cached_fields = OrderedDict(declared_fields)
-            attrs['_fields'] = descriptor
-
-        default_options = [('label', f"models.base.{name}")]
+        default_options = [
+            ('label', f"models.base.{name}")
+        ]
         meta = ModelOptions(default_options)
+
+        # If the model is subclassed, resolve the MRO
+        # to get all the fields from the superclass
+        # [...] also maybe create direct relationship
+        # with the parent model via a ForeignKey
+        for parent in bases:
+            if hasattr(parent, '_meta'):
+                fields = getattr(getattr(parent, '_meta'), 'cached_fields', {})
+                for key, field_obj in fields.items():
+                    # If the field is registered twice (on the
+                    # superclass and on the subclass), use the
+                    # subclass version of the field
+                    if field_obj not in declared_fields:
+                        declared_fields.add((key, field_obj))
+                    # Create the map that will allow use to go
+                    # the field on the child model to those present
+                    # on the superclass ones
+                    meta.forward_fields_map.update({key: field_obj})
+                meta.parents.append(parent)
+
+        meta.model_name = name
+        if declared_fields:
+            meta.cached_fields = OrderedDict(declared_fields)
+
         if 'Meta' in attrs:
             meta_dict = attrs.pop('Meta').__dict__
-            # authorized_options = ['ordering', 'label']
             non_authorized_options = []
 
             def check_option(item):
@@ -333,30 +348,39 @@ class Base(type):
             if non_authorized_options:
                 raise ValueError("Meta received an illegal "
                 f"option. Valid options are: {', '.join(meta.authorized_options)}")
-            # meta = meta._add_options(meta_dict)
             default_options.extend(options)
             meta = meta(default_options)
         attrs['_meta'] = meta
 
+        new_class = super_new(cls, name, bases, attrs)
+
         if declared_fields:
+            # is_template_model = False
+            # if meta.has_option('template_model'):
+            #     is_template_model = meta.get_option_by_name('template_model')
+            # # The parent model is just a template,
+            # # we'll not create any ForeignKey
+            # # relationship to the parent
+            # if not is_template_model:
+            #     relationships = [
+            #         (f"{parent}_rel", ForeignKey(new_class, parent)) 
+            #             for parent in new_class._meta.parents
+            #     ]
+            #     meta.cached_fields.update(relationship for relationship in relationships)
+
             # That's where is explicitely register
             # models that have declared fields and
             # that are actually user created models
-            new_class = super_new(cls, name, bases, attrs)
             model_registry.add(name, new_class)
             return new_class
 
-        return super_new(cls, name, bases, attrs)
+        return new_class
 
 
 class DataStructure(metaclass=Base):
     def __init__(self, html_document: BeautifulSoup=None, 
                  response: HTMLResponse=None):
-        # self._cached_result = DataContainer.as_container(
-        #     *self._fields.field_names
-        # )
-
-        self._cached_result = SmartDict.new_instance(*self._fields.field_names)
+        self._cached_result = SmartDict.new_instance(*self._meta.field_names)
 
         self.html_document = html_document
         self.response = response
@@ -373,7 +397,7 @@ class DataStructure(metaclass=Base):
 
             - field_name (str): the field name to get
         """
-        return self._fields.get_field(field_name)
+        return self._meta.get_field(field_name)
 
     def _choose_parser(self):
         if self.html_document is not None:

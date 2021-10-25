@@ -64,8 +64,8 @@ class Field:
             self._validators.add(model_validators.validate_is_not_null)
 
     def _bind(self, field_name, model=None):
-        # Bind the field's name on the model
-        # to the current field instance
+        """Bind the field's name registered 
+        on the model to this field instance"""
         self._meta_attributes.update(field_name=field_name)
         current_model = self._meta_attributes.get('model', None)
         if current_model is None and model is not None:
@@ -613,3 +613,4 @@ class Value:
         if name == 'result':
             value = deep_clean(value)
         return super().__setattr__(name, value)
+        

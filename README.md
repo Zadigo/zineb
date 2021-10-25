@@ -23,11 +23,11 @@ def start(self, response, **kwargs):
 To create a project do `python -m zineb start_project <project name>` which will create a directory which will have the following structure.
 
 .myproject
-    |
-    |--media
-    |
-    |-- models
-        |-- base.py
+|
+|--media
+|
+|-- models
+|-- base.py
 |
 |-- __init__.py
 |
@@ -359,9 +359,23 @@ This will insert date of birth based on the DateField and then insert another on
 By adding a Meta to your model, you can pass custom behaviours.
 
 * Ordering
-* Constraints
+* Template model
 
-### Constraints
+### Template model
+
+If a model only purpose is to implement additional fields to a child model, use the `template_model` option to indicate this state.
+
+```
+class TemplateModel(Model):
+    name = fields.CharField()
+
+    class Meta:
+	template_model = True
+
+
+class MainModel(TemplateModel):
+    surname = fields.CharField()
+```
 
 ### Ordering
 
@@ -802,7 +816,6 @@ The signals function has to be able to accept a `sender` object and additional p
 
 You custom signals do not have to return anything.
 
-
 # Utilities
 
 ## Link reconciliation
@@ -920,6 +933,3 @@ Specificies the amount of times the the request is sent before eventually failin
 Indicates which status codes should trigger a retry. By default, the following codes: 500, 502, 503, 504, 522, 524, 408 and 429 will trigger it.
 
 ###### TIME_ZONE
-
-
-
