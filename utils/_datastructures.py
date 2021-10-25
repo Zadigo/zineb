@@ -11,7 +11,7 @@ from zineb.models.fields import Empty
 from zineb.settings import lazy_settings
 from zineb.utils.formatting import remap_to_dict
 
-from utils.formatting import LazyFormat
+from zineb.utils.formatting import LazyFormat
 
 
 class SmartDict:
@@ -165,14 +165,11 @@ class SmartDict:
             base.append(values)
         return base
 
-    def save(self, commit: bool=True, filename: str=None, extension='json', **kwargs):
-        extensions = ['json', 'csv']
-        if extension not in extensions:
-            raise ValueError(LazyFormat('Extension {extension} is not valid.', extension=extension))
-
+    def save(self, commit: bool=True, filename: str=None, extension: str='json', **kwargs):
         if commit:
             filename = filename or secrets.token_hex(5)
             filename = f'{filename}.{extension}'
+            
             try:
                 # If the MEDIA_FOLDER setting is None still allow
                 # saving the file in the local directory
