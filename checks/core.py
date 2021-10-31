@@ -74,18 +74,23 @@ class ApplicationChecks(GlobalMixins):
                 raise ValueError(f"{item} in settings.py should contain a list or a tuple ex. {item} = []")
 
         # If Zineb is called from a project configuration
-        # we should automatically assume that is a path
+        # we should automatically assume that it is a path
         PROJECT_PATH = getattr(global_settings, 'PROJECT_PATH', None)
         if PROJECT_PATH is None:
             raise ValueError(("PROJECT_PATH is empty. If you are using "
             "Zineb outside of a project, call .configure(**kwargs)"))
         
         # Also make sure that the path is one that really
-        # exists in case the use changes this variable
+        # exists in case the user changes this variable
         # to a 'string' path [...] thus breaking the
         # whole thing
         if not os.path.exists(PROJECT_PATH):
             raise ProjectExistsError()
+
+        # Also make sure that this is
+        # a directory
+        if not os.path.isdir(PROJECT_PATH):
+            raise IsADirectoryError("PROJECT_PATH should be the project's directory")
 
     def register(self, tag: str = None):
         """Register a check on this class by using 
