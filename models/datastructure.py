@@ -352,10 +352,6 @@ class Base(type):
 class DataStructure(metaclass=Base):
     def __init__(self, html_document: BeautifulSoup=None, 
                  response: HTMLResponse=None):
-        # self._cached_result = DataContainer.as_container(
-        #     *self._fields.field_names
-        # )
-
         self._cached_result = SmartDict.new_instance(*self._fields.field_names)
 
         self.html_document = html_document
