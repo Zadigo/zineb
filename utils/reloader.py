@@ -2,12 +2,18 @@ import datetime
 import os
 import threading
 import time
+from functools import lru_cache
 
 from zineb import global_logger
 from zineb.registry import registry
-from zineb.settings import settings
+from zineb.settings import lazy_settings
 
 DEFAULT_SERVER_SLEEPING_TIME = 10
+
+
+@lru_cache(maxsize=1)
+def iter_modules_and_files():
+    pass
 
 
 class BaseServer:
@@ -24,7 +30,7 @@ class Server(BaseServer):
         global_logger.logger.info('Starting server')
 
         initial_time = datetime.datetime.now()
-        update_time = initial_time + datetime.timedelta(**settings.SERVER_CRON)
+        update_time = initial_time + datetime.timedelta(**lazy_settings.SERVER_CRON)
         tracked_time = None
         while True:
             current_time = datetime.datetime.now()
@@ -36,7 +42,7 @@ class Server(BaseServer):
             if current_time > tracked_time:
                 global_logger.logger.debug(f'Running spiders')
 
-                spiders_to_run = getattr(settings, 'SERVER_EXECUTE_SPIDERS_ON_RELOAD', [])
+                spiders_to_run = getattr(lazy_settings, 'SERVER_EXECUTE_SPIDERS_ON_RELOAD', [])
                 if spiders_to_run:
                     for name in spiders_to_run:
                         spider_config = registry.get_spider(name)
@@ -46,9 +52,19 @@ class Server(BaseServer):
             time.sleep(DEFAULT_SERVER_SLEEPING_TIME)
 
 
+class BaseReloader:
+    def run(self):
+        pass
+
+
+class StatReloader(BaseReloader):
+    pass
+
+
 def start_application(reloader, start_func, *args, **kwargs):
     main_thread = threading.Thread(target=start_func, args=args, kwargs=kwargs, name='tweeter-main-thread')
-    main_thread.setDaemon(True)
+    # main_thread.setDaemon(True)
+    main_thread.daemon = True
     main_thread.start()
 
     while not reloader.should_stop:
