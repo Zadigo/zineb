@@ -152,3 +152,18 @@ DEFAULT_DATE_FORMATS = (
 # found at https://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 
 TIME_ZONE = 'America/Chicago'
+
+
+# Default settings to use for running spiders
+# that uses the server loop
+
+SERVER_CRON = {
+    'minutes': 45
+}
+
+# This setting allows you to either execute
+# a single spider or all the spiders present
+# in your application. By default, if empty,
+# all spiders are run by default
+
+SERVER_EXECUTE_SPIDERS_ON_RELOAD = []
