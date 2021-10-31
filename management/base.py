@@ -37,8 +37,8 @@ class BaseCommand:
     def preconfigure_project(self, **extra_settings):
         """
         A method to use in order to configure the settings
-        files and other main variables in the settings
-        files when a project command is called.
+        files and other main variables when a project 
+        command is called
         """
         project = os.environ.get('ZINEB_SPIDER_PROJECT')
         if project is None:
@@ -84,9 +84,6 @@ class BaseCommand:
         media_folder = getattr(settings, 'MEDIA_FOLDER')
         if media_folder is None and project_path is not None:
             setattr(settings, 'MEDIA_FOLDER', os.path.join(project_path, 'media'))
-
-        if self.requires_system_checks:
-            pass
         
         return project_name, settings
 
