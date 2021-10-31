@@ -102,6 +102,22 @@ This option writer as `verbose_name` will specific a different name to your spid
 
 Triggers the execution of all the spiders present in the given the project.
 
+### Ping
+
+You can test that an endpoint is available for scrapping before scrapping by calling this command.
+
+### Runserver
+
+Zineb integrates a server that allows your scrapper to run on specific periods defined in your settings file.
+
+### Start project
+
+By calling `startproject` you can create a blank Zineb project.
+
+### Test project
+
+Test your settings file by calling this command.
+
 #### Shell
 
 Start a iPython shell on which you can test various elements on the HTML page.

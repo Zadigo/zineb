@@ -1,0 +1,13 @@
+FROM python
+
+COPY . ./spider
+
+WORKDIR ./spider
+
+RUN pipenv shell && pip install zineb-scrapper
+
+EXPOSE 8000
+
+CMD [ "runserver" ]
+
+ENTRYPOINT [ "python", "manage.py" ]
