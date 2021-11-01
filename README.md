@@ -1,6 +1,4 @@
-```
-![alt text](http://url/to/img.png)
-```
+![logo](https://imgur.com/VVkf96x)
 
 # Introduction
 
