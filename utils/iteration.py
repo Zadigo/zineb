@@ -133,3 +133,19 @@ def regex_iterator(text: str, regexes: Union[tuple, list]):
             result = result.groups()
     return result
 
+
+# def create_batch(values: list, by: int=10):
+#     batches = []
+#     batch = []
+#     for i, value in enumerate(values):
+#         if i + 1 % by == 0:
+#             batches.append(batch)
+#             batch = []
+#         else:
+#             batch.append(value)
+        
+#     return batches
+
+
+# print(create_batch(list(range(0, 20))))
+

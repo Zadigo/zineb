@@ -5,9 +5,9 @@ import requests
 from bs4 import BeautifulSoup
 from requests.models import Response
 from zineb.http.headers import ResponseHeaders
-from zineb.http.responses import HTMLResponse, JsonResponse
+from zineb.http.responses import HTMLResponse
 from zineb.tags import Link
-from zineb.tests import create_test_request
+from zineb.tests._utils import create_test_request
 
 _request = create_test_request()
 

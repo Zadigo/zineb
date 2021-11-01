@@ -144,6 +144,8 @@ DEFAULT_DATE_FORMATS = (
     '%d %b, %Y',
     '%d %b %y',
     '%d %b, %y',
+    '%b %d, %Y',
+    '%b %d, %y'
 )
 
 

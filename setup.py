@@ -9,17 +9,22 @@ ROOT = path.abspath(path.dirname(__file__))
 
 
 def read_files(filename):
-    with open(path.join(ROOT, filename), 'r', encoding='utf-8') as f:
-        data = f.read()
-        return data
-
+    try:
+        with open(path.join(ROOT, filename), 'r', encoding='utf-8') as f:
+            data = f.read()
+            return data
+    except:
+        pass
 
 def get_version(filename):
     data = read_files(filename)
-    is_match = re.match(r"^__version__.*['](.*)[']", data)
-    if not is_match:
-        raise ValueError('Could not get version')
-    return is_match.group(1)
+    version = ''.join(x for x in data.split('\n') if x != '')
+    return version
+
+    # is_match = re.match(r"^__version__.*['](.*)[']", data)
+    # if not is_match:
+    #     raise ValueError('Could not get version')
+    # return is_match.group(1)
 
 
 classifiers = [
@@ -50,24 +55,23 @@ classifiers = [
 
 install_requires = [
     'beautifulsoup4>=4.9.3',
-    # 'numpy==1.19.3',
-    'numpy',
-    'requests',
-    'Pillow>=8.0.1',
     'jupyter',
-    'pandas',
-    # 'PyDispatcher',
-    'w3lib',
-    # 'nltk',
+    'numpy',
+    'Pillow>=8.0.1',
     'pyyaml',
+    'requests',
+    'w3lib',
+    # 'pandas',
+    # 'numpy==1.19.3',
+    # 'PyDispatcher',
+    # 'nltk',
     # 'scikit-learn'
 ]
 
 setuptools.setup(
     name='zineb-scrapper',
     # packages: [],
-    # version='3.0.0',
-    version=get_version('version.py'),
+    version=get_version('version.txt'),
     author='John Pendenque',
     author_email='pendenquejohn@gmail.com',
     classifiers=classifiers,

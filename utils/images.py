@@ -1,5 +1,9 @@
+from asyncio.runners import run
 from io import BytesIO
-from typing import Callable
+from re import M
+from typing import Callable, List
+import asyncio
+import threading
 
 from bs4 import BeautifulSoup
 from PIL import Image
@@ -47,7 +51,7 @@ def download_image(response, download_to=None, as_thumbnail=False):
     ----------
     
         - response (Type): an HTTP response object
-        - download_to (String, Optiona): download to a specific path. Defaults to None
+        - download_to (String, Optional): download to a specific path. Defaults to None
         - as_thumbnail (Bool, Optional): download the image as a thumbnail. Defaults to True
     """
     from zineb.http.responses import HTMLResponse
@@ -79,3 +83,23 @@ def download_image(response, download_to=None, as_thumbnail=False):
     # TODO:
     # signal.send(dispatcher.Any, response, tag='Post.Download', obj=image)
     return image.width, image.height, buffer
+
+
+# def async_download_images(links: List[str]):
+#     def downloader(url):
+#         def wrapper(*args, **kwargs):
+#             width, height, buffer = download_image_from_url(url, download_to=None)
+#         return wrapper
+    
+#     async def runner():
+#         threads = []
+#         for link in links:
+#             threads.append(threading.Thread(target=downloader, kwargs={'url': link}))
+#         return threads
+
+#     async def main():
+#         threads = await runner()
+#         for thread in threads:
+#             thread.start()
+
+#     asyncio.run(main())

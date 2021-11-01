@@ -10,14 +10,12 @@ from bs4 import BeautifulSoup
 from zineb.exceptions import FieldError, ModelExistsError
 from zineb.http.responses import HTMLResponse
 from zineb.models.fields import Empty, Field
-from zineb.models.functions import ExpressionMixin, Math, When
+from zineb.models.functions import (Add, Divide, ExtractDay,
+                                    ExtractMonth, ExtractYear, Math, Multiply,
+                                    Substract, When)
 from zineb.settings import settings
 from zineb.utils.formatting import LazyFormat
-
-from models.functions import (Add, Divide, ExtractDay, ExtractMonth,
-                              ExtractYear, Multiply, Substract)
-
-# from zineb.utils.formatting import remap_to_dict
+from zineb.utils._datastructures import SmartDict
 
 
 class DataContainer:
@@ -30,7 +28,6 @@ class DataContainer:
 
         - names: list of field names
     """
-    # values = defaultdict(list)
     current_updated_fields = set()
 
     def __init__(self):
@@ -123,8 +120,7 @@ class DataContainer:
 
     def update_multiple(self, attrs: dict):
         for key, value in attrs.items():
-            container = self.get_container(key)
-            container.append((self._next_id, value))
+            self.update(key,value)
 
     def as_values(self):
         """
@@ -202,10 +198,10 @@ class FieldDescriptor:
 
     def has_fields(self, *names, raise_exception=False):
         result = all(map(lambda x: x in self.field_names, names))
-        if raise_exception:
-            raise FieldError(
-                LazyFormat('Field does not exist: {fields}', fields=', '.join(names))
-            )
+        if raise_exception and not result:
+            # FIXME: Should implement the field names that are
+            # really missing as opposed to the names provided
+            raise FieldError(LazyFormat('Field does not exist: {fields}', fields=', '.join(names)))
         return result
 
 
@@ -356,9 +352,11 @@ class Base(type):
 class DataStructure(metaclass=Base):
     def __init__(self, html_document: BeautifulSoup=None, 
                  response: HTMLResponse=None):
-        self._cached_result = DataContainer.as_container(
-            *self._fields.field_names
-        )
+        # self._cached_result = DataContainer.as_container(
+        #     *self._fields.field_names
+        # )
+
+        self._cached_result = SmartDict.new_instance(*self._fields.field_names)
 
         self.html_document = html_document
         self.response = response
@@ -474,23 +472,19 @@ class DataStructure(metaclass=Base):
         resolved_value = obj._cached_result
         self._cached_result.update(name, resolved_value)
 
-    # def add_values(self, **attrs):
-    #     """
-    #     Add a single row at once on your model
-    #     using either a dictionnary or keyword
-    #     arguments.
+    def add_values(self, **attrs):
+        """
+        Add a single row at once on your model
+        using either a dictionnary or keyword
+        arguments
 
-    #     Example
-    #     -------
+        Example
+        -------
 
-    #         add_values(name=Kendall, age=22)
-    #     """
-    #     attrs_copy = attrs.copy()
-    #     for key, value in attrs_copy.items():
-    #         field_obj = self._get_field_by_name(key)
-    #         field_obj.resolve(value)
-    #         attrs_copy[key] = field_obj._cached_result
-    #     self.__cached_result.update_multiple(**attrs)
+            add_values(name=Kendall, age=22)
+        """
+        self._fields.has_fields(list(attrs.keys()), raise_exception=True)
+        self._cached_result.update_multiple(**attrs)
 
     def add_value(self, name: str, value: Any):
         """
@@ -557,44 +551,35 @@ class DataStructure(metaclass=Base):
     #     related_field_object = self._get_field_by_name(related_field)
     #     related_field_object.resolve(self._cached_result._last_value(name))
     #     self._cached_result.update_last_item(related_field, related_field_object._cached_result)
+    
+    # TODO: Allow a custom resolution of the fields
+    # outside of pandas and to allow quicker execution
+    # of the app -; allow pandas resolution as secondary
+    # def resolve_fields(self):
+    #     """
+    #     Implement the data into a Pandas
+    #     Dataframe and return the result
+    #     """
+    #     import pandas
+
+    #     df = pandas.DataFrame(
+    #         self._cached_result.as_values(),
+    #         columns=self._fields.field_names,
+    #     )
+
+    #     if self._meta.has_option('ordering'):
+    #         try:
+    #             df = df.sort_values(
+    #                 by=list(self._meta.ordering_field_names),
+    #                 ascending=self._meta.ordering_booleans
+    #             )
+    #         except KeyError:
+    #             raise KeyError(("Looks like one of the ordering fields is not "
+    #             "part of your model. Please check your ordering options."))
+    #     return df
 
     def resolve_fields(self):
-        """
-        Implement the data into a Pandas
-        Dataframe and return the result
-        """
-        import pandas
-
-        # FIXME: If the user does not add
-        # a value to a given field, it does
-        # not get added in the container
-        # hence creating unbalaned values
-        # ex. MyModel, model = MyModel()
-        # with fields name, age...
-        # model.add_value(name, Kendall)
-        # results in {name: [Kendall]}
-        # instead of {name: [Kendall], age: [None]}
-        # TODO: Before doing anything with
-        # the data, we either need to check
-        # that the lists are of same length
-        # or ensure that everytime an element
-        # is added to one the arrays and not
-        # in the other, to put a None value
-        df = pandas.DataFrame(
-            self._cached_result.as_values(),
-            columns=self._fields.field_names,
-        )
-
-        if self._meta.has_option('ordering'):
-            try:
-                df = df.sort_values(
-                    by=list(self._meta.ordering_field_names),
-                    ascending=self._meta.ordering_booleans
-                )
-            except KeyError:
-                raise KeyError(("Looks like one of the ordering fields is not "
-                "part of your model. Please check your ordering options."))
-        return df
+        return self._cached_result.as_list()
 
 
 class Model(DataStructure):
@@ -645,7 +630,7 @@ class Model(DataStructure):
         """
         self._cached_dataframe = dataframe
         
-    def save(self, commit=True, filename=None, **kwargs):
+    def save(self, commit: bool=True, filename: str=None, **kwargs):
         """
         Transform the collected data to a DataFrame which
         in turn will be saved to a JSON file.
@@ -659,12 +644,7 @@ class Model(DataStructure):
         ----------
 
             commit (bool, optional): save to json file. Defaults to True.
-            filename (str, optional): the file name to use. Defaults to None.
-
-        Returns
-        -------
-
-            dataframe: pandas dataframe object
+            filename (str, optional): the file name to use. Defaults to None
         """
         # TODO:
         # signal.send(dispatcher.Any, self, tag='Pre.Save')
@@ -674,10 +654,12 @@ class Model(DataStructure):
 
         if commit:
             if filename is None:
-                filename = f'{secrets.token_hex(nbytes=5)}.json'
-            else:
-                if not filename.endswith('json'):
-                    filename = f'{filename}.json'
+                filename = f'{secrets.token_hex(nbytes=5)}'
+            # if filename is None:
+            #     filename = f'{secrets.token_hex(nbytes=5)}'
+            # else:
+            #     if not filename.endswith('json'):
+            #         filename = f'{filename}'
 
             # TODO:
             # signal.send(dispatcher.Any, self, tag='Post.Save')
@@ -685,5 +667,7 @@ class Model(DataStructure):
             if settings.MEDIA_FOLDER is not None:
                 filename = os.path.join(settings.MEDIA_FOLDER, filename)
                 
-            return self._cached_dataframe.to_json(filename, orient='records')
+            # return self._cached_dataframe.to_json(filename, orient='records')
+            self._cached_result.save(commit=commit, filename=filename, **kwargs)
+            return dataframe
         return self._cached_dataframe.copy()    

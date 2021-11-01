@@ -12,21 +12,13 @@ class ExpressionMixin:
     field_name = None
 
     def get_field_object(self):
-        # if self.model is None:
-        #     class_name = self.__class__.__name__
-        #     raise ModelNotImplementedError(
-        #         LazyFormat((f"{class_name} could not"
-        #         f" retrieve the field object for '{self.field_name}'."))
-        #     )
-
-        # return self.model._get_field_by_name(self.field_name)
         try:
-            return self.model._get_field_name(self.field_name)
+            return self.model._get_field_by_name(self.field_name)
         except:
             class_name = self.__class__.__name__
+            text= "{class_name} could not retrieve the field object for '{field_name}'"
             raise ModelNotImplementedError(
-                LazyFormat("{class_name} could not retrieve "
-                "the field object for {field_name}", class_name=class_name, field_name=self.field_name)
+                LazyFormat(text, class_name=class_name, field_name=self.field_name)
             )
 
     def resolve(self):
@@ -62,8 +54,8 @@ class Math(ExpressionMixin):
         field = self.get_field_object()
 
         if self._cached_data is None:
-            raise ValueError(LazyFormat("{function} requires "
-            "a value. Got: '{value}'", value=self.value))
+            raise ValueError(LazyFormat("{func} requires a value. Got: '{value}'",
+            func=self.__class__.__name__, value=self._cached_data))
 
         field.resolve(self._cached_data)
         return field
@@ -220,7 +212,6 @@ class When:
 
 class DateExtractorMixin:
     lookup_name = None
-    field_name = None
 
     def __init__(self, value: Any, output_field: Callable=None, date_format: str=None):
         self.value = value

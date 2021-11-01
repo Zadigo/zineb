@@ -1,14 +1,10 @@
 import os
-import threading
 import warnings
 from collections import OrderedDict
 from functools import lru_cache
-
-# from pydispatch import dispatcher
-
+from zineb.middleware import Middleware
 from zineb import global_logger
 from zineb.exceptions import SpiderExistsError
-from zineb.middleware import Middleware
 
 
 class SpiderConfig:
@@ -59,6 +55,8 @@ class SpiderConfig:
             raise SpiderExistsError(name)
 
     def run(self):
+        """Runs the spider by calling the spider class
+        which in return calls .start(...)"""
         self.get_spider(self.label)()
     
 
@@ -69,6 +67,10 @@ class Registry:
     current settings
     """
     def __init__(self, spiders={}):
+        # As simple flat to check if the
+        # register was populated (in other
+        # words with .populate() was called)
+        self.is_ready = False
         self.local_logger = global_logger.new(name=self.__class__.__name__, to_file=True)
         self.spiders = OrderedDict(**spiders)
 
@@ -84,13 +86,13 @@ class Registry:
     def __contains__(self, name):
         return name in self.spiders.keys()
 
-    @lru_cache(maxsize=1)
-    def get_spiders(self):
-        return self.spiders.values()
-
     @property
     def has_spiders(self):
         return len(self.spiders.keys()) > 0
+
+    @lru_cache(maxsize=1)
+    def get_spiders(self):
+        return self.spiders.values()
 
     def has_spider(self, name):
         return self.__contains__(name)
@@ -131,8 +133,10 @@ class Registry:
             spider_config = SpiderConfig(spider, project_spiders_module)
             self.spiders[spider] = spider_config
 
+        # Cache the registry since we don't want
+        # to be populating this every single time
+        # unless necessary
         settings.REGISTRY = self
-
         # TODO: Load all the middlewares once everything
         # is setup and ready to run
         # middlewares = Middleware(settings=settings)
@@ -140,6 +144,7 @@ class Registry:
 
         # TODO:
         # signal.send(dispatcher.Any, self, spiders=self)
+        self.is_ready = True
 
     def run_all_spiders(self):
         spiders = self.get_spiders()
@@ -156,11 +161,9 @@ class Registry:
                     "Did you use the correct class name?"), stack_info=True)
                     raise
                 else:
-                    # Send a signal to all applications that might
-                    # be interested that the spiders have started
-                    # successfully
                     # TODO:
                     # signal.send(dispatcher.Any, self)
                     pass
+
 
 registry = Registry()
