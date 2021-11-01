@@ -1,21 +1,14 @@
 import unittest
-from unittest.case import TestCase
 
 from bs4 import BeautifulSoup
-from zineb.app import Zineb
 from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse
-
-
-class Spider(Zineb):
-    start_urls = [
-        'http://example.com'
-    ]
+from zineb.tests.spiders import SimpleSpider
 
 
 class TestSpider(unittest.TestCase):
     def setUp(self):
-        self.spider = Spider()
+        self.spider = SimpleSpider()
 
     def test_prepared_requests(self):
         http_response = self.spider._prepared_requests[0]

@@ -14,5 +14,6 @@ class TestDataContainer(unittest.TestCase):
         result = self.container.as_values()
         self.assertIsInstance(result, dict)
 
+
 if __name__ == '__main__':
     unittest.main()
