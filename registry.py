@@ -165,4 +165,5 @@ class Registry:
                     # signal.send(dispatcher.Any, self)
                     pass
 
+
 registry = Registry()
