@@ -1,6 +1,4 @@
-import copy
 import csv
-import datetime
 import json
 import os
 import secrets
@@ -9,16 +7,17 @@ from typing import Any
 
 from zineb.models.fields import Empty
 from zineb.settings import lazy_settings
-from zineb.utils.formatting import remap_to_dict
-
-from zineb.utils.formatting import LazyFormat
+from zineb.utils.formatting import LazyFormat, remap_to_dict
 
 
 class SmartDict:
     """
     A container that regroups data under multiple keys by ensuring that
-    when one key is updated, the other keys are too ensuring that all
-    containers a balanced
+    when one key is updated, the other keys are in the same way therefore
+    creating balanced data
+    
+    Example
+    -------
     
         container = SmartDict('name', 'surname')
         
@@ -141,7 +140,7 @@ class SmartDict:
     def as_values(self):
         """
         Return collected values by removing the index part 
-        in the tuple e.g [(1, ...), ...] becomes [..., ...]
+        in the tuple e.g [(1, ...), ...] becomes [(...), ...]
         """
         container = {}
         for key, values in self.values.items():
@@ -160,9 +159,19 @@ class SmartDict:
         """Return scrapped values to be written
         to a CSV file"""
         data = self.as_values()
-        base = [list(data.keys())]
-        for _, values in data.items():
-            base.append(values)
+        columns = list(data.keys())
+        base = [columns]
+
+        last_column = columns[-1]
+        number_of_items = len(data[last_column])
+        # Create the amount of rows that will be 
+        # necessary for a single column
+        canvas = [[] for _ in range(number_of_items)]
+
+        for column in data.values():
+            for i, row_value in enumerate(column):
+                canvas[i].append(row_value)
+        base.extend(canvas)
         return base
 
     def save(self, commit: bool=True, filename: str=None, extension: str='json', **kwargs):
