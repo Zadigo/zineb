@@ -54,8 +54,8 @@ class Math(ExpressionMixin):
         field = self.get_field_object()
 
         if self._cached_data is None:
-            raise ValueError(LazyFormat("{function} requires "
-            "a value. Got: '{value}'", value=self.value))
+            raise ValueError(LazyFormat("{func} requires a value. Got: '{value}'",
+            func=self.__class__.__name__, value=self._cached_data))
 
         field.resolve(self._cached_data)
         return field
@@ -212,7 +212,6 @@ class When:
 
 class DateExtractorMixin:
     lookup_name = None
-    field_name = None
 
     def __init__(self, value: Any, output_field: Callable=None, date_format: str=None):
         self.value = value
