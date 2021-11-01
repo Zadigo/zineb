@@ -1,4 +1,4 @@
-from collections import defaultdict
+from typing import List
 
 
 class LazyFormat:
@@ -34,7 +34,7 @@ class LazyFormat:
         return str(self) % value
 
 
-def remap_to_dict(data: dict):
+def remap_to_dict(data: dict) -> List[dict]:
     """
     From a dictionnary of values, remap the different
     items to create a list of dictionnaries
@@ -42,13 +42,7 @@ def remap_to_dict(data: dict):
     Example
     -------
         
-        > {'a': [1, 2], 'b': 1} becomes
-          [{'a': 1}, {'a': 2}, {'b': 1}] 
-
-    Yields
-    ------
-
-        list:  list of dictionnaries
+        {'a': [1, 2], 'b': 1} becomes [{'a': 1}, {'a': 2}, {'b': 1}]
     """
     items = []
     base_keys = list(data.keys())
