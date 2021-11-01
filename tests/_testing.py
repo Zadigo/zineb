@@ -32,6 +32,4 @@ from zineb.utils._datastructures import SmartDict
 
 s = SmartDict('name', 'surname')
 s.update('name', 'Kendall')
-s.update('surname', 'Jenner')
-s.update('name', 'Kylie')
-print(s.save(extension='csv'))
+s.as_csv()
