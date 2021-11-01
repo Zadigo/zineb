@@ -1,3 +1,7 @@
+```
+![alt text](http://url/to/img.png)
+```
+
 # Introduction
 
 Zineb is a lightweight tool solution for simple and efficient web scrapping and crawling built around BeautifulSoup and Pandas. It's main purpose is to help __quickly structure your data in order to be used as fast as possible in data science or machine learning projects.__
@@ -23,11 +27,11 @@ def start(self, response, **kwargs):
 To create a project do `python -m zineb start_project <project name>` which will create a directory which will have the following structure.
 
 .myproject
-    |
-    |--media
-    |
-    |-- models
-        |-- base.py
+|
+|--media
+|
+|-- models
+|-- base.py
 |
 |-- __init__.py
 |
@@ -802,7 +806,6 @@ The signals function has to be able to accept a `sender` object and additional p
 
 You custom signals do not have to return anything.
 
-
 # Utilities
 
 ## Link reconciliation
@@ -920,6 +923,3 @@ Specificies the amount of times the the request is sent before eventually failin
 Indicates which status codes should trigger a retry. By default, the following codes: 500, 502, 503, 504, 522, 524, 408 and 429 will trigger it.
 
 ###### TIME_ZONE
-
-
-
