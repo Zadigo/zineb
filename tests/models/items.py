@@ -46,3 +46,11 @@ class SubclassedModel(BareModel):
 
 class CalculatedModel(Model):
     age = fields.IntegerField()
+
+
+class ExampleModel(Model):
+    url = fields.UrlField()
+
+
+class ExampleModel2(Model):
+    value = fields.CharField()
