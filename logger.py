@@ -36,8 +36,8 @@ class Logger:
         return self.logger
 
     @classmethod
-    def new(cls, name=None, to_file=False, **kwargs):
-        instance = cls(name=name, to_file=to_file, **kwargs)
+    def new(cls, name: str=None):
+        instance = cls(name=name)
         return instance
 
 

@@ -72,7 +72,7 @@ class Registry:
         # register was populated (in other
         # words with .populate() was called)
         self.is_ready = False
-        self.local_logger = global_logger.new(name=self.__class__.__name__, to_file=True)
+        self.local_logger = global_logger.new(name=self.__class__.__name__)
         self.spiders = OrderedDict(**spiders)
 
     def __str__(self):

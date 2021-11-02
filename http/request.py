@@ -48,7 +48,7 @@ class BaseRequest:
     http_methods = ['GET', 'POST']
 
     def __init__(self, url: Union[Link, str, ImageTag], method='GET', **kwargs):
-        self.local_logger = global_logger.new(name=self.__class__.__name__, to_file=True)
+        self.local_logger = global_logger.new(name=self.__class__.__name__)
 
         if method not in self.http_methods:
             raise ValueError("The provided method is not valid. Should be "
@@ -138,7 +138,7 @@ class BaseRequest:
             # TODO: When using https:// this returns True
             # when this is not even a real URL
             message = (f"The url that was provided is not valid. Got: {url}.")
-            global_logger.error(message, stack_info=True)
+            global_logger.logger.error(message, stack_info=True)
             raise requests.exceptions.InvalidURL(message)
 
         parsed_url = urlparse(url)
@@ -195,7 +195,7 @@ class BaseRequest:
         try:
             response = self.session.send(self.prepared_request)
         except requests.exceptions.HTTPError as e:
-            global_logger.error(f"An error occured while processing "
+            self.local_logger.logger.error(f"An error occured while processing "
             "request for {self.prepared_request}", stack_info=True)
             self.errors.append([e.args])
         except Exception as e:
@@ -312,7 +312,7 @@ class HTTPRequest(BaseRequest):
         http_response = super()._send()
         if http_response is not None:
             if http_response.ok:
-                global_logger.info(f'Sent request for {self.url}')
+                global_logger.logger.info(f'Sent request for {self.url}')
                 self._http_response = http_response
                 self.html_response = HTMLResponse(
                     http_response,
