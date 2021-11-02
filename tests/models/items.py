@@ -21,8 +21,28 @@ class SimpleModel(Model):
 
 
 class ModelWithValidator(Model):
-    height = fields.CharField(validators=[simple_validator])
+    height = fields.IntegerField(validators=[simple_validator])
 
 
 class DateModel(Model):
     date_of_birth = fields.DateField()
+
+
+class ModelWithMeta(Model):
+    name = fields.CharField()
+
+    class Meta:
+        ordering = ['name']
+
+
+class ModelWithInvalidMeta(Model):
+    class Meta:
+        ordering = ['name']
+
+
+class SubclassedModel(BareModel):
+    pass
+
+
+class CalculatedModel(Model):
+    age = fields.IntegerField()
