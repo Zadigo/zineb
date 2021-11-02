@@ -5,7 +5,7 @@ from zineb.models.datastructure import (FieldDescriptor, Model, ModelOptions,
                                         model_registry)
 from zineb.models.functions import (Add, Divide, ExtractDay, ExtractMonth,
                                     ExtractYear, Multiply, Substract, When)
-from zineb.tests.models import ModelWithValidator, SimpleModel
+from zineb.tests.models.items import ModelWithValidator, SimpleModel
 
 from models import fields
 
