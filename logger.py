@@ -1,4 +1,5 @@
 import logging
+
 from zineb.settings import settings as global_settings
 
 

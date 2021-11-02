@@ -209,7 +209,8 @@ class FileCrawler:
         start_files = list(self.start_files)
 
         # If the root_dir is not set, then
-        # default to the default 'media' folder
+        # default to the default
+        # 'media' folder
         if self.root_dir is None:
             self.root_dir = 'media'
 
@@ -217,7 +218,8 @@ class FileCrawler:
             result = os.path.join(global_settings.PROJECT_PATH, self.root_dir, path)
 
             if not os.path.isfile(result):
-                raise ValueError(LazyFormat('Path does not point to a valid HTML file. Got {path}', path=path))
+                raise ValueError(LazyFormat('Path does not point to a valid '
+                'HTML file. Got {path}', path=path))
             return result
 
         start_files = list(map(create_full_path, self.start_files))
@@ -232,6 +234,7 @@ class FileCrawler:
         for path, buffer in self.buffers:
             filename = os.path.basename(path)
             filename, _ = filename.split('.')
+            global_logger.logger.info(LazyFormat('Parsing file: {filename}', filename=filename))
             self.start(BeautifulSoup(buffer, 'html.parser'), filename=filename, filepath=path)
 
     def __del__(self):
