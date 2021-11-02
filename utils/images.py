@@ -1,12 +1,12 @@
-from asyncio.runners import run
-from io import BytesIO
-from re import M
-from typing import Callable, List
 import asyncio
 import threading
+from asyncio.runners import run
+from io import BytesIO
+from typing import Callable
 
 from bs4 import BeautifulSoup
 from PIL import Image
+from zineb.settings import settings
 from zineb.tags import ImageTag
 from zineb.utils.generate import create_new_name
 
@@ -31,8 +31,8 @@ def download_image_from_tag(tag, download_to=None,
         return download_image(request.html_response, download_to=download_to, as_thumbnail=as_thumbnail)
 
 
-def download_image_from_url(url:str, download_to=None,
-                            as_thumbnail=None, link_processor: Callable=None):
+def download_image_from_url(url: str, download_to: str=None,
+                            as_thumbnail: bool=False, link_processor: Callable=None):
     from zineb.http.request import HTTPRequest
 
     if link_processor is not None:
@@ -43,7 +43,7 @@ def download_image_from_url(url:str, download_to=None,
     return download_image(request.html_response, download_to=download_to, as_thumbnail=as_thumbnail)
 
 
-def download_image(response, download_to=None, as_thumbnail=False):
+def download_image(response, download_to: str=None, as_thumbnail: bool=False):
     """
     Downloads a single image to the media folder
 
@@ -68,10 +68,11 @@ def download_image(response, download_to=None, as_thumbnail=False):
     buffer = BytesIO(response_content)
     image = Image.open(buffer)
     
-    if download_to is None:
-        download_to = f'{create_new_name()}.jpg'
-    else:
-        download_to = f'{download_to}/{create_new_name()}.jpg'
+    # download_to = f'{create_new_name()}.jpg'
+    # if download_to is not None:
+    #     download_to = f'{download_to}/{create_new_name()}.jpg'
+    prefix_path = settings.MEDIA_FOLDER or download_to
+    download_to = f'{prefix_path}/{create_new_name()}.jpg'
 
     if as_thumbnail:
         new_image = image.copy()

@@ -157,8 +157,8 @@ class Registry:
             for spider_config in spiders:
                 try:
                     spider_config.run()
-                except Exception as e:
-                    self.local_logger.critical((f"Could not start {spider_config}. "
+                except Exception:
+                    self.local_logger.logger.critical((f"Could not start {spider_config}. "
                     "Did you use the correct class name?"), stack_info=True)
                     raise
                 else:
