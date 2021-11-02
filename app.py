@@ -7,11 +7,11 @@ from typing import Iterator, Union
 
 from bs4 import BeautifulSoup
 
-# from xml.etree import ElementTree
-from zineb import global_logger, signals
 # from zineb.http.pipelines import CallBack
 from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
+# from xml.etree import ElementTree
+from zineb.logger import global_logger
 from zineb.settings import settings as global_settings
 from zineb.utils.formatting import LazyFormat
 

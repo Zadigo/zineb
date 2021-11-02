@@ -2,7 +2,7 @@ from collections import OrderedDict
 from functools import cached_property
 from importlib import import_module
 
-from zineb import global_logger
+from zineb.logger import global_logger
 from zineb.settings import lazy_settings
 
 

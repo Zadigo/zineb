@@ -2,9 +2,10 @@ import os
 import warnings
 from collections import OrderedDict
 from functools import lru_cache
-from zineb.middleware import Middleware
-from zineb import global_logger
+
 from zineb.exceptions import SpiderExistsError
+from zineb.logger import global_logger
+from zineb.middleware import Middleware
 
 
 class SpiderConfig:
