@@ -230,7 +230,9 @@ class FileCrawler:
             opened_file.close()
 
         for path, buffer in self.buffers:
-            self.start(BeautifulSoup(buffer, 'html.parser'), filepath=path)
+            filename = os.path.basename(path)
+            filename, _ = filename.split('.')
+            self.start(BeautifulSoup(buffer, 'html.parser'), filename=filename, filepath=path)
 
     def __del__(self):
         for _, buffer in self.buffers:
