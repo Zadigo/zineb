@@ -2,8 +2,6 @@ from typing import Callable
 
 from zineb.html_parser.utils import is_empty, is_newline
 
-from html_parser.utils import is_empty
-
 START_TAG = '<'
 
 END_TAG = '/>'

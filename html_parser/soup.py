@@ -26,20 +26,34 @@ class Soup:
         self.builer = builder
         self.builer.finalize()
 
-    @cached_property
+    def __repr__(self):
+        return str(self.builer.html_tree)
+
+    @property
     def html_tree(self):
         return self.builer.html_tree
 
-    def _iterate_over_tree(self, name, attrs={}):
-        # Internal function used to iterate
-        # over the html tree
-        for tag in self.html_tree:
-            if tag == name:
-                yield tag
+    # def _iterate_over_tree(self, name, attrs={}):
+
+    def _get_opening_closing_tags(self, name):
+        matched_index = None
+        matched_closing_index = None
+        for i, tag in enumerate(self.html_tree):
+            if matched_index is None:
+                if tag == name:
+                    matched_index = i
+
+            if matched_closing_index is None:
+                if tag == name and tag.is_closing_tag:
+                    matched_closing_index = i
+        return matched_index, matched_closing_index
+        # return self.html_tree[matched_index:matched_closing_index]
 
     def find(self, name: str, attrs: dict={}):
-        pass
+        queryset = self._get_opening_closing_tags(name)
+        print(queryset)
     
     def find_all(self, name: str, attrs: dict={}):
-        queryset = self._iterate_over_tree(name, attrs=attrs)
-        return Queryset.copy(queryset)
+        # queryset = self._iterate_over_tree(name, attrs=attrs)
+        # return Queryset.copy(queryset)
+        pass

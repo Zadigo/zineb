@@ -26,6 +26,7 @@ HTML = """
 # print(builder.html_tree[1].contents)
 
 
-soup = Soup(HTML)
-t = soup.builer.html_tree[1]
-print(t.contents)
+# soup = Soup(HTML)
+# # t = soup.builer.html_tree[1]
+# print(soup)
+# print(soup.find('head'))

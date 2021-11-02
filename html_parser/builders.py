@@ -1,4 +1,5 @@
 from collections import deque
+from functools import cached_property
 
 from zineb.html_parser.algorithm import CustomHTMLParser
 from zineb.html_parser.tags import ClosingTag, Comment, SimpleData, Tag
@@ -33,6 +34,10 @@ class BaseBuilder:
     @property
     def _get_last_item(self):
         return self.TREE[-1]
+
+    @cached_property
+    def number_of_tags(self):
+        return len(self.html_tree)
 
     # def find_in_tree(self, name: str):
     #     start_tag = None
@@ -108,6 +113,10 @@ class BaseBuilder:
         # print(name, attrs)
 
     def handle_end_tag(self, name: str):
+        if self._last_tag is not None:
+            if self._last_tag.name == name:
+                pass
+
         if requires_closing(name):
             closing_tag = ClosingTag(name)
             self.add_to_tree(closing_tag)
@@ -119,3 +128,6 @@ class BaseBuilder:
     def handle_self_closing_tag(self, name: str, attrs: list):
         tag = Tag(name, attrs, self_closing=True)
         self.add_to_tree(tag)
+
+
+builder = BaseBuilder()
