@@ -1,10 +1,11 @@
 import os
-from functools import lru_cache
 import re
+from functools import lru_cache
 from typing import Callable, Iterable, Union
 
 from zineb import exceptions
 from zineb.settings import settings
+from zineb.utils.formatting import LazyFormat
 
 
 def keep_while(func: Callable, values: Iterable):
@@ -74,7 +75,7 @@ def split_while(func: Callable, values: Iterable):
 
 
 @lru_cache(maxsize=0)
-def collect_files(path: str, func: Callable = None):
+def collect_files(dir_name: str, func: Callable = None):
     """
     Collect all the files within specific
     directory of your project. This utility function
@@ -88,23 +89,13 @@ def collect_files(path: str, func: Callable = None):
 
         - path (str): relative path to the directory
         - func (Callable): a func that can be used to filter the files
-
-    Raises
-    ------
-
-        - ValueError: [description]
-
-    Returns
-    -------
-
-        - Iterator: list of files
     """
     if settings.PROJECT_PATH is None:
         raise exceptions.ProjectNotConfiguredError()
 
-    full_path = os.path.join(settings.PROJECT_PATH, path)
+    full_path = os.path.join(settings.PROJECT_PATH, dir_name)
     if not os.path.isdir(full_path):
-        raise ValueError('Path should be a directory')
+        raise ValueError(LazyFormat("Path should be a directory. Got '{path}'", path=full_path))
 
     root, _, files = list(os.walk(full_path))[0]
     if full_path:
