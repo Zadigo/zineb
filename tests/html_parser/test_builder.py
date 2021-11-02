@@ -1,13 +1,13 @@
 import unittest
 
 from zineb.html_parser.builders import BaseBuilder
-from zineb.tests.html_parser import templates
+from zineb.tests.html_parser import items
 
 
 class TestBuilder(unittest.TestCase):
     def setUp(self):
         builder = BaseBuilder()
-        builder.start_iteration(templates.HTML1)
+        builder.start_iteration(items.HTML1)
         builder.finalize()
         self.builder = builder
 

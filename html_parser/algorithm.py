@@ -18,8 +18,7 @@ class CustomHTMLParser(HTMLParser):
         return rebuilt_attrs
 
     def handle_data(self, data: str):
-        stripped_data = data.strip()
-        self.builder_instance.handle_inner_data(stripped_data)
+        self.builder_instance.handle_inner_data(data)
 
     def handle_charref(self, name: str):
         pass

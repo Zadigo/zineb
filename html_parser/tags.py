@@ -82,8 +82,10 @@ class BaseTag(NavigationMixin):
         return self.name
         # return create_representation(self.name, None, self_closing=self.self_closing, attrs=self.attrs)
 
-    def __eq__(self, name):
-        return self.name == name
+    def __eq__(self, instance_or_name):
+        if isinstance(instance_or_name, BaseTag):
+            return instance_or_name.name == self.name
+        return self.name == instance_or_name
 
     @classmethod
     def as_instance(cls, **kwargs):

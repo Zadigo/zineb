@@ -24,9 +24,7 @@ NON_CLOSED_TAGS = {
 def is_newline(value: str):
     if value == '':
         return False
-
-    is_match = re.search(r'^\s+\\n\s+', value)
-    if is_match:
+    if '\n' in value:
         return True
     return False
 
