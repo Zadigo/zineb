@@ -286,7 +286,6 @@ class ModelOptions(FieldMixin):
         return name in self.cached_options
     
 
-
 class Base(type):
     def __new__(cls, name, bases, attrs):
         super_new = super().__new__
