@@ -75,27 +75,27 @@ class BaseBuilder:
     def add_to_tree(self, tag):
         self.TREE.append(tag)
 
-    def _add_child_to_current(self, tag):
-        # Adds an element to the current tag
-        # this is tracked
-        if self._current_tag is not None and not self._current_tag.is_data:
-            self._current_tag.add_child(tag)
+    # def _add_child_to_current(self, tag):
+    #     # Adds an element to the current tag
+    #     # this is tracked
+    #     if self._current_tag is not None and not self._current_tag.is_data:
+    #         self._current_tag.add_child(tag)
 
-    def _add_child_to_previous(self, tag):
-        current_number_of_items = len(self.TREE)
-        previous_tag = self.TREE[current_number_of_items]
-        if not previous_tag.is_data:
-            previous_tag.add_child(tag)
+    # def _add_child_to_previous(self, tag):
+    #     current_number_of_items = len(self.TREE)
+    #     previous_tag = self.TREE[current_number_of_items]
+    #     if not previous_tag.is_data:
+    #         previous_tag.add_child(tag)
 
-    def _add_child_to_previous_tags(self, tag):
-        # Backward add the current tag
-        # to all the tags integrated before
-        # the current tag is appended
-        current_number_of_items = len(self.TREE)
-        for i in range(current_number_of_items, 0, -1):
-            previous_tag = self.TREE[i - 1]
-            if not previous_tag.is_data:
-                previous_tag.add_child(tag)
+    # def _add_child_to_previous_tags(self, tag):
+    #     # Backward add the current tag
+    #     # to all the tags integrated before
+    #     # the current tag is appended
+    #     current_number_of_items = len(self.TREE)
+    #     for i in range(current_number_of_items, 0, -1):
+    #         previous_tag = self.TREE[i - 1]
+    #         if not previous_tag.is_data:
+    #             previous_tag.add_child(tag)
 
     def handle_inner_data(self, data: str):
         tag = SimpleData(data)
