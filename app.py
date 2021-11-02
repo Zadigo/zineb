@@ -6,15 +6,17 @@ from io import StringIO
 from typing import Iterator, Union
 
 from bs4 import BeautifulSoup
-# from pydispatch import dispatcher
 
 # from xml.etree import ElementTree
-from zineb import global_logger
+from zineb import global_logger, signals
 # from zineb.http.pipelines import CallBack
 from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
-from zineb import signals
 from zineb.settings import settings as global_settings
+from zineb.utils.formatting import LazyFormat
+
+# from pydispatch import dispatcher
+
 
 
 class BaseSpider(type):
@@ -204,29 +206,23 @@ class FileCrawler:
     def __init__(self):
         self.buffers = []
 
-        start_files = [] 
-        if isinstance(self.start_files, Iterator):
-            # This is for collect_files or any
-            # other kind of generator/iterator
-            # that facilitates file collection
-            start_files = self.start_files = list(self.start_files)
-            if self.root_dir is not None:
-                warnings.warn('Skipping root dir attribute.')
-                self.root_dir = None
-        else:
-            start_files = self.start_files
+        start_files = list(self.start_files)
 
-        if self.root_dir is not None:
-            def full_path(path):
-                return os.path.join(global_settings.PROJECT_PATH, self.root_dir, path)
+        # If the root_dir is not set, then
+        # default to the default 'media' folder
+        if self.root_dir is None:
+            self.root_dir = 'media'
 
-            start_files = list(map(full_path, self.start_files))
-            for start_file in start_files:
-                if not self._check_path(start_file):
-                    raise TypeError(f"{start_file} is not a valid file.")
+        def create_full_path(path):
+            result = os.path.join(global_settings.PROJECT_PATH, self.root_dir, path)
 
-        # Search for the files in the current
-        # actual directory.
+            if not os.path.isfile(result):
+                raise ValueError(LazyFormat('Path does not point to a valid HTML file. Got {path}', path=path))
+            return result
+
+        start_files = list(map(create_full_path, self.start_files))
+
+        # Open each files
         for file in start_files:
             opened_file = open(file, mode='r', encoding='utf-8')
             buffer = StringIO(opened_file.read())
@@ -234,7 +230,9 @@ class FileCrawler:
             opened_file.close()
 
         for path, buffer in self.buffers:
-            self.start(BeautifulSoup(buffer, 'html.parser'), filepath=path)
+            filename = os.path.basename(path)
+            filename, _ = filename.split('.')
+            self.start(BeautifulSoup(buffer, 'html.parser'), filename=filename, filepath=path)
 
     def __del__(self):
         for _, buffer in self.buffers:
