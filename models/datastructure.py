@@ -390,11 +390,13 @@ class DataStructure(metaclass=Base):
         When the value of a field has already been
         resolved, just add it to the model. This is
         an internal function used for the purpose of
-        other internal functions.
+        other internal functions since there is no
+        field resolution and raw data from the internet
+        would be added as is
         """
-        cached_values = self._cached_result.get(field_name, [])
+        cached_values = self._cached_result.get_container(field_name)
         cached_values.append(value)
-        self._cached_result.update({field_name: cached_values})
+        self._cached_result.update(field_name, cached_values)
 
     def add_calculated_value(self, name: str, value: Any, *funcs):
         funcs = list(funcs)
@@ -410,7 +412,7 @@ class DataStructure(metaclass=Base):
         if len(funcs) == 1:
             func._cached_data = value
             func.resolve()
-            self.add_value(func.field_name, func._calculated_result)
+            self.add_value(func.field_name, func._cached_data)
         else:
             for i in range(len(funcs)):
                 if i == 0:
