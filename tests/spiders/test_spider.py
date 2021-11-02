@@ -3,7 +3,7 @@ import unittest
 from bs4 import BeautifulSoup
 from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse
-from zineb.tests.spiders import SimpleSpider
+from zineb.tests.spiders.items import SimpleSpider
 
 
 class TestSpider(unittest.TestCase):

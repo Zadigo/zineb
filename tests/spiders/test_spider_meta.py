@@ -1,6 +1,6 @@
 import unittest
 
-from zineb.tests.spiders import MetaSpider
+from zineb.tests.spiders.items import MetaSpider
 
 
 class TestMeta(unittest.TestCase):

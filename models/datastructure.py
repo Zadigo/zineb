@@ -352,10 +352,6 @@ class Base(type):
 class DataStructure(metaclass=Base):
     def __init__(self, html_document: BeautifulSoup=None, 
                  response: HTMLResponse=None):
-        # self._cached_result = DataContainer.as_container(
-        #     *self._fields.field_names
-        # )
-
         self._cached_result = SmartDict.new_instance(*self._fields.field_names)
 
         self.html_document = html_document
@@ -390,14 +386,23 @@ class DataStructure(metaclass=Base):
         When the value of a field has already been
         resolved, just add it to the model. This is
         an internal function used for the purpose of
-        other internal functions.
+        other internal functions since there is no
+        field resolution and raw data from the internet
+        would be added as is
         """
-        cached_values = self._cached_result.get(field_name, [])
+        cached_values = self._cached_result.get_container(field_name)
         cached_values.append(value)
-        self._cached_result.update({field_name: cached_values})
+        self._cached_result.update(field_name, cached_values)
 
     def add_calculated_value(self, name: str, value: Any, *funcs):
         funcs = list(funcs)
+
+        # TODO: Quick fix because the funcs is an optional
+        # parameter and if ignored this raises an IndexError.
+        # Maybe we should create a Case-function to wrap the
+        # functions and force funcs as a required parameter
+        if not funcs:
+            raise ValueError("There were no functions to use.")
 
         for func in funcs:
             if not isinstance(func, (Add, Substract, Divide, Multiply)):
@@ -410,7 +415,7 @@ class DataStructure(metaclass=Base):
         if len(funcs) == 1:
             func._cached_data = value
             func.resolve()
-            self.add_value(func.field_name, func._calculated_result)
+            self.add_value(func.field_name, func._cached_data)
         else:
             for i in range(len(funcs)):
                 if i == 0:
@@ -612,21 +617,16 @@ class Model(DataStructure):
         return f"{self.__class__.__name__}"
 
     def __getitem__(self, field_name: str):
-        return self._cached_result.get(field_name, None)
+        return self._cached_result.get_container(field_name)
 
-    # def __setitem__(self, field_name: str, value: Any):
-    #     self.add_value(field_name, value)
+    def full_clean(self, dataframe, **kwargs):
+        self._cached_dataframe = dataframe
 
     def clean(self, dataframe, **kwargs):
         """
         Put all additional functionnalities that you wish to
         run on the DataFrame here before calling the save
-        function on your model.
-
-        Parameters
-        ----------
-
-            dataframe (pandas.DataFrame): [description]
+        function on your model
         """
         self._cached_dataframe = dataframe
         
@@ -650,7 +650,8 @@ class Model(DataStructure):
         # signal.send(dispatcher.Any, self, tag='Pre.Save')
         dataframe = self.resolve_fields()
 
-        self.clean(dataframe=dataframe)
+        self.full_clean(dataframe=dataframe)
+        self.clean(self._cached_dataframe)
 
         if commit:
             if filename is None:
