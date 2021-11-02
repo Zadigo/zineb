@@ -1,5 +1,6 @@
 import os
 import warnings
+import threading
 from collections import OrderedDict
 from functools import lru_cache
 from zineb.middleware import Middleware
@@ -57,7 +58,11 @@ class SpiderConfig:
     def run(self):
         """Runs the spider by calling the spider class
         which in return calls .start(...)"""
-        self.get_spider(self.label)()
+        spider = self.get_spider(self.label)
+        # thread = threading.Thread(target=spider)
+        # thread.daemon = True
+        # thread.start()
+        spider()
     
 
 class Registry:
