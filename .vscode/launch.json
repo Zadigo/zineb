@@ -23,6 +23,14 @@
             // "env": {
             //     "celebrity": "Kendall"
             // }
+        },
+        {
+            "name": "Zineb: HTML Parser",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false
         }
     ]
 }

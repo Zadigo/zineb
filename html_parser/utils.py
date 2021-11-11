@@ -13,7 +13,7 @@ CLOSING_TAGS = {
 
 SELF_CLOSING_TAGS = {
     'meta', 'link', 'audio', 'video', 'area', 'base',
-    'embed',
+    'embed', 'br', 'hr', 'input', 'img', 'spacer', 'frame'
 }
 
 NON_CLOSED_TAGS = {
