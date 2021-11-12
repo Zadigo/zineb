@@ -43,7 +43,8 @@ class BaseBuilder:
     @property
     def _get_last_item(self):
         try:
-            return self.TREE[-1]
+            # return self.TREE[-1]
+            return self._collected_tags[-1]
         except:
             return None
     
@@ -84,17 +85,17 @@ class BaseBuilder:
 
     def add_to_tree(self, tag):
         self.TREE.append(tag)
-        
+                
     def handle_inner_data(self, data: str):
         tag = SimpleData(data)
 
-        self.add_to_tree(tag)
+        # self.add_to_tree(tag)
         self._current_data.append(tag)
         
         # We had a previous tag, also implement
         # it in the current tag
-        if self._current_tag is not None and not self._current_tag.is_data:
-            self._current_tag.add_child(tag)
+        # if self._current_tag is not None and not self._current_tag.is_data:
+        #     self._current_tag.add_child(tag)
         # self.parent.add_child(tag)
 
     def handle_start_tag(self, name: str, attrs: dict, **kwargs):
@@ -117,14 +118,15 @@ class BaseBuilder:
             self._current_tag.add_child(tag)
         
         # self.parent.add_child(tag)
-        self.add_to_tree(tag)
+        self._collected_tags.append(tag)
+        # self.add_to_tree(tag)
         self._current_tag = self._get_last_item
 
     def handle_end_tag(self, name: str, nsprefix=None):
         self._unclosed_tags.subtract(name)
-        if self._get_last_item is not None:
-            self._get_last_item.closed = True
-            
+        # if self._get_last_item is not None:
+        #     self._get_last_item.closed = True
+        
         # if self._current_data:
             
         # if requires_closing(name):
@@ -132,6 +134,13 @@ class BaseBuilder:
         #     self.add_to_tree(closing_tag)
             
         # self._current_data = None
+        
+        if self._current_tag is not None:
+            # self._current_tag.contents = self._current_data[-1]
+            if self._current_tag.namee != self._get_last_item.name:
+                self._c
+        self._current_data = []
+        self.add_to_tree(self._get_last_item)
 
     def handle_comment(self, data: str):
         tag = Comment(data)
@@ -140,13 +149,10 @@ class BaseBuilder:
     def handle_self_closing_tag(self, name: str, attrs: list):
         tag = Tag(name, attrs, self_closing=True)
         self.add_to_tree(tag)
-        # We assume that when a tag is closed,
-        # then the current data that was collected
-        # is part of that tag and therefore should
-        # be reset
-        self._current_data = []
         
-HTML = """<html>Simple</html>"""
+        
+# HTML = """<html>Simple</html>"""
+HTML = """<html>Simple <b>talent</b></html>"""
 # HTML = """<html><div></div><div></div></html>"""
 builder = BaseBuilder()
 builder.start_iteration(HTML)

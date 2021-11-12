@@ -65,6 +65,9 @@ class NavigationMixin:
     def is_data(self):
         special_tags = ['data', 'comment']
         return self.category in special_tags
+    
+    def create_relationships(self, top_parent=None, **kwargs):
+        pass
 
 
 class BaseTag(NavigationMixin):
