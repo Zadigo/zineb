@@ -1,11 +1,12 @@
 import datetime
 import re
 import unittest
+from unittest.case import TestCase
 
 from zineb.exceptions import ValidationError
 from zineb.models import fields
 from zineb.models.fields import (BooleanField, CharField, DecimalField,
-                                 RegexField)
+                                 RegexField, Value)
 from zineb.tests import TEST_DATE_FORMATS
 
 
@@ -14,13 +15,15 @@ class TestField(unittest.TestCase):
         self.field = fields.Field()
 
     def test_resolution(self):
+        # TODO: Put more values to test
         values_to_resolve = [
             '   Kendall Jenner',
             ' \n \n Kendall \t Jenner '
         ]
         for value in values_to_resolve:
-            result = self.field.resolve(value)
-            self.assertEqual(result, 'Kendall Jenner')
+            with self.subTest(value=value):
+                result = self.field.resolve(value)
+                self.assertEqual(result, 'Kendall Jenner')
         
     def test_none_is_returned_as_is(self):
         # Check that None is returned and does
@@ -129,14 +132,13 @@ class TestEmailField(unittest.TestCase):
 
 class TestIntegerField(unittest.TestCase):
     def setUp(self):
-        self.number_field = fields.IntegerField()
-        self.float_field = fields.DecimalField()
+        self.field = fields.IntegerField()
 
     def test_resolution(self):
         numbers = ['15', 15]
         for number in numbers:
-            self.number_field.resolve(number)
-            self.assertEqual(self.number_field._cached_result, 15)
+            self.field.resolve(number)
+            self.assertEqual(self.field._cached_result, 15)
 
     @unittest.expectedFailure
     def test_max_value_raises_error(self):
@@ -147,6 +149,19 @@ class TestIntegerField(unittest.TestCase):
     def test_min_value_raises_error(self):
         field = fields.IntegerField(min_value=90, max_value=100)
         self.assertRaises(ValidationError, field.resolve, 60)
+
+
+class TestDecimalField(TestCase):
+    def setUp(self) -> None:
+        self.field = fields.DecimalField()
+        
+    def test_resolution(self):
+        values_to_test = ['1.5', 1.5]
+        for value in values_to_test:
+            with self.subTest(value=value):
+                self.field.resolve(value)
+                self.assertEqual(self.field._cached_result, 1.5)
+                self.assertIsInstance(self.field._cached_result, float)
 
 
 class TestDateField(unittest.TestCase):
@@ -228,11 +243,12 @@ class TestListField(unittest.TestCase):
         self.field = fields.ListField()
 
     def test_resolution(self):
-        self.field.resolve([1, 2, 3])
-        self.assertIsInstance(self.field._cached_result, list)
-
-        result = self.field.resolve('[1, 2]')
-        self.assertListEqual(self.field._cached_result, [1, 2])
+        values_to_test = [[1, 2, 3], '[1, 2, 3]']
+        for value in values_to_test:
+            with self.subTest(value=value):
+                self.field.resolve(value)
+                self.assertIsInstance(self.field._cached_result, list)
+                self.assertListEqual(self.field._cached_result, [1, 2, 3])
 
 
 class TestCommaSeparatedField(unittest.TestCase):
@@ -240,16 +256,50 @@ class TestCommaSeparatedField(unittest.TestCase):
         self.field = fields.CommaSeperatedField()
 
     def test_resolution(self):
-        self.field.resolve([1, 2, 3])
-        self.assertEqual(self.field._cached_result, '1,2,3')
+        values_to_test = [[1, 2, 3], '[1, 2, 3]']
+        for value in values_to_test:
+            with self.subTest(value=value):
+                self.field.resolve([1, 2, 3])
+                self.assertEqual(self.field._cached_result, '1,2,3')
 
 
 class TestUrlField(unittest.TestCase):
-    pass
+    def setUp(self):
+        self.field = fields.UrlField()
+        
+    def test_resolution(self):
+        values_to_test = [
+            'http://example.com',
+            'https://example.com'
+        ]
+        for value in values_to_test:
+            with self.subTest(value=value):
+                self.field.resolve(value)
+                self.assertIn(self.field._cached_result, [
+                    'http://example.com','https://example.com',
+                    'ftp://example.com'
+                ])
+    
+    def test_invalid_urls(self):
+        values_to_test = [
+            'ftp://example.com',
+            'example.com'
+        ]
+        for value in values_to_test:
+            with self.subTest(value=value):
+                self.assertRaises(Exception, self.field.resolve, value)
 
 
 class TestImageField(unittest.TestCase):
-    pass
+    def setUp(self):
+        self.field = fields.ImageField()
+    
+    def test_resolution(self):
+        values_to_test = ['http://example.com']
+        for value in values_to_test:
+            with self.subTest(value=value):
+                self.field.resolve(value)
+                self.assertIn(self.field._cached_result, ['http://example.com'])
 
 
 class TestBooleanField(unittest.TestCase):
@@ -308,6 +358,17 @@ class TestRegexField(unittest.TestCase):
         for value in values:
             self.field.resolve(value)
             self.assertEqual(self.field._cached_result, 'wing spiker')
+
+
+class TestValueField(TestCase):
+    def test_resolution(self):
+        values_to_test = [' Kendall ', '<Kendall', '<div>Kendall</', 
+                  '<div>Kendall</div>', '>>Kendall']
+        
+        for value in values_to_test:
+            with self.subTest(value=value):
+                instance = Value(value)
+                self.assertEqual(instance.result, 'Kendall')
 
 
 if __name__ == "__main__":

@@ -49,7 +49,6 @@ class Extractor:
         'extracting items from the HTML page'))
 
 
-
 class TableExtractor(Extractor):
     """
     Quickly extract a table from an HTML page.
