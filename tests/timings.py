@@ -1,6 +1,7 @@
-import time
 import os
 import subprocess
+import time
+
 
 def calculate_time(func):
     def wrapper():
@@ -13,8 +14,8 @@ def calculate_time(func):
 
 @calculate_time
 def test_timing_model_creation():
-    from zineb.models.datastructure import Model
     from zineb.models import fields
+    from zineb.models.datastructure import Model
 
     class TestModel(Model):
         name = fields.CharField()
