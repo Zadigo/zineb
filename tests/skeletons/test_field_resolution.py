@@ -36,7 +36,7 @@ class CharField(Field):
     def resolve(self, value):
         return super().resolve(value)
 
-c = CharField()
+# c = CharField()
 
 class TestProcess(unittest.TestCase):
     def test_returns_the_same_value(self):

@@ -33,3 +33,10 @@
 # s = SmartDict('name', 'surname')
 # s.update('name', 'Kendall')
 # s.as_csv()
+
+
+from zineb.models import fields
+
+u = fields.JsonField()
+u.resolve({'a': 1})
+print(u._cached_result)
