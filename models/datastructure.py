@@ -427,61 +427,6 @@ class DataStructure(metaclass=Base):
         
         self._cached_result.update(name, resolved_value)
 
-    # def add_related_value(self, name: str, related_field: str, value: Any):
-    #     """
-    #     Add a value to a field based on the last
-    #     result of another field.
-
-    #     The related fields should be of the same data type
-    #     or this might raise errors.
-
-    #     Using both add_value and add_related_value simultanuously
-    #     can create an error because add_related_value adds a value
-    #     to the first field and then uses that result to add a value
-    #     to its own column.
-
-    #     Parameters
-    #     ----------
-
-    #         - name (str): name of the field to which to add the value
-    #         - related_field (str): name of the base field from which to derive a result
-    #         - value (Any): the value to add to the original field
-    #     """
-    #     if name == related_field:
-    #         raise ValueError('Name and related name should not be the same.')
-
-    #     self.add_value(name, value)
-
-    #     related_field_object = self._get_field_by_name(related_field)
-    #     related_field_object.resolve(self._cached_result._last_value(name))
-    #     self._cached_result.update_last_item(related_field, related_field_object._cached_result)
-    
-    # TODO: Allow a custom resolution of the fields
-    # outside of pandas and to allow quicker execution
-    # of the app -; allow pandas resolution as secondary
-    # def resolve_fields(self):
-    #     """
-    #     Implement the data into a Pandas
-    #     Dataframe and return the result
-    #     """
-    #     import pandas
-
-    #     df = pandas.DataFrame(
-    #         self._cached_result.as_values(),
-    #         columns=self._fields.field_names,
-    #     )
-
-    #     if self._meta.has_option('ordering'):
-    #         try:
-    #             df = df.sort_values(
-    #                 by=list(self._meta.ordering_field_names),
-    #                 ascending=self._meta.ordering_booleans
-    #             )
-    #         except KeyError:
-    #             raise KeyError(("Looks like one of the ordering fields is not "
-    #             "part of your model. Please check your ordering options."))
-    #     return df
-
     def resolve_fields(self):
         return self._cached_result.as_list()
 
