@@ -8,6 +8,7 @@ import pytz
 from bs4.element import Tag as beautiful_soup_tag
 from w3lib import html
 from w3lib.url import canonicalize_url, safe_download_url
+from zineb.models.related import RelatedField
 from zineb.exceptions import ValidationError
 from zineb.models import validators as model_validators
 from zineb.settings import settings
@@ -618,7 +619,7 @@ class Value:
         return super().__setattr__(name, value)
 
 
-class ForeignKey(Field):
+class ForeignKey(RelatedField):
     def __init__(self, model: Type):
         self._meta_attributes = {'field_name': None}
         self.is_foreign_key = True
