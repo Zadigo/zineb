@@ -1,10 +1,8 @@
 import unittest
 
-from exceptions import ValidationError
-from zineb.exceptions import FieldError, ModelExistsError
+from zineb.exceptions import FieldError, ModelExistsError, ValidationError
 from zineb.models import fields
-from zineb.models.datastructure import (FieldDescriptor, Model, ModelOptions,
-                                        model_registry)
+from zineb.models.datastructure import Model, ModelOptions, model_registry
 from zineb.models.functions import (Add, Divide, ExtractDay, ExtractMonth,
                                     ExtractYear, Multiply, Substract, When)
 from zineb.tests.models.items import (BareModel, CalculatedModel, DateModel,
@@ -72,13 +70,15 @@ class TestSimpleModel(unittest.TestCase):
 
     def test_fields_descriptor(self):
         # Access the registered fields on the model
-        self.assertIsInstance(self.model._fields, FieldDescriptor)
-        self.assertListEqual(self.model._fields.field_names, ['name', 'age', 'date_of_birth'])
+        self.assertIsInstance(self.model._meta, ModelOptions)
+        for name in ['age', 'date_of_birth', 'name']:
+            with self.subTest(name=name):
+                self.assertIn(name, self.model._meta.field_names)
 
     def test_can_get_field(self):
         self.assertIsInstance(self.model._get_field_by_name('name'), fields.CharField)
-        self.assertIsInstance(self.model._fields.get_field('name'), fields.CharField)
-        self.assertIsInstance(self.model._fields['name'], fields.CharField)
+        self.assertIsInstance(self.model._meta.get_field('name'), fields.CharField)
+        self.assertIsInstance(self.model._meta.cached_fields['name'], fields.CharField)
 
 
 class TestModelWithValidators(unittest.TestCase):

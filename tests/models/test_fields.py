@@ -179,7 +179,7 @@ class TestDateField(unittest.TestCase):
     
     def test_age_resolution(self):
         # Test basic age resolution with builtin formats
-        dates = ['2002-06-15', '2002.06.15', '2002/06/15', '15.6.2002', '02.6.15']
+        dates = ['2002-06-15', '2002.06.15', '2002/06/15', '15.06.2002', '02.6.15']
         for date in dates:
             self.agefield.resolve(date)
             # Make sure that incoming dates respect the Y-m-d format
