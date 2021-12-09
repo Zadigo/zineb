@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from typing import List
 from zineb.utils.iteration import keep_while
 from zineb.utils.formatting import LazyFormat
 
@@ -72,12 +73,17 @@ class BaseChoices(metaclass=ChoicesMeta):
     def choices(self):
         return self._choices.choices
     
+    @staticmethod
+    def _choice(candidates: List):
+        return candidates[-1][1]
+    
     def convert(self, value: str):
         if not isinstance(value, str):
             pass
         candidates = list(keep_while(lambda x: value in x, self.choices))
         if len(candidates) == 0:
-            raise 
+            raise LazyFormat('{choice} is not in list of choices', choice=value)
+        return self._choice(candidates)
 
 
 class Choices(BaseChoices):
