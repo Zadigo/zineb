@@ -513,7 +513,7 @@ class CommaSeperatedField(Field):
     def __init__(self, max_length: int = None):
         super().__init__(max_length=max_length)
 
-    def resolve(self, values: Union[List[Any]]):
+    def resolve(self, values: List[Any]):
         if isinstance(values, str):
             values = detect_object_in_string(values)
 
