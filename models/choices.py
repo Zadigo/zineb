@@ -1,5 +1,6 @@
 from collections.abc import Mapping
-
+from zineb.utils.iteration import keep_while
+from zineb.utils.formatting import LazyFormat
 
 class ChoicesMapping(Mapping):
     choices = set()
@@ -52,8 +53,6 @@ class ChoicesMeta(type):
         attrs['_choices'] = mapping
         return new_class(cls, name, bases, attrs)
 
-    def __iter__(cls):
-        return (item for item in cls)
 
 class BaseChoices(metaclass=ChoicesMeta):        
     def __str__(self):
@@ -65,27 +64,24 @@ class BaseChoices(metaclass=ChoicesMeta):
     def __getattr__(self, name):
         return getattr(self._choices, name)
 
-    # @property
-    # def labels(self):
-    #     return self._choices.labels
+    @property
+    def labels(self):
+        return self._choices.labels
     
-    # @property
-    # def choices(self):
-    #     return self._choices.choices
+    @property
+    def choices(self):
+        return self._choices.choices
+    
+    def convert(self, value: str):
+        if not isinstance(value, str):
+            pass
+        candidates = list(keep_while(lambda x: value in x, self.choices))
+        if len(candidates) == 0:
+            raise 
 
 
 class Choices(BaseChoices):
-    def __str__(self):
-        return str(self._choices.choices)
-
-
-
-
-
-class MyChoices(Choices):
-    NAME = 'Name'
-    SURNAME = 'Surname'
-    AGE = 'Age'
-
-
-print('Name' in MyChoices)
+    """Create a list of choices that can be used
+    to convert an item fom the internet to a choice
+    on the class"""
+    
