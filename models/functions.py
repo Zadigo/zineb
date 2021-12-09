@@ -12,34 +12,52 @@ class ExpressionMixin:
     field_name = None
 
     def get_field_object(self):
-        if self.model is None:
+        try:
+            return self.model._get_field_by_name(self.field_name)
+        except:
             class_name = self.__class__.__name__
+            text= "{class_name} could not retrieve the field object for '{field_name}'"
             raise ModelNotImplementedError(
-                LazyFormat((f"{class_name} could not"
-                f" retrieve the field object for '{self.field_name}'."))
+                LazyFormat(text, class_name=class_name, field_name=self.field_name)
             )
-
-        return self.model._get_field_by_name(self.field_name)
 
     def resolve(self):
         raise NotImplementedError('Expression resolution should be implement by child classes')
 
 
 class Math(ExpressionMixin):
-    def __init__(self, value: Any, by: Union[int, float], 
-                 days: int=None, month: int=None, year: int=None):
-        self.value = value
+    ADD = '+'
+    SUBSTRACT = '-'
+    DIVIDE = '/'
+    MULTIPLY = '*'
+
+    def __init__(self, by: Union[int, float]):
         self.by = by
-        self.days = days
-        self.month = month
-        self.year = year
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(field={self.field_name})"
+        class_name = self.__class__.__name__
+        
+        if class_name == 'Add':
+            result = f"{self._cached_data} {self.ADD} {self.by}"
+        elif class_name == 'Substract':
+            result = f"{self._cached_data} {self.SUBSTRACT} {self.by}"
+        elif class_name == 'Divide':
+            result = f"{self._cached_data} {self.DIVIDE} {self.by}"
+        elif class_name == 'Multiply':
+            result = f"{self._cached_data} {self.MULTIPLY} {self.by}"
+        else:
+            result = f"{self._cached_data} {self.by}"
+
+        return f"{class_name}(< {result} >)"
 
     def resolve(self):
         field = self.get_field_object()
-        field.resolve(self.value)
+
+        if self._cached_data is None:
+            raise ValueError(LazyFormat("{func} requires a value. Got: '{value}'",
+            func=self.__class__.__name__, value=self._cached_data))
+
+        field.resolve(self._cached_data)
         return field
         
 
@@ -86,6 +104,9 @@ class Divide(Math):
 
 
 class When:
+    """Returns a parsed value if a condition is
+    respected otherwise, implements the default"""
+    
     _cached_data = None
     model = None
 
@@ -191,7 +212,6 @@ class When:
 
 class DateExtractorMixin:
     lookup_name = None
-    field_name = None
 
     def __init__(self, value: Any, output_field: Callable=None, date_format: str=None):
         self.value = value
@@ -207,12 +227,18 @@ class DateExtractorMixin:
         # should only get to deal with a DateField
         source_field = super().get_field_object()
         if not isinstance(source_field, DateField):
-            raise TypeError(LazyFormat('{field} should be an instance of DateField.', field=source_field))
+            attrs = {
+                'field_name':self.field_name,
+                'field':source_field.__class__.__name__
+            }
+            raise TypeError(LazyFormat("Field object for '{field_name}' should be "
+            "an instance of DateField. Got: {field}", **attrs))
 
         if self.output_field is None:
             self.output_field = source_field
 
-        source_field.date_formats.add(self.date_format)
+        if self.date_format is not None:
+            source_field.date_formats.add(self.date_format)
         source_field.resolve(self.value)
 
         self._cached_data = source_field._cached_result
@@ -234,55 +260,3 @@ class ExtractMonth(DateExtractorMixin, ExpressionMixin):
 
 class ExtractDay(DateExtractorMixin, ExpressionMixin):
     lookup_name = 'day'
-
-
-# class PositionMixin:
-#     def __init__(self, field: str):
-#         self.field_name = field
-
-#     def get_field_cached_values(self):
-#         return self.model._cached_result.get(self.field_name)
-
-
-# class Last(PositionMixin, ExpressionMixin):
-#     def resolve(self):
-#         cached_values = self.get_field_cached_values()
-#         return cached_values[-1]
-
-
-# class First(PositionMixin, ExpressionMixin):
-#     def resolve(self):
-#         cached_values = self.get_field_cached_values()
-#         result = cached_values[:1]
-#         if result:
-#             return result[-1]
-#         return None
-
-
-# class Latest:
-#     pass
-
-
-# class Earliest:
-#     pass
-
-
-# class Min(PositionMixin, ExpressionMixin):
-#     def resolve(self):
-#         cached_values = self.get_field_cached_values()
-#         return min(cached_values)
-
-
-# class Max(Min):
-#     def resolve(self):
-#         cached_values = self.get_field_cached_values()
-#         return max(cached_values)
-
-
-# class F(ExpressionMixin):
-#     def __init__(self, value):
-#         self.field = super().get_field_object()
-#         self.value = value
-
-#     def __add__(self, value):
-#         pass

@@ -1,7 +1,3 @@
-"""
-Default Zineb settings
-"""
-
 import os
 import logging
 
@@ -51,7 +47,7 @@ LOG_LEVEL = logging.DEBUG
 
 MIDDLEWARES = [
     # 'zineb.middlewares.referer.Referer',
-    'zineb.middlewares.history.History',
+    # 'zineb.middlewares.history.History',
     # 'zineb.middlewares.statistics.GeneralStatistics'
     # 'zineb.middlewares.wireframe.WireFrame',
 ]
@@ -119,27 +115,27 @@ MEDIA_FOLDER = None
 # that is downloaded from the internet or files
 # that were created with the model
 
-STORAGE = 'zineb.storages.core.LocalStorage'
+# STORAGE = 'zineb.storages.core.LocalStorage'
 
-STORAGES = []
+# STORAGES = []
 
 
 # Default date formats used for resolving
 # DateField and AgeField values
 
 DEFAULT_DATE_FORMATS = (
-    '%Y-%M-%d',
-    '%Y.%M.%d',
-    '%Y/%M/%d',
-    '%y-%M-%d',
-    '%y.%M.%d',
-    '%y/%M/%d',
-    '%d-%M-%Y',
-    '%d/%M/%Y',
-    '%d.%M.%Y',
-    '%d-%M-%y',
-    '%d/%M/%y',
-    '%d.%M.%y',
+    '%Y-%m-%d',
+    '%Y.%m.%d',
+    '%Y/%m/%d',
+    '%y-%m-%d',
+    '%y.%m.%d',
+    '%y/%m/%d',
+    '%d-%m-%Y',
+    '%d/%m/%Y',
+    '%d.%m.%Y',
+    '%d-%m-%y',
+    '%d/%m/%y',
+    '%d.%m.%y',
     '%Y %b %d',
     '%Y %b, %d',
     '%y %b %d',
@@ -148,6 +144,8 @@ DEFAULT_DATE_FORMATS = (
     '%d %b, %Y',
     '%d %b %y',
     '%d %b, %y',
+    '%b %d, %Y',
+    '%b %d, %y'
 )
 
 

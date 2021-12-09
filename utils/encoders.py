@@ -8,7 +8,7 @@ import six
 from zineb.utils.formatting import LazyFormat
 
 
-class DefaultJsonEcoder(JSONEncoder):
+class DefaultJsonEncoder(JSONEncoder):
     """
     An encoder specially created to encode datetime
     objects or other specific Python representations
@@ -19,14 +19,17 @@ class DefaultJsonEcoder(JSONEncoder):
 
         if isinstance(obj, datetime.datetime):
             representation = obj.isoformat()
-            # if representation.endswith('+00:00'):
-            #     representation = representation[:-6] + 'Z'
-            # return representation
+            if representation.endswith('+00:00'):
+                representation = representation[:-6] + 'Z'
+            return representation
 
         if isinstance(obj, datetime.time):
             if datetime.timezone and datetime.timezone.is_aware(obj):
                 raise ValueError('Cannot represent timezon-aware times.')
             return obj.isoformat()
+
+        if isinstance(obj, datetime.date):
+            return str(obj)
 
         if isinstance(obj, datetime.timedelta):
             return str(obj.total_seconds())

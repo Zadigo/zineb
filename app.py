@@ -6,96 +6,16 @@ from io import StringIO
 from typing import Iterator, Union
 
 from bs4 import BeautifulSoup
-from pydispatch import dispatcher
 
 # from xml.etree import ElementTree
-from zineb import global_logger
+from zineb import global_logger, signals
 # from zineb.http.pipelines import CallBack
 from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
-from zineb.signals import signal
 from zineb.settings import settings as global_settings
+from zineb.utils.formatting import LazyFormat
 
-# class Options:
-#     spider_options = defaultdict(set)
-
-#     def __init__(self, **kwargs):
-#         self.errors = []
-
-#     @staticmethod
-#     def _check_value_against(value: Any):
-#         def checker(constraint, message: str):
-#             if not isinstance(value, constraint):
-#                 raise ValueError(message)
-#         return checker
-
-#     def _checks(self):
-#         return [
-#             ('domains', self._check_domains),
-#             ('base_url', self._check_value_against),
-#             ('verbose_name', self._check_value_against),
-#             ('sorting', self._check_sorting),
-#             ('limit_request_to', self._check_value_against)
-#         ]
-
-#     def _precheck_options(self, options: dict):
-#         allowed_options = ['domains', 'base_url', 'verbose_name', 'sorting', 'limit_requests_to']
-#         for key, value in options.items():
-#             if key not in allowed_options:
-#                 self.errors.append(key)
-#             else:
-#                 # if key == 'domains':
-#                 #     self._check_domains(value)
-                
-#                 # if key == 'base_url':
-#                 #     if not value.startswith('http') or not value.startswith('https'):
-#                 #         raise ValueError('Base url should start with http:// or https://')
-
-#                 # if key == 'verbose_name':
-#                 #     if not isinstance(value, str):
-#                 #         raise ValueError('Base url should be a string')
-
-#                 # if key == 'sorting':
-#                 #     self._check_sorting(value)
-
-#                 # if key == 'limit_requests_to':
-#                 #     self
-
-#                 for check in self._checks():
-#                     name, func = check
-#                     if name == key:
-#                         if func.__name__ == '_check_value_against':
-#                             checker = func(value)
-#                             checker()
-                
-#                 self.spider_options.setdefault(key, value)
-
-#         if self.errors:
-#             raise KeyError((f"{self.__class__.__name__} received "
-#             f"invalid options: {', '.join(self.errors)}"))
-
-#     def _check_domains(self, domains):
-#         if not isinstance(domains, (list, tuple)):
-#             raise TypeError('Domains should be either a tuple or an array')
-
-#         for url in domains:
-#             if url.startswith('http') or url.startswith('https'):
-#                 raise ValueError('Domain should not start with http:// or http:s//')
-
-#     def _check_sorting(self, values):
-#         self._check_value_against(values, (list, tuple),'Sorting should be a list or a tuple')
-#         for value in values:
-#             self._check_value_against(value, str, 'Sorting parameter should be a string')
-        
-#     def _check_url_domain(self, url: str) -> bool:
-#         restricted_domains = self.spider_options.get('domains')
-#         return url in restricted_domains
-
-#     def get(self, key: str):
-#         return self.spider_options[key]
-
-#     def setdefault(self, key: str, value: str):
-#         return self.spider_options.setdefault(key, value)
+# from pydispatch import dispatcher
 
 
 
@@ -167,7 +87,8 @@ class Spider(metaclass=BaseSpider):
         # Tell all middlewares and signals registered
         # to receive Any that the Spider is ready
         # and fully loaded
-        signal.send(dispatcher.Any, self, tag='Pre.Start')
+        # TODO:
+        # signal.send(dispatcher.Any, self, tag='Pre.Start')
 
         self._cached_aggregated_results = None
         self._cached_aggregated_results = self._resolve_requests(debug=kwargs.get('debug', False))
@@ -223,7 +144,8 @@ class Spider(metaclass=BaseSpider):
                     # if return_value is not None:
                     #     return_values_container.append(return_value)
 
-                signal.send(dispatcher.Any, self, tag='Post.Initial.Requests', urls=self._prepared_requests)
+                # TODO:
+                # signal.send(dispatcher.Any, self, tag='Post.Initial.Requests', urls=self._prepared_requests)
                 # return self._resolve_return_containers(return_values_container)
             else:
                 global_logger.logger.warn(f'You are using {self.__class__.__name__} in DEBUG mode')
@@ -284,29 +206,23 @@ class FileCrawler:
     def __init__(self):
         self.buffers = []
 
-        start_files = [] 
-        if isinstance(self.start_files, Iterator):
-            # This is for collect_files or any
-            # other kind of generator/iterator
-            # that facilitates file collection
-            start_files = self.start_files = list(self.start_files)
-            if self.root_dir is not None:
-                warnings.warn('Skipping root dir attribute.')
-                self.root_dir = None
-        else:
-            start_files = self.start_files
+        start_files = list(self.start_files)
 
-        if self.root_dir is not None:
-            def full_path(path):
-                return os.path.join(global_settings.PROJECT_PATH, self.root_dir, path)
+        # If the root_dir is not set, then
+        # default to the default 'media' folder
+        if self.root_dir is None:
+            self.root_dir = 'media'
 
-            start_files = list(map(full_path, self.start_files))
-            for start_file in start_files:
-                if not self._check_path(start_file):
-                    raise TypeError(f"{start_file} is not a valid file.")
+        def create_full_path(path):
+            result = os.path.join(global_settings.PROJECT_PATH, self.root_dir, path)
 
-        # Search for the files in the current
-        # actual directory.
+            if not os.path.isfile(result):
+                raise ValueError(LazyFormat('Path does not point to a valid HTML file. Got {path}', path=path))
+            return result
+
+        start_files = list(map(create_full_path, self.start_files))
+
+        # Open each files
         for file in start_files:
             opened_file = open(file, mode='r', encoding='utf-8')
             buffer = StringIO(opened_file.read())
@@ -314,7 +230,9 @@ class FileCrawler:
             opened_file.close()
 
         for path, buffer in self.buffers:
-            self.start(BeautifulSoup(buffer, 'html.parser'), filepath=path)
+            filename = os.path.basename(path)
+            filename, _ = filename.split('.')
+            self.start(BeautifulSoup(buffer, 'html.parser'), filename=filename, filepath=path)
 
     def __del__(self):
         for _, buffer in self.buffers:

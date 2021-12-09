@@ -1,7 +1,7 @@
 import re
 from urllib.parse import urlparse
 
-from zineb.checks.core import checks_registry
+from zineb.checks.core import checks_registry, register
 
 E001 = (
     "This domain is not a valid form : {domain}. A domain should look "
@@ -57,6 +57,7 @@ def check_retry_http_codes(project_settings):
     return errors
 
 
+@register(tag='user_agents')
 def check_user_agent(project_settings):
     errors = []
     user_agents = project_settings.get('USER_AGENTS')

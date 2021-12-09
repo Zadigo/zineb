@@ -1,30 +1,35 @@
-# from zineb.models.datastructure import DataContainers
-
-# container = DataContainers.as_container('name', 'age')
-
-# container.update('name', 'Kendall')
-
-# container.update('name', 'Kylie')
-# container.update('age', 22)
-
-# container.update('age', 26)
-
-# print(container.values)
-
-from zineb.management import execute_command_inline
-import sys
-import os
-
-os.environ.setdefault('ZINEB_SPIDER_PROJECT', 'tests.testproject.settings')
-
+# from zineb.management import execute_command_inline
+# import sys
+# import os
+# os.environ.setdefault('ZINEB_SPIDER_PROJECT', 'tests.testproject.settings')
 # execute_command_inline([os.path.abspath(__file__), 'createspider', 'Temptation'])
-execute_command_inline(sys.argv)
+# execute_command_inline(sys.argv)
 
 # from argparse import ArgumentParser
-
 # parser = ArgumentParser()
 # parser.add_argument('command')
 # parser.add_argument('project')
 # parser.add_argument('--settings')
 # namespace = parser.parse_args()
 # print(namespace)
+
+
+
+# from models.functions import Add, ExtractDay, ExtractYear, Substract
+# from zineb.models import fields
+# from zineb.models.datastructure import Model
+# from zineb.models.functions import When
+
+# class TestModel(Model):
+#     age = fields.CharField()
+
+# model = TestModel()
+
+# print(model)
+
+# from zineb.utils._datastructures import SmartDict
+
+
+# s = SmartDict('name', 'surname')
+# s.update('name', 'Kendall')
+# s.as_csv()

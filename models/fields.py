@@ -13,6 +13,7 @@ from zineb.models import validators as model_validators
 from zineb.settings import settings
 from zineb.utils.characters import deep_clean
 from zineb.utils.conversion import convert_to_type, detect_object_in_string
+from zineb.utils.encoders import DefaultJsonEncoder
 from zineb.utils.formatting import LazyFormat
 from zineb.utils.images import download_image_from_url
 
@@ -26,9 +27,7 @@ class Empty:
 
 
 class Field:
-    """
-    This is the base class for all field classes
-    """
+    """Base class for all fields """
 
     name = None
     _cached_result = None
@@ -53,9 +52,9 @@ class Field:
 
         # Be careful here, the problem is each
         # time the field is used, a validator
-        # is added for each new value added which
+        # is added for each new value which
         # creates an array containing the same
-        # validator
+        # validators
         if self.max_length is not None:
             self._validators.add(model_validators.MaxLengthValidator(self.max_length))
 
@@ -197,9 +196,8 @@ class Field:
             return self._run_validation(value)
 
         if not isinstance(value, (str, int, float)):
-            raise ValueError(
-                LazyFormat('{value} should be a string, an interger or a float.', value=value)
-            )
+            raise ValueError(LazyFormat('{value} should be a string, '
+            'an integer or a float.', value=value))
         
         # To make things easier, we'll just
         # be dealing with a string even though
@@ -298,12 +296,14 @@ class ImageField(UrlField):
 
         self.download = download
         self.as_thumbnail = as_thumnail
-        self.image_data = None
-        self.metadata = {}
+        # self.image_data = None
+        # self.metadata = {}
         self.download_to = download_to
 
     def resolve(self, url):
         super().resolve(url)
+        
+        
 
         if self.download:
             download_image_from_url(
@@ -337,12 +337,12 @@ class IntegerField(Field):
         if max_value is not None:
             self._validators.add(model_validators.MaxLengthValidator(max_value))
 
-    def resolve(self, value: Any):
+    def resolve(self, value):
         super().resolve(value, convert=True)
 
 
 class DecimalField(IntegerField):
-    name = 'float'
+    name = 'decimal'
     _dtype = float
 
 
@@ -420,29 +420,25 @@ class AgeField(DateFieldsMixin, Field):
 
 class FunctionField(Field):
     """
-    The Function field takes a field and passes
-    its result to a set of different custom definitions
-    before returning the final value
-
-    Parameters
-    ----------
-    
-        output_field (Field, optional): [description]. Defaults to None.
-        default (Any, optional): [description]. Defaults to None.
-        validators (Validators, optional): [description]. Defaults to [].
+    Field that resolves a value by passing it through
+    different custom methods
     """
     name = 'function'
 
     def __init__(self, *methods: Callable[[Any], Any], output_field: Field = None, 
-                 default: Any = None, validators = []):
+                 default: Any = None, validators: list = []):
         super().__init__(default=default, validators=validators)
-        self.filtered_methods = []
+
+        if not methods:
+            raise ValueError('FunctionField expects at least on method.')
+
+        self.methods = []
         self.output_field = output_field
 
         if output_field is not None:
             if not isinstance(output_field, Field):
                 raise TypeError(("The output field should be one of "
-                        "zineb.models.fields types e.g. CharField and should be "
+                        "zineb.models.fields types and should be "
                         "instanciated e.g. FunctionField(output_field=CharField())"))
         else:
             self.output_field = CharField()
@@ -451,56 +447,64 @@ class FunctionField(Field):
         for method in methods:
             if not callable(method):
                 incorrect_elements.append(method)
-            self.filtered_methods.append(method)
+            self.methods.append(method)
 
         if incorrect_elements:
-            raise TypeError((f"You should provide a list of a callables. "
-                f"Instead got: {incorrect_elements}"))
+            raise TypeError(LazyFormat('You should provide a list of '
+            'callables. Got: {incorrect_elements}', incorrect_elements=incorrect_elements))
 
     def resolve(self, value):
-        self._cached_result = super().resolve(value, convert=True)
+        super().resolve(value, convert=True)
 
-        new_cached_result = None
-        if self.filtered_methods:
-            for method in self.filtered_methods:
-                if new_cached_result is None:
-                    new_cached_result = method(self._cached_result)
-                else:
-                    new_cached_result = method(new_cached_result)
+        new_result = None
+        for method in self.methods:
+            if new_result is None:
+                new_result = method(self._cached_result)
+            else:
+                new_result = method(new_result)
 
-            self.output_field.resolve(self._cached_result)
-            self._cached_result = self.output_field._cached_result
+        self.output_field._simple_resolve(new_result, convert=True)
+        self._cached_result = self.output_field._cached_result
 
 
-class ListField(Field):
+class MappingFieldMixin:
+    def resolve(self, value):
+        if isinstance(value, str):
+            return detect_object_in_string(super().resolve(value))
+        else:
+            return value
+
+
+class ListField(MappingFieldMixin, Field):
     name = 'list'
-    _dytpe = list
+    _dtype = list
 
     def __init__(self, default: Any = None, 
                  validators = []):
         super().__init__(default=default, validators=validators)
 
     def resolve(self, value):
-        if isinstance(value, str):
-            value = detect_object_in_string(value)
-
-        self._cached_result = self._to_python_object(value)
+        result = super().resolve(value)
+        self._cached_result = self._to_python_object(result)
 
 
-class JsonField(Field):
-    def __init__(self, validators=[]):
+class JsonField(MappingFieldMixin, Field):
+    name = 'json'
+    _dtype = dict
+
+    def __init__(self, validators: list=[]):
         super().__init__(validators=validators)
 
     def resolve(self, value):
-        result = None
-
-        if isinstance(value, str):
-            result = self._detect_object_in_string(value)
+        result = super().resolve(value)
 
         if not isinstance(result, dict):
-            raise ValueError(f"JsonField should receive a dict as value.")
+            raise ValueError(LazyFormat("{class_name} should receive "
+            "a dict as value.", class_name=self.__class__.__name__))
 
-        self._cached_result = json.dumps(result)
+        self._cached_result = detect_object_in_string(
+            json.dumps(result, cls=DefaultJsonEncoder)
+        )
 
 
 class CommaSeperatedField(Field):
@@ -509,7 +513,7 @@ class CommaSeperatedField(Field):
     def __init__(self, max_length: int = None):
         super().__init__(max_length=max_length)
 
-    def resolve(self, values: Union[List[Any]]):
+    def resolve(self, values):
         if isinstance(values, str):
             values = detect_object_in_string(values)
 
@@ -582,9 +586,11 @@ class BooleanField(Field):
                 raise ValueError('BooleanField accepts booleans as value.')
             self._cached_result = result
 
+
 class Value:
     """
-    A simple container 
+    A simple field that can be used to represent a value
+    extracted frome the internet
 
     Parameters
     ----------

@@ -1,21 +1,24 @@
 import os
 import unittest
 
-from zineb.settings import Settings
 from zineb.checks.core import checks_registry
 from zineb.exceptions import ImproperlyConfiguredError
+from zineb.settings import settings
+
 
 os.environ.setdefault('ZINEB_SPIDER_PROJECT', 'zineb.tests.testproject.settings')
 
+
 # Reload the settings file in order to
-# load the user project settings
-settings = Settings()
+# load the user project settings from the
+# global variable above
+settings = settings()
+
 
 class TestApplicationChecks(unittest.TestCase):
-    def setUp(self):
-        checks_registry._default_settings = settings
-        # checks_registry.run()
-
+    def test_has_checks(self):
+        self.assertGreater(len(checks_registry._checks), 0)
+        
     @unittest.expectedFailure
     def test_spiders_is_not_a_list(self):
         checks_registry._default_settings['SPIDERS'] = None
@@ -28,7 +31,7 @@ class TestApplicationChecks(unittest.TestCase):
         checks_registry._default_settings['MIDDLEWARES'] = 'Some middleware'
         self.assertRaises(ValueError, checks_registry.run)
 
-    def test_user_agetns_is_not_a_list(self):
+    def test_user_agents_is_not_a_list(self):
         checks_registry._default_settings['USER_AGENTS'] = 'User agent'
         self.assertRaises(ValueError, checks_registry.run)
 

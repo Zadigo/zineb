@@ -1,0 +1,7 @@
+version: '3'
+
+services:
+    spider:
+        build: .
+        ports:
+            - 80:80

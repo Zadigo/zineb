@@ -1,6 +1,7 @@
+from datetime import timezone
 import re
 
-from zineb.checks.core import checks_registry
+from zineb.checks.core import checks_registry, register
 
 W001 = Warning(
     "You do not have zineb.middlewares in your settings"
@@ -14,6 +15,10 @@ W002 = Warning(
 W003 = Warning(
     "Retries should not exceed"
     # id='security.W003'
+)
+
+W004 = Warning(
+    'Timezone is not implemented in your project'
 )
 
 
@@ -34,6 +39,8 @@ E005 = ('DEFAULT_REQUEST_HEADERS should be a dictionnary')
 E006 = ('IP address in PROXIES is not valid. Got {proxy}.')
 
 E007 = ('MEDIA_FOLDER should either be None or a string representing a relative or absolute path')
+
+E008 = ('TIME_ZONE should be a string. Got {timezone}')
 
 
 @checks_registry.register(tag='middlewares')
@@ -106,8 +113,17 @@ def check_proxies_valid(project_settings):
     return errors
 
 
-@checks_registry.register(tag='media_foler')
+@checks_registry.register(tag='media_folder')
 def check_media_folder(project_settings):
     media_folder = project_settings.MEDIA_FOLDER
     if media_folder is not None and not isinstance(media_folder, str):
         return [E007]
+    
+
+@register(tag='timezone')
+def check_test_timzone(settings):
+    if settings.TIME_ZONE is None:
+        return []
+
+    if not isinstance(settings.TIME_ZONE, str):
+        return [E008.format(timezone=settings.TIME_ZONE)]

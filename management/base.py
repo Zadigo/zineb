@@ -3,6 +3,7 @@ from argparse import ArgumentParser, Namespace
 from collections import OrderedDict
 from typing import Any
 
+
 class RequiresProjectError(Exception):
     def __init__(self):
         super().__init__('Project scope is required for this command.')
@@ -83,6 +84,10 @@ class BaseCommand:
         media_folder = getattr(settings, 'MEDIA_FOLDER')
         if media_folder is None and project_path is not None:
             setattr(settings, 'MEDIA_FOLDER', os.path.join(project_path, 'media'))
+
+        if self.requires_system_checks:
+            pass
+        
         return project_name, settings
 
     def add_arguments(self, parser: ArgumentParser):
@@ -90,11 +95,6 @@ class BaseCommand:
         Adds additional arguments in addition with
         the ones that were already implemented above. Each
         subclass can implement additional arguments
-
-        Parameters
-        ----------
-
-            parser (ArgumentParser): the ArgumentParser instance
         """
         pass
 

@@ -12,7 +12,7 @@ class Command(ProjectCommand):
         parser.add_argument('--settings', help='A settings module to use e.g. myproject.settings', action='store_true')
 
     def execute(self, namespace):
-        project_name, settings = self.preconfigure_project()
+        project_name, settings = self.preconfigure_project()        
         checks_registry.run()
 
         # The first call of the logger does not

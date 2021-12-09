@@ -12,18 +12,18 @@
 # print(d.date())
 
 
-from zineb.models.constraints import UniqueConstraint
-from zineb.models.expressions import ExtractYear
-from zineb.models.datastructure import Model
-from zineb.models import fields
-from zineb.models.expressions import Add
+# from functools import cached_property, partial
 
-class TestModel(Model):
-    year = fields.DateField(default='*')
+# from bs4 import BeautifulSoup
+# from zineb.extractors.base import ImageExtractor
+# from zineb.models.fields import ImageField
+# from zineb.utils.processors import UrlProcessor
+# from zineb.utils.urls import replace_urls_suffix
 
-    class Meta:
-        constraints = [
-            UniqueConstraint('name')
-        ]
+# e = ImageExtractor(url_must_contain='130x170', replace_suffix=True, processors=[UrlProcessor(replace_urls_suffix)])
 
-model = TestModel()
+# with open('tests/html/images.html') as f:
+#     s = BeautifulSoup(f, 'html.parser')
+#     e.resolve()
+
+# print(e[0].attrs)
