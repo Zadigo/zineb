@@ -56,7 +56,7 @@ model_registry = ModelRegistry()
 
 class FieldMixin:
     parents = []
-    forward_fields_map = {}
+    # forward_fields_map = {}
     cached_fields = OrderedDict()
     
     @cached_property
@@ -90,7 +90,8 @@ class FieldMixin:
 class ModelOptions(FieldMixin):
     """
     A container that stores the options
-    of a given model Meta
+    of a given model including both the 
+    fields and the Meta options
     """
     authorized_options = ['ordering', 'label', 'template_model']
 
@@ -195,10 +196,10 @@ class Base(type):
                     # subclass version of the field
                     if field_obj not in declared_fields:
                         declared_fields.add((key, field_obj))
-                    # Create the map that will allow use to go
-                    # the field on the child model to those present
-                    # on the superclass ones
-                    meta.forward_fields_map.update({key: field_obj})
+                    # Create the map that will allow us to register
+                    # and use ForeignKey type fields in forward and
+                    # backward relationships
+                    # meta.forward_fields_map.update({key: field_obj})
                 meta.parents.append(parent)
 
         meta.model_name = name
@@ -226,8 +227,9 @@ class Base(type):
                 f"option. Valid options are: {', '.join(meta.authorized_options)}")
             default_options.extend(options)
             meta = meta(default_options)
+            
         attrs['_meta'] = meta
-
+        
         new_class = super_new(cls, name, bases, attrs)
 
         if declared_fields:
@@ -246,7 +248,10 @@ class Base(type):
 
             # That's where is explicitely register
             # models that have declared fields and
-            # that are actually user created models
+            # that are actually user created models -;
+            # this might seem odd to implement this block
+            # but it allows us to do additional things on
+            # on the new model and its meta
             model_registry.add(name, new_class)
             return new_class
 
@@ -254,8 +259,7 @@ class Base(type):
 
 
 class DataStructure(metaclass=Base):
-    def __init__(self, html_document: BeautifulSoup=None, 
-                 response: HTMLResponse=None):
+    def __init__(self, html_document: BeautifulSoup=None, response: HTMLResponse=None):
         self._cached_result = SmartDict.new_instance(*self._meta.field_names)
 
         self.html_document = html_document
