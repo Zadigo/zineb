@@ -518,12 +518,7 @@ class Model(DataStructure):
         if commit:
             if filename is None:
                 filename = f'{secrets.token_hex(nbytes=5)}'
-            # if filename is None:
-            #     filename = f'{secrets.token_hex(nbytes=5)}'
-            # else:
-            #     if not filename.endswith('json'):
-            #         filename = f'{filename}'
-
+                
             # TODO:
             # signal.send(dispatcher.Any, self, tag='Post.Save')
 
