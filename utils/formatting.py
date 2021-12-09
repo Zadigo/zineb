@@ -1,4 +1,4 @@
-from collections import defaultdict
+from typing import List
 
 
 class LazyFormat:
@@ -34,36 +34,26 @@ class LazyFormat:
         return str(self) % value
 
 
-# def remap_to_dict(data: dict):
-#     """
-#     From a dictionnary of values, remap the different
-#     items to create a list of dictionnaries
+def remap_to_dict(data: dict) -> List[dict]:
+    """
+    From a dictionnary of values, remap the different
+    items to create a list of dictionnaries
 
-#     Example
-#     -------
+    Example
+    -------
         
-#         > {'a': [1, 2], 'b': 1} becomes
-#           [{'a': 1}, {'a': 2}, {'b': 1}] 
-
-#     Yields
-#     ------
-
-#         list:  list of dictionnaries
-#     """
-#     base = {}
-#     for key in data.keys():
-#         base.setdefault(key, None)
-
-#     number_of_items = len(data[list(data.keys())[-0]])
-#     container = []
-#     for i in range(number_of_items):
-#         container.append(base)
-
-#     for key, values in data.items():
-#         if isinstance(values, (list, tuple)):
-#             for i, value in enumerate(values, start=0):
-#                 container[i][key] = value
-#     return container
+        {'a': [1, 2], 'b': 1} becomes [{'a': 1}, {'a': 2}, {'b': 1}]
+    """
+    items = []
+    base_keys = list(data.keys())
+    for key in base_keys:
+        container = data[key]
+        for i, item in enumerate(container):
+            try:
+                items[i][key] = item
+            except:
+                items.append({key: item})
+    return items
 
 
 def reverse_remap_to_dict(data: list):

@@ -5,7 +5,6 @@ from urllib import parse
 
 import requests
 from bs4 import BeautifulSoup
-from pydispatch import dispatcher
 from requests.models import Response
 from requests.sessions import Request, Session
 from w3lib.url import (is_url, safe_download_url, safe_url_string, urljoin,
@@ -139,7 +138,6 @@ class BaseRequest:
             # TODO: When using https:// this returns True
             # when this is not even a real URL
             message = (f"The url that was provided is not valid. Got: {url}.")
-
             global_logger.error(message, stack_info=True)
             raise requests.exceptions.InvalidURL(message)
 

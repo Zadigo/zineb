@@ -5,7 +5,9 @@ from zineb.models.fields import Field
 
 
 class InlineModel:
-    def __call__(self, name: str, fields: list = [], model: Type = None):
+    """Shortcut to create a model rapidly"""
+    
+    def __call__(self, name: str, fields: list=[], model: Type=None):
         model = model or Model
         attrs = set()
         for field in fields:

@@ -1,7 +1,7 @@
 import importlib
 import os
 
-from pydispatch import dispatcher
+# from pydispatch import dispatcher
 from zineb.settings import base as initial_project_settings
 from zineb.utils.functionnal import LazyObject
 

@@ -1,16 +1,23 @@
-from collections import defaultdict
-from typing import Any, List
-import copy
-import datetime
+import csv
+import json
+import os
 import secrets
+from collections import defaultdict
+from typing import Any
+
 from zineb.models.fields import Empty
+from zineb.settings import lazy_settings
+from zineb.utils.formatting import LazyFormat, remap_to_dict
 
 
 class SmartDict:
     """
     A container that regroups data under multiple keys by ensuring that
-    when one key is updated, the other keys are too ensuring that all
-    containers a balanced
+    when one key is updated, the other keys are in the same way therefore
+    creating balanced data
+    
+    Example
+    -------
     
         container = SmartDict('name', 'surname')
         
@@ -21,13 +28,16 @@ class SmartDict:
         container.update('surname', 'Jenner')
         {'name': ['Kendall', 'Kylie'], 'surname': [None, 'Jenner']}
     """
+
     current_updated_fields = set()
 
     def __init__(self, *fields):
         self.values = defaultdict(list)
+
         for field in fields:
             self.values[field]
         setattr(self, 'field_names', list(fields))
+
         self._last_created_row = []
 
     def __repr__(self):
@@ -36,17 +46,14 @@ class SmartDict:
     def __str__(self):
         return str(dict(self.as_values()))
 
-    def copy(self):
-        return copy.copy(self.values)
+    @classmethod
+    def new_instance(cls, *names):
+        instance = cls(*names)
+        for name in names:
+            instance.values[name]
+        setattr(instance, 'names', list(names))
+        return instance
 
-    # @classmethod
-    # def as_container(cls, *names):
-    #     instance = cls()
-    #     for name in names:
-    #         instance.values[name]
-    #     setattr(instance, 'names', list(names))
-    #     return instance
-        
     @property
     def _last_id(self) -> int:
         """
@@ -84,6 +91,10 @@ class SmartDict:
         if value == Empty:
             value = None
 
+        if name not in self.field_names:
+            raise ValueError(LazyFormat("Field '{field}' is not present "
+            "on the declared container fields.", field=name))
+
         def row_generator():
             # Generate a new row of values that will be
             # added to the overall data container
@@ -94,6 +105,9 @@ class SmartDict:
                 else:
                     yield (self._next_id, None)
 
+        # When the name is already present
+        # in current_updated_fields, it means
+        # that we creating/updating a new row
         if name in self.current_updated_fields:
             self.current_updated_fields.clear()
             self.current_updated_fields.add(name)
@@ -102,7 +116,7 @@ class SmartDict:
             self._last_created_row = list(row_generator())
 
             # Iterate over each values that were created and with
-            # the index of returned by enumerate, append tuple
+            # the index returned by enumerate, append tuple
             # to their corresponding containers
             for i, field_name in enumerate(self.field_names, start=1):
                 self.get_container(field_name).append(self._last_created_row[i - 1])
@@ -121,13 +135,12 @@ class SmartDict:
 
     def update_multiple(self, attrs: dict):
         for key, value in attrs.items():
-            container = self.get_container(key)
-            container.append((self._next_id, value))
+            self.update(key, value)
 
     def as_values(self):
         """
         Return collected values by removing the index part 
-        in the tuple e.g [(1, ...), ...] becomes [..., ...]
+        in the tuple e.g [(1, ...), ...] becomes [(...), ...]
         """
         container = {}
         for key, values in self.values.items():
@@ -135,63 +148,53 @@ class SmartDict:
             container.update({key: list(values_only)})
         return container
 
+    def as_list(self):
+        """
+        Return a collection of dictionnaries
+        e.g. [{a: 1}, {a: 2}, ...]
+        """
+        return remap_to_dict(self.as_values())
 
-class SimpleMultiDict(dict):
-    """
-    A simple dictionnary that can store multiple values
-    one key as a list.
+    def as_csv(self):
+        """Return scrapped values to be written
+        to a CSV file"""
+        data = self.as_values()
+        columns = list(data.keys())
+        base = [columns]
 
-        SimpleMultiDict({'name': [], 'surname': []})
-    """
-    def __init__(self, *keys):
-        mappings = [(key, []) for key in keys]
-        super().__init__(mappings)
+        last_column = columns[-1]
+        number_of_items = len(data[last_column])
+        # Create the amount of rows that will be 
+        # necessary for a single column
+        canvas = [[] for _ in range(number_of_items)]
 
-    def __repr__(self):
-        return f'{self.__class__.__name__}({super().__repr__()})'
+        for column in data.values():
+            for i, row_value in enumerate(column):
+                canvas[i].append(row_value)
+        base.extend(canvas)
+        return base
 
-    def __getitem__(self, key):
-        try:
-            result = super().__getitem__(key)
-        except KeyError:
-            raise KeyError('Key does not exist')
+    def save(self, commit: bool=True, filename: str=None, extension: str='json', **kwargs):
+        if commit:
+            filename = filename or secrets.token_hex(5)
+            filename = f'{filename}.{extension}'
+            
+            try:
+                # If the MEDIA_FOLDER setting is None still allow
+                # saving the file in the local directory
+                path = os.path.join(lazy_settings.MEDIA_FOLDER, f'{filename}')
+            except:
+                path = filename
+
+            if extension == 'json':
+                data = json.loads(json.dumps(self.as_list()))
+                with open(path, mode='w', encoding='utf-8') as f:
+                    json.dump(data, f, indent=2, sort_keys=True)
+
+            if extension == 'csv':
+                with open(path, mode='w', newline='\n', encoding='utf-8') as f:
+                    writer = csv.writer(f)
+                    writer.writerows(self.as_csv())
         else:
-            return result
-
-    def __setitem__(self, key, value):
-        super().__setitem__(key, [value])
-
-    def items(self):
-        for key in self:
-            yield key, self[key]
-
-    def values(self):
-        for key in self:
-            yield self[key]
-
-    def get_container(self, key) -> List:
-        return self.__getitem__(key)
-
-    def container_exists(self, key):
-        if key in self:
-            return True
-
-    def append(self, key, value):
-        container = self.get_container(key).append(value)
-
-    def update(self, *args, **kwargs):
-        for key, value in kwargs.items():
-            self.get_container(key).append(value)
-
-
-
-
-# c = SimpleMultiDict('name', 'surname')
-# c.update(name='Kendall', surname='Kendall')
-# print(c)
-
-c = SmartDict('name', 'surname')
-c.update('name', 'Kendall')
-c.update('name', 'Kylie')
-c.update('surname', 'Jenner')
-print(c)
+            data = json.loads(json.dumps(self.as_list()))
+            return json.dumps(data, sort_keys=True)
