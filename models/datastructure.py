@@ -509,14 +509,28 @@ class Model(DataStructure):
     """
     _cached_dataframe = None
 
-    def __str__(self) -> str:
+    def __str__(self):
         return str(self._cached_result)
         
     def __repr__(self):
         return f"{self.__class__.__name__}"
 
     def __getitem__(self, field_name: str):
-        return self._cached_result.get(field_name, None)
+        return self._cached_result.get_container(field_name)
+    
+    # def __getattribute__(self, name):
+    #     # When the acceses model.field_name
+    #     # on the model, instead of returning the
+    #     # field instance, we should return the
+    #     # visual representation of the field
+    #     meta = getattr(self, '_meta')
+    #     if meta.has_field(name):
+    #         smart_dict = getattr(self, '_cached_result')
+    #         return smart_dict.get_container(name)
+    #     return super().__getattribute__(name)
+        
+    # def __get__(self, attr):
+    #     print(attr)
 
     # def __setitem__(self, field_name: str, value: Any):
     #     self.add_value(field_name, value)
