@@ -1,6 +1,6 @@
 from zineb.models.datastructure import Model
 from zineb.models import fields
-
+from zineb.models.managers import GoogleSheetManager
 
 def simple_validator(value):
     return value
@@ -54,3 +54,9 @@ class ExampleModel(Model):
 
 class ExampleModel2(Model):
     value = fields.CharField()
+
+
+class ModelWithManager(Model):
+    name = fields.CharField()
+    
+    manager = GoogleSheetManager
