@@ -18,7 +18,7 @@ class Command(ProjectCommand):
         # The first call of the logger does not
         # use the user settings. To correct that
         # we need to re-instantiate it.
-        global_logger(name='Zineb', to_file=True)
+        # global_logger(name='Zineb', to_file=True)
 
         try:
             # Load the spiders module 
