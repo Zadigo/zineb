@@ -4,7 +4,6 @@ import json
 import re
 from typing import Any, Callable, List, Tuple, Union
 
-import pytz
 from bs4.element import Tag as beautiful_soup_tag
 from w3lib import html
 from w3lib.url import canonicalize_url, safe_download_url
@@ -62,8 +61,8 @@ class Field:
             self._validators.add(model_validators.validate_is_not_null)
 
     def _bind(self, field_name, model=None):
-        # Bind the field's name on the model
-        # to the current field instance
+        """Bind the field's name registered 
+        on the model to this field instance"""
         self._meta_attributes.update(field_name=field_name)
         current_model = self._meta_attributes.get('model', None)
         if current_model is None and model is not None:
@@ -347,8 +346,7 @@ class DecimalField(IntegerField):
 
 
 class DateFieldsMixin:
-    def __init__(self, date_format: str=None, 
-                 default: Any=None, tz_info: str=None):
+    def __init__(self, date_format: str=None, default: Any=None):
         super().__init__(default=default)
 
         self.date_parser = datetime.datetime.strptime
@@ -356,12 +354,6 @@ class DateFieldsMixin:
         formats = set(getattr(settings, 'DEFAULT_DATE_FORMATS'))
         formats.add(date_format)
         self.date_formats = formats
-
-        # TODO: Implement
-        if tz_info is None:
-            tz_info_string = getattr(settings, 'TIME_ZONE', pytz.UTC)
-            tz_info = pytz.timezone(tz_info_string)
-        self.tz_info = tz_info
 
     def _to_python_object(self, result: str):
         for date_format in self.date_formats:
@@ -378,17 +370,6 @@ class DateFieldsMixin:
             "date '{d}' on field '{name}'.", d=result, name=self._meta_attributes.get('field_name'))
             raise ValidationError(message)
         return d.date()
-
-    # def _implement_timezone(self):
-    #     TODO: Implement logic for awareness or not
-    #     # Datetime is aware
-    #     if self._cached_result.utcoffset() is not None:
-    #         try:
-    #             return self._cached_result.astimezone(self.tz_info)
-    #         except:
-    #             raise
-    #     else:
-    #         pass
 
 
 class DateField(DateFieldsMixin, Field):
@@ -407,11 +388,11 @@ class AgeField(DateFieldsMixin, Field):
         super().__init__(date_format=date_format, 
                          default=default, tz_info=tz_info)
         self._cached_date = None
-
+        
     def _substract(self) -> int:
         current_date = datetime.datetime.now()
         return current_date.year - self._cached_date.year
-    
+
     def resolve(self, date: str):
         result = super().resolve(date)
         self._cached_date = self._to_python_object(self._cached_result)
@@ -471,8 +452,7 @@ class MappingFieldMixin:
     def resolve(self, value):
         if isinstance(value, str):
             return detect_object_in_string(super().resolve(value))
-        else:
-            return value
+        return value
 
 
 class ListField(MappingFieldMixin, Field):
@@ -513,7 +493,7 @@ class CommaSeperatedField(Field):
     def __init__(self, max_length: int = None):
         super().__init__(max_length=max_length)
 
-    def resolve(self, values):
+    def resolve(self, values: List[Any]):
         if isinstance(values, str):
             values = detect_object_in_string(values)
 
@@ -614,3 +594,4 @@ class Value:
         if name == 'result':
             value = deep_clean(value)
         return super().__setattr__(name, value)
+        

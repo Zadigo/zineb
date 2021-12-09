@@ -10,135 +10,12 @@ from bs4 import BeautifulSoup
 from zineb.exceptions import FieldError, ModelExistsError
 from zineb.http.responses import HTMLResponse
 from zineb.models.fields import Empty, Field
-from zineb.models.functions import (Add, Divide, ExtractDay,
-                                    ExtractMonth, ExtractYear, Math, Multiply,
-                                    Substract, When)
+from zineb.models.functions import (Add, Divide, ExtractDay, ExtractMonth,
+                                    ExtractYear, Math, Multiply, Substract,
+                                    When)
 from zineb.settings import settings
-from zineb.utils.formatting import LazyFormat
 from zineb.utils._datastructures import SmartDict
-
-
-# class DataContainer:
-#     """
-#     A container that regroups all the data that
-#     has been parsed from the internet in one place.
-    
-#     Parameters
-#     ----------
-
-#         - names: list of field names
-#     """
-#     current_updated_fields = set()
-
-#     def __init__(self):
-#         self.values = defaultdict(list)
-#         self._last_created_row = []
-
-#     def __repr__(self):
-#         return self.values
-
-#     def __str__(self):
-#         return str(dict(self.as_values()))
-
-#     @classmethod
-#     def as_container(cls, *names):
-#         instance = cls()
-#         for name in names:
-#             instance.values[name]
-#         setattr(instance, 'names', list(names))
-#         return instance
-        
-#     @property
-#     def _last_id(self) -> int:
-#         """
-#         Returns the last registered ID within
-#         the first container
-
-#         Returns:
-#             [type]: [description]
-#         """
-#         container = self.get_container(self.names[0])
-#         if not container:
-#             return 0
-#         return container[-1][0]
-
-#     def _last_value(self, name: str):
-#         return self.get_container(name)[-1][-1]
-
-#     @property
-#     def _next_id(self):
-#         return self._last_id + 1
-
-#     def get_container(self, name: str):
-#         return self.values[name]
-
-#     def update_last_item(self, name: str, value: Any):
-#         container = self.get_container(name)
-#         if isinstance(value, tuple):
-#             container[-1] = value
-#         else:
-#             # TODO: Check that the id is correct
-#             container[-1] = (self._last_id, value)
-
-#     def update(self, name: str, value: Any):
-#         """
-#         Adds a new value to the containers by tracking the
-#         fields that are being updated. If the name changes,
-#         a new row of value is generated 
-#         """
-#         if value == Empty:
-#             value = None
-
-#         def row_generator():
-#             for _, field_name in enumerate(self.names, start=1):
-#                 if name == field_name:
-#                     yield (self._next_id, value)
-#                 else:
-#                     yield (self._next_id, None)
-
-#         if name in self.current_updated_fields:
-#             self.current_updated_fields.clear()
-#             self.current_updated_fields.add(name)
-#             self._last_created_row = None
-            
-#             self._last_created_row = list(row_generator())
-
-#             for i, field_name in enumerate(self.names, start=1):
-#                 self.get_container(field_name).append(self._last_created_row[i - 1])
-#         else:
-#             self.current_updated_fields.add(name)
-#             if self._last_created_row:
-#                 for i, field_name in enumerate(self.names, start=1):
-#                     if field_name == name:
-#                         value_to_update = list(self._last_created_row[i - 1])
-#                         value_to_update[-1] = value
-#                         self.update_last_item(field_name, tuple(value_to_update))
-#             else:
-#                 self._last_created_row = list(row_generator())
-#                 for i, field_name in enumerate(self.names, start=1):
-#                     self.get_container(field_name).append(self._last_created_row[i - 1])
-
-#     def update_multiple(self, attrs: dict):
-#         for key, value in attrs.items():
-#             self.update(key,value)
-
-#     def as_values(self):
-#         """
-#         Return collected values by removing the index part 
-#         in the tuple e.g [(1, ...), ...] becomes [..., ...]
-#         """
-#         container = {}
-#         for key, values in self.values.items():
-#             values_only = map(lambda x: x[-1], values)
-#             container.update({key: list(values_only)})
-#         return container
-
-#     # def as_list(self):
-#     #     """
-#     #     Return a collection of dictionnaries
-#     #     e.g. [{a: 1}, {a: 2}, ...]
-#     #     """
-#     #     return list(remap_to_dict(self.as_values()))
+from zineb.utils.formatting import LazyFormat
 
 
 class ModelRegistry:
@@ -176,20 +53,23 @@ class ModelRegistry:
 model_registry = ModelRegistry()
 
 
-class FieldDescriptor:
-    """A class that contains and stores
-    all the given fields of a model"""
-
+class FieldMixin:
+    parents = []
+    # forward_fields_map = {}
     cached_fields = OrderedDict()
     
-    def __getitem__(self, name) -> Field:
-        return self.get_field(name)
-
     @cached_property
     def field_names(self):
         return list(self.cached_fields.keys())
 
-    # @lru_cache(maxsize=5)
+    @cached_property
+    def fields_map(self):
+        pass
+    
+    @cached_property
+    def true_fields(self):
+        return list(self.cached_fields.values())
+
     def get_field(self, name) -> Field:
         try:
             return self.cached_fields[name]
@@ -201,19 +81,21 @@ class FieldDescriptor:
         if raise_exception and not result:
             # FIXME: Should implement the field names that are
             # really missing as opposed to the names provided
-            raise FieldError(LazyFormat('Field does not exist: {fields}', fields=', '.join(names)))
+            raise FieldError(LazyFormat('Field does not exist: '
+            '{fields}', fields=', '.join(names)))
         return result
 
 
-class ModelOptions:
+class ModelOptions(FieldMixin):
     """
     A container that stores the options
-    of a given model Meta
+    of a given model including both the 
+    fields and the Meta options
     """
-    authorized_options = ['ordering', 'label']
+    authorized_options = ['ordering', 'label', 'template_model']
 
     def __init__(self, options: Union[List[tuple[str]], dict]):
-        # self.cached_options = OrderedDict(self._add_options(options, only_check=True))
+        self.model_name = None
         self.cached_options = OrderedDict(options)
 
         self.ordering_field_names = set()
@@ -224,9 +106,7 @@ class ModelOptions:
         if self.has_option('ordering'):
             ordering = self.get_option_by_name('ordering')
             for field in ordering:
-                self.ordering_field_names.add(
-                    field.removeprefix('-')
-                )
+                self.ordering_field_names.add(field.removeprefix('-'))
             self.ascending_fields = [
                 field for field in ordering 
                     if not field.startswith('-')
@@ -255,34 +135,26 @@ class ModelOptions:
     def __getitem__(self, name):
         return self.cached_options[name]
 
-    # def _add_options(self, options: dict, only_check: bool=False):
-    #     if isinstance(options, list):
-    #         options = OrderedDict(options)
+    def __repr__(self):
+        return f"{self.__class__.__name__}(model={self.model_name})"
 
-    #     non_authorized_options = []
+    def __getattr__(self, name):
+        if name in self.field_names:
+            try:
+                return self.forward_field_map[name]
+            except:
+                raise ValueError('Forward relationship does not exist')
+        raise AttributeError(LazyFormat('{klass} object has no attribute {attr}', 
+        klass=self.__class__.__name__, attr=name))
 
-    #     def _check_option_authorized(item):
-    #         key, _ = item
-    #         if key.startswith('__'):
-    #             return False
-
-    #         if key in self.authorized_options:
-    #             return True
-
-    #         non_authorized_options.append(key)
-    #         return False
-
-    #     options = list(filter(_check_option_authorized, options.items()))
-    #     if non_authorized_options:
-    #         raise ValueError(LazyFormat(
-    #             "Meta received an illegal option. Valid options are {options}.",
-    #             options=', '.join(self.authorized_options)
-    #         ))
-
-    #     if only_check:
-    #         return options
-
-    #     return self.__call__(options)
+    @property
+    def is_template_model(self):
+        # If the model is a template model,
+        # it means that it can only serve to
+        # add additional fields to a child model.
+        # In that sense, we shouldn't be able to
+        # add values to it or even save.
+        return self.cached_options.get('template_model', False)
 
     def get_option_by_name(self, name):
         return self.cached_options.get(name)
@@ -305,17 +177,36 @@ class Base(type):
                 field_obj._bind(key)
                 declared_fields.add((key, field_obj))
 
-        descriptor = FieldDescriptor()
-        attrs['_fields'] = descriptor
-        if declared_fields:
-            descriptor.cached_fields = OrderedDict(declared_fields)
-            attrs['_fields'] = descriptor
-
-        default_options = [('label', f"models.base.{name}")]
+        default_options = [
+            ('label', f"models.base.{name}")
+        ]
         meta = ModelOptions(default_options)
+
+        # If the model is subclassed, resolve the MRO
+        # to get all the fields from the superclass
+        # [...] also maybe create direct relationship
+        # with the parent model via a ForeignKey
+        for parent in bases:
+            if hasattr(parent, '_meta'):
+                fields = getattr(getattr(parent, '_meta'), 'cached_fields', {})
+                for key, field_obj in fields.items():
+                    # If the field is registered twice (on the
+                    # superclass and on the subclass), use the
+                    # subclass version of the field
+                    if field_obj not in declared_fields:
+                        declared_fields.add((key, field_obj))
+                    # Create the map that will allow us to register
+                    # and use ForeignKey type fields in forward and
+                    # backward relationships
+                    # meta.forward_fields_map.update({key: field_obj})
+                meta.parents.append(parent)
+
+        meta.model_name = name
+        if declared_fields:
+            meta.cached_fields = OrderedDict(declared_fields)
+
         if 'Meta' in attrs:
             meta_dict = attrs.pop('Meta').__dict__
-            # authorized_options = ['ordering', 'label']
             non_authorized_options = []
 
             def check_option(item):
@@ -333,26 +224,42 @@ class Base(type):
             if non_authorized_options:
                 raise ValueError("Meta received an illegal "
                 f"option. Valid options are: {', '.join(meta.authorized_options)}")
-            # meta = meta._add_options(meta_dict)
             default_options.extend(options)
             meta = meta(default_options)
+            
         attrs['_meta'] = meta
+        
+        new_class = super_new(cls, name, bases, attrs)
 
         if declared_fields:
+            # is_template_model = False
+            # if meta.has_option('template_model'):
+            #     is_template_model = meta.get_option_by_name('template_model')
+            # # The parent model is just a template,
+            # # we'll not create any ForeignKey
+            # # relationship to the parent
+            # if not is_template_model:
+            #     relationships = [
+            #         (f"{parent}_rel", ForeignKey(new_class, parent)) 
+            #             for parent in new_class._meta.parents
+            #     ]
+            #     meta.cached_fields.update(relationship for relationship in relationships)
+
             # That's where is explicitely register
             # models that have declared fields and
-            # that are actually user created models
-            new_class = super_new(cls, name, bases, attrs)
+            # that are actually user created models -;
+            # this might seem odd to implement this block
+            # but it allows us to do additional things on
+            # on the new model and its meta
             model_registry.add(name, new_class)
             return new_class
 
-        return super_new(cls, name, bases, attrs)
+        return new_class
 
 
 class DataStructure(metaclass=Base):
-    def __init__(self, html_document: BeautifulSoup=None, 
-                 response: HTMLResponse=None):
-        self._cached_result = SmartDict.new_instance(*self._fields.field_names)
+    def __init__(self, html_document: BeautifulSoup=None, response: HTMLResponse=None):
+        self._cached_result = SmartDict.new_instance(*self._meta.field_names)
 
         self.html_document = html_document
         self.response = response
@@ -369,7 +276,7 @@ class DataStructure(metaclass=Base):
 
             - field_name (str): the field name to get
         """
-        return self._fields.get_field(field_name)
+        return self._meta.get_field(field_name)
 
     def _choose_parser(self):
         if self.html_document is not None:
@@ -528,61 +435,6 @@ class DataStructure(metaclass=Base):
         
         self._cached_result.update(name, resolved_value)
 
-    # def add_related_value(self, name: str, related_field: str, value: Any):
-    #     """
-    #     Add a value to a field based on the last
-    #     result of another field.
-
-    #     The related fields should be of the same data type
-    #     or this might raise errors.
-
-    #     Using both add_value and add_related_value simultanuously
-    #     can create an error because add_related_value adds a value
-    #     to the first field and then uses that result to add a value
-    #     to its own column.
-
-    #     Parameters
-    #     ----------
-
-    #         - name (str): name of the field to which to add the value
-    #         - related_field (str): name of the base field from which to derive a result
-    #         - value (Any): the value to add to the original field
-    #     """
-    #     if name == related_field:
-    #         raise ValueError('Name and related name should not be the same.')
-
-    #     self.add_value(name, value)
-
-    #     related_field_object = self._get_field_by_name(related_field)
-    #     related_field_object.resolve(self._cached_result._last_value(name))
-    #     self._cached_result.update_last_item(related_field, related_field_object._cached_result)
-    
-    # TODO: Allow a custom resolution of the fields
-    # outside of pandas and to allow quicker execution
-    # of the app -; allow pandas resolution as secondary
-    # def resolve_fields(self):
-    #     """
-    #     Implement the data into a Pandas
-    #     Dataframe and return the result
-    #     """
-    #     import pandas
-
-    #     df = pandas.DataFrame(
-    #         self._cached_result.as_values(),
-    #         columns=self._fields.field_names,
-    #     )
-
-    #     if self._meta.has_option('ordering'):
-    #         try:
-    #             df = df.sort_values(
-    #                 by=list(self._meta.ordering_field_names),
-    #                 ascending=self._meta.ordering_booleans
-    #             )
-    #         except KeyError:
-    #             raise KeyError(("Looks like one of the ordering fields is not "
-    #             "part of your model. Please check your ordering options."))
-    #     return df
-
     def resolve_fields(self):
         return self._cached_result.as_list()
 
@@ -610,7 +462,7 @@ class Model(DataStructure):
     """
     _cached_dataframe = None
 
-    def __str__(self) -> str:
+    def __str__(self):
         return str(self._cached_result)
         
     def __repr__(self):
@@ -618,6 +470,20 @@ class Model(DataStructure):
 
     def __getitem__(self, field_name: str):
         return self._cached_result.get_container(field_name)
+    
+    # def __getattribute__(self, name):
+    #     # When the acceses model.field_name
+    #     # on the model, instead of returning the
+    #     # field instance, we should return the
+    #     # visual representation of the field
+    #     meta = getattr(self, '_meta')
+    #     if meta.has_field(name):
+    #         smart_dict = getattr(self, '_cached_result')
+    #         return smart_dict.get_container(name)
+    #     return super().__getattribute__(name)
+        
+    # def __get__(self, attr):
+    #     print(attr)
 
     def full_clean(self, dataframe, **kwargs):
         self._cached_dataframe = dataframe
@@ -656,12 +522,7 @@ class Model(DataStructure):
         if commit:
             if filename is None:
                 filename = f'{secrets.token_hex(nbytes=5)}'
-            # if filename is None:
-            #     filename = f'{secrets.token_hex(nbytes=5)}'
-            # else:
-            #     if not filename.endswith('json'):
-            #         filename = f'{filename}'
-
+                
             # TODO:
             # signal.send(dispatcher.Any, self, tag='Post.Save')
 
