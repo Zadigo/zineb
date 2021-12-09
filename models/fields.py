@@ -471,8 +471,7 @@ class MappingFieldMixin:
     def resolve(self, value):
         if isinstance(value, str):
             return detect_object_in_string(super().resolve(value))
-        else:
-            return value
+        return value
 
 
 class ListField(MappingFieldMixin, Field):
