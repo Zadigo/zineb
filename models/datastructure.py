@@ -13,7 +13,6 @@ from zineb.models.fields import Empty, Field
 from zineb.models.functions import (Add, Divide, ExtractDay, ExtractMonth,
                                     ExtractYear, Math, Multiply, Substract,
                                     When)
-from zineb.models.related import ForeignKey
 from zineb.settings import settings
 from zineb.utils._datastructures import SmartDict
 from zineb.utils.formatting import LazyFormat
