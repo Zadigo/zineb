@@ -27,9 +27,9 @@
 
 # print(model)
 
-from zineb.utils._datastructures import SmartDict
+# from zineb.utils._datastructures import SmartDict
 
 
-s = SmartDict('name', 'surname')
-s.update('name', 'Kendall')
-s.as_csv()
+# s = SmartDict('name', 'surname')
+# s.update('name', 'Kendall')
+# s.as_csv()

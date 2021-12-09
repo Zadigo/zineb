@@ -27,9 +27,7 @@ class Empty:
 
 
 class Field:
-    """
-    This is the base class for all field classes
-    """
+    """Base class for all fields """
 
     name = None
     _cached_result = None
@@ -54,9 +52,9 @@ class Field:
 
         # Be careful here, the problem is each
         # time the field is used, a validator
-        # is added for each new value added which
+        # is added for each new value which
         # creates an array containing the same
-        # validator
+        # validators
         if self.max_length is not None:
             self._validators.add(model_validators.MaxLengthValidator(self.max_length))
 
@@ -304,6 +302,8 @@ class ImageField(UrlField):
 
     def resolve(self, url):
         super().resolve(url)
+        
+        
 
         if self.download:
             download_image_from_url(
@@ -513,7 +513,7 @@ class CommaSeperatedField(Field):
     def __init__(self, max_length: int = None):
         super().__init__(max_length=max_length)
 
-    def resolve(self, values: Union[List[Any]]):
+    def resolve(self, values):
         if isinstance(values, str):
             values = detect_object_in_string(values)
 
@@ -589,7 +589,8 @@ class BooleanField(Field):
 
 class Value:
     """
-    A simple container 
+    A simple field that can be used to represent a value
+    extracted frome the internet
 
     Parameters
     ----------
