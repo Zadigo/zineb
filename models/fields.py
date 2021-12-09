@@ -383,10 +383,8 @@ class AgeField(DateFieldsMixin, Field):
     name = 'age'
     _dtype = int
 
-    def __init__(self, date_format: str=None,
-                 default: Any = None, tz_info: str=None):
-        super().__init__(date_format=date_format, 
-                         default=default, tz_info=tz_info)
+    def __init__(self, date_format: str=None, default: Any = None):
+        super().__init__(date_format=date_format, default=default)
         self._cached_date = None
         
     def _substract(self) -> int:
