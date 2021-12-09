@@ -154,16 +154,22 @@ DEFAULT_DATE_FORMATS = (
 TIME_ZONE = 'America/Chicago'
 
 
-# Default settings to use for running spiders
-# that uses the server loop
+# Default settings to use for the servers.
+# It includes a cron parameter for indicating when
+# to run the spiders that uses the server loop.
 
-SERVER_CRON = {
-    'minutes': 45
-}
-
-# This setting allows you to either execute
-# a single spider or all the spiders present
+# 'execute_spiders_on_reload' allows you to either 
+# execute a single spider or all the spiders present
 # in your application. By default, if empty,
 # all spiders are run by default
 
-SERVER_EXECUTE_SPIDERS_ON_RELOAD = []
+SERVER = {
+    'default': 'utils.servers.DefaultServer',
+    'options': {
+        'cron': {
+            'minutes': 45
+        },
+        'execute_spiders_on_reload': [],
+        'sleeping_time': 10
+    }
+}
