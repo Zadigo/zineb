@@ -2,7 +2,7 @@ import ast
 import datetime
 import json
 import re
-from typing import Any, Callable, List, Tuple, Union
+from typing import Any, Callable, List, Tuple, Type, Union
 
 import pytz
 from bs4.element import Tag as beautiful_soup_tag
@@ -37,6 +37,8 @@ class Field:
     def __init__(self, max_length: int=None, null: bool=True, 
                  default: Union[str, int, float]=None, validators=[]):
         self._meta_attributes = {'field_name': None}
+        
+        self.is_foreign_key = False
 
         self.max_length = max_length
         self.null = null
@@ -614,3 +616,13 @@ class Value:
         if name == 'result':
             value = deep_clean(value)
         return super().__setattr__(name, value)
+
+
+class ForeignKey(Field):
+    def __init__(self, model: Type):
+        self._meta_attributes = {'field_name': None}
+        self.is_foreign_key = True
+        # Allows model1.x.y
+        self.forward_model = model
+        # Allows model2.x_reverse.y
+        self.reverse_model = None

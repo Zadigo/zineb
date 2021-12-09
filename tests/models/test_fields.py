@@ -371,5 +371,5 @@ class TestValueField(TestCase):
                 self.assertEqual(instance.result, 'Kendall')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

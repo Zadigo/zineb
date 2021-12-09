@@ -181,6 +181,7 @@ class FieldDescriptor:
     all the given fields of a model"""
 
     cached_fields = OrderedDict()
+    foreign_keys = OrderedDict()
     
     def __getitem__(self, name) -> Field:
         return self.get_field(name)
@@ -304,7 +305,7 @@ class Base(type):
             if isinstance(field_obj, Field):
                 field_obj._bind(key)
                 declared_fields.add((key, field_obj))
-
+                                
         descriptor = FieldDescriptor()
         attrs['_fields'] = descriptor
         if declared_fields:
@@ -344,6 +345,17 @@ class Base(type):
             # that are actually user created models
             new_class = super_new(cls, name, bases, attrs)
             model_registry.add(name, new_class)
+            
+            # Here we also initialize foreign key fields
+            # by explicitely registering the model
+            # they are registered on to the ones that
+            # they are linking
+            foreign_key_fields = set()
+            for key, field_obj in declared_fields:
+                if getattr(field_obj, 'is_foreign_key'):
+                    field_obj.reverse_model = new_class
+                    foreign_key_fields.add((key, field_obj))
+            new_class._fields.foreign_keys = foreign_key_fields
             return new_class
 
         return super_new(cls, name, bases, attrs)
@@ -605,8 +617,6 @@ class Model(DataStructure):
             custom_model = MyModel()
             custom_model.add_value('name', 'p')
             custom_model.save()
-
-            -> pandas.DataFrame
     """
     _cached_dataframe = None
 

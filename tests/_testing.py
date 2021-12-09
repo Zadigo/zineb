@@ -33,3 +33,18 @@
 # s = SmartDict('name', 'surname')
 # s.update('name', 'Kendall')
 # s.as_csv()
+
+
+from zineb.models.fields import ForeignKey, AgeField
+from zineb.models.datastructure import Model
+
+class Ages(Model):
+    age = AgeField()
+    
+    
+class Models(Model):
+    names = ForeignKey(Ages)
+
+
+m = Models()
+print(list(m._fields.foreign_keys)[0][-1].reverse_model)
