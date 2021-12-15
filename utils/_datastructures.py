@@ -3,7 +3,7 @@ import json
 import os
 import secrets
 from collections import defaultdict
-from typing import Any
+from typing import Any, Type
 
 from zineb.models.fields import Empty
 from zineb.settings import lazy_settings
@@ -45,7 +45,37 @@ class SmartDict:
 
     def __str__(self):
         return str(dict(self.as_values()))
-
+    
+    # def __add__(self, instance):
+    #     if not isinstance(instance, SmartDict):
+    #         raise TypeError('Object should be an instance of SmartDict')
+        
+    #     # Dicts that have the same fields
+    #     # should be resolved in a specific
+    #     # manner by concatenating them
+    #     common_fields = set()
+    #     all_fields = set()
+        
+    #     for field in instance.field_names:
+    #         all_fields.add(field)
+    #         if field in self.field_names:
+    #             common_fields.add(field)
+        
+    #     # Adding two SmartDicts should return
+    #     # a new instance with the
+    #     new_values = []
+    #     for field in common_fields:
+    #         container = {}
+    #         self_values = self.get_container(field)
+    #         instance_values = instance.get_container(field)
+    #         self_values.extend(instance_values)
+    #         container[field] = self_values
+        
+    #     new_instance = SmartDict.new_instance(*list(all_fields))
+    #     for field in all_fields:
+    #         new_instance.update_multiple({field: None})
+    #     return new_instance
+        
     @classmethod
     def new_instance(cls, *names):
         instance = cls(*names)

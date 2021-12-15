@@ -8,7 +8,7 @@ from zineb.models.functions import (Add, Divide, ExtractDay, ExtractMonth,
 from zineb.tests.models.items import (BareModel, CalculatedModel, DateModel,
                                       ModelWithMeta, ModelWithValidator,
                                       SimpleModel)
-
+from zineb.tests.models import items as test_models
 
 class TestSimpleModel(unittest.TestCase):
     def setUp(self):
@@ -173,6 +173,13 @@ class TestWithDateFunctions(unittest.TestCase):
         self.model.add_value('age', ExtractYear('1-1-2002'))
         self.assertDictEqual(self.model._cached_result.as_values(), {'age': [2002]})
 
+
+class TestCanAddModels(unittest.TestCase):
+    def test_can_do_addition(self):
+        model1 = test_models.ModelToAdd1()
+        model2 = test_models.ModelToAdd2() 
+        
+        new_model = model1 + model2
 
 if __name__ == '__main__':
     unittest.main()

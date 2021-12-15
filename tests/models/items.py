@@ -54,3 +54,13 @@ class ExampleModel(Model):
 
 class ExampleModel2(Model):
     value = fields.CharField()
+
+
+class ModelToAdd1(Model):
+    name = fields.CharField()
+    
+    
+class ModelToAdd2(Model):
+    name = fields.CharField()
+    surname = fields.CharField()
+    

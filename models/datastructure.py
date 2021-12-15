@@ -3,7 +3,7 @@ import os
 import secrets
 from collections import OrderedDict, defaultdict
 from functools import cached_property, lru_cache
-from typing import Any, Callable, List, Union
+from typing import Any, Callable, List, Type, Union
 
 from bs4 import BeautifulSoup
 # from pydispatch import dispatcher
@@ -470,6 +470,18 @@ class Model(DataStructure):
 
     def __getitem__(self, field_name: str):
         return self._cached_result.get_container(field_name)
+    
+    def __add__(self, instance):
+        if not isinstance(instance, Model):
+            raise TypeError('Instance should be an instance of Model')
+        common_fields = set()
+        fields = instance._meta.field_names
+        for field in fields:
+            if self._meta.has_field(field):
+                common_fields.add(field)
+        # Model that have the same fields should
+        # get resolved concatenating them
+        
     
     # def __getattribute__(self, name):
     #     # When the acceses model.field_name
