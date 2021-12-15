@@ -8,8 +8,8 @@ class DefaultManager:
         self.model = model
         
     @classmethod
-    def new_instance(cls, **kwargs):
-        instance = cls(**kwargs)
+    def new_instance(cls, **params):
+        instance = cls(**params)
         return instance
 
 
@@ -47,3 +47,24 @@ class GoogleSheetManager(APIManager):
             }
         }
         return self.sheet.create(body=attrs, fields='spreadsheetId').execute()
+
+
+class S3Manager(APIManager):
+    def __init__(self, **params):
+        try:
+            from botocore import session
+        except:
+            raise ImportError("Could not import module botocore: pip install botocore")
+        session = session.Session()
+        attrs = {
+            'aws_access_key_id': getattr(lazy_settings, 'AWS_ACCESS_KEY_ID'),
+            'aws_secret_access_key': getattr(lazy_settings, 'AWS_SECRET_ACCESS_KEY'),
+            'aws_session_token': getattr(lazy_settings, 'AWS_SESSION_TOKEN'),
+            'endpoint_url': getattr(lazy_settings, 'AWS_ENDPOINT_URL'),
+            'region_name': getattr(lazy_settings, 'AWS_REGION_NAME'),
+            'use_ssl': getattr(lazy_settings, 'AWS_USE_SSL')
+        }
+        client = session.create_client('s3', **attrs)
+        super().__init__(api_instance=client)
+        
+manager = S3Manager.new_instance()
