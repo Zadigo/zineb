@@ -14,7 +14,7 @@ from zineb.models.functions import (Add, Divide, ExtractDay, ExtractMonth,
                                     ExtractYear, Math, Multiply, Substract,
                                     When)
 from zineb.settings import settings
-from zineb.utils._datastructures import SmartDict
+from zineb.utils.containers import SmartDict
 from zineb.utils.formatting import LazyFormat
 
 
