@@ -3,7 +3,7 @@ import warnings
 # import time
 from collections import OrderedDict
 from io import StringIO
-from typing import Iterator, Union
+from typing import Iterator, Type, Union
 
 from bs4 import BeautifulSoup
 
@@ -14,6 +14,7 @@ from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
 from zineb.settings import settings as global_settings
 from zineb.utils.formatting import LazyFormat
+from zineb.utils.queues import RequestQueue
 
 # from pydispatch import dispatcher
 
@@ -47,11 +48,14 @@ class BaseSpider(type):
             if not start_urls:
                 warnings.warn("No start urls were provided for the spider", Warning, stacklevel=0)
 
-            prepared_requests = attrs.get('_prepared_requests', [])
-            for index, link in enumerate(start_urls):
-                request = HTTPRequest(link, counter=index)
-                prepared_requests.append(request)
-            setattr(new_class, '_prepared_requests', prepared_requests)
+            # prepared_requests = attrs.get('_prepared_requests', [])
+            # for index, link in enumerate(start_urls):
+            #     request = HTTPRequest(link, counter=index)
+            #     prepared_requests.append(request)
+            # setattr(new_class, '_prepared_requests', prepared_requests)
+            
+            instance = RequestQueue(new_class, *start_urls)
+            setattr(new_class, '_prepared_requests', instance)
             return new_class
         return create_new(cls, name, bases, attrs)
 
@@ -78,7 +82,7 @@ class Spider(metaclass=BaseSpider):
 
         configuration (dict, optional): A set of additional default values. Defaults to None
     """
-    _prepared_requests = []
+    # _prepared_requests = []
     start_urls = []
 
     def __init__(self, **kwargs):
@@ -115,40 +119,46 @@ class Spider(metaclass=BaseSpider):
         """
         Call `_send` each requests and pass the response in
         the start method of the same class
-
-        Parameters
-        ----------
-
-            debug (Bool): determines whether to send the 
-            requests or not. Defaults to False.
         """
-        if self._prepared_requests:
-            if not debug:
-                limit_requests_to = self._meta.get('limit_requests_to', len(self._prepared_requests))
+        with self._prepared_requests as q:
+            for url, request in q.items():
+                if not isinstance(request, HTTPRequest):
+                    raise TypeError('HTTPinstance is not an instance of HTTPRequest')
+                request._send()
+                return_value = self.start(
+                    response=request.html_response,
+                    request=request,
+                    soup=request.html_response.html_page,
+                    url=url
+                )
+        
+        # if self._prepared_requests:
+        #     if not debug:
+        #         limit_requests_to = self._meta.get('limit_requests_to', len(self._prepared_requests))
 
-                for i in range(0, limit_requests_to):
-                    request = self._prepared_requests[i]
-                    request._send()
+        #         for i in range(0, limit_requests_to):
+        #             request = self._prepared_requests[i]
+        #             request._send()
 
-                    soup_object = request.html_response.html_page
-                    self.start(
-                        request.html_response,
-                        request=request,
-                        soup=soup_object
-                    )
+        #             soup_object = request.html_response.html_page
+        #             self.start(
+        #                 request.html_response,
+        #                 request=request,
+        #                 soup=soup_object
+        #             )
 
-                    # TODO: Work with return values from
-                    # from the functions
-                    # return_values_container = deque() 
-                    # return_value = self.start()
-                    # if return_value is not None:
-                    #     return_values_container.append(return_value)
+        #             # TODO: Work with return values from
+        #             # from the functions
+        #             # return_values_container = deque() 
+        #             # return_value = self.start()
+        #             # if return_value is not None:
+        #             #     return_values_container.append(return_value)
 
-                # TODO:
-                # signal.send(dispatcher.Any, self, tag='Post.Initial.Requests', urls=self._prepared_requests)
-                # return self._resolve_return_containers(return_values_container)
-            else:
-                global_logger.logger.warn(f'You are using {self.__class__.__name__} in DEBUG mode')
+        #         # TODO:
+        #         # signal.send(dispatcher.Any, self, tag='Post.Initial.Requests', urls=self._prepared_requests)
+        #         # return self._resolve_return_containers(return_values_container)
+        #     else:
+        #         global_logger.logger.warn(f'You are using {self.__class__.__name__} in DEBUG mode')
 
     def start(self, response: Union[HTMLResponse, JsonResponse, XMLResponse], request: HTTPRequest=None, **kwargs):
         """
