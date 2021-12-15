@@ -1,7 +1,8 @@
 import copy
 import os
 import secrets
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
+from functools import cached_property
 from typing import Any, Callable, List, Union
 
 from bs4 import BeautifulSoup
