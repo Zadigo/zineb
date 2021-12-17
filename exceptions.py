@@ -61,6 +61,6 @@ class RequestAborted(Exception):
     pass
 
 
-class ModelConstrainError(Exception):
+class ModelConstraintError(Exception):
     def __init__(self, field_name, value):
         super().__init__(f"Constraint not respected on '{field_name}'. '{value}' already present in the model.")

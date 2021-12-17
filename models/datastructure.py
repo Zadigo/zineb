@@ -45,7 +45,10 @@ class ModelRegistry:
         return self.registry.setdefault(name, model)
 
     def get_model(self, name: str):
-        return self.registry[name]()
+        return self.get_model_class(name)()
+    
+    def get_model_class(self, name: str):
+        return self.registry[name]
 
     def has_model(self, name: str):
         return name in self.registry
@@ -92,10 +95,11 @@ class ModelOptions(FieldMixin):
     of a given model including both the 
     fields and the Meta options
     """
-    authorized_options = ['ordering', 'label', 'template_model']
+    authorized_options = ['ordering', 'label', 'template_model', 'constraints']
 
     def __init__(self, options: Union[List[tuple[str]], dict]):
         self.model_name = None
+        self._model = None
         self.cached_options = OrderedDict(options)
 
         self.ordering_field_names = set()
@@ -126,6 +130,12 @@ class ModelOptions(FieldMixin):
                 return True
             self.ordering_booleans = list(map(convert_to_boolean, ordering))
 
+        self.registered_constraints = {}
+        if self.has_option('constraints'):
+            constraints = self.get_option_by_name('constraints')
+            for constraint in constraints:
+                self.registered_constraints[constraint.name] = constraint
+        
     def __call__(self, options):
         # old_options = copy.deepcopy(self.cached_options)
         self.__init__(options)
@@ -265,6 +275,15 @@ class DataStructure(metaclass=Base):
         self.response = response
 
         self.parser = self._choose_parser()
+        
+        # When the model is initialized, we bind it
+        # to the constraint if there are any
+        for _, constraint in self._meta.registered_constraints.items():
+            constraint.model = self
+
+    @property
+    def _get_internal_data(self):
+        return dict(self._cached_result.values)
 
     def _get_field_by_name(self, field_name) -> Field:
         """
@@ -300,7 +319,7 @@ class DataStructure(metaclass=Base):
         cached_values = self._cached_result.get_container(field_name)
         cached_values.append(value)
         self._cached_result.update(field_name, cached_values)
-
+    
     def add_calculated_value(self, name: str, value: Any, *funcs):
         funcs = list(funcs)
 

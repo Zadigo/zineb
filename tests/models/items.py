@@ -1,3 +1,4 @@
+from zineb.models.constraints import UniqueConstraint
 from zineb.models.datastructure import Model
 from zineb.models import fields
 
@@ -54,3 +55,14 @@ class ExampleModel(Model):
 
 class ExampleModel2(Model):
     value = fields.CharField()
+
+
+class ConstrainedModel(Model):
+    name = fields.CharField()
+    
+    class Meta:
+        constraints = [
+            UniqueConstraint('unique_names', 'name')
+        ]
+c = ConstrainedModel()
+print(c._meta)
