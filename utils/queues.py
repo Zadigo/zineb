@@ -27,7 +27,7 @@ class RequestQueue:
         return f"{self.__class__.__name__}({dict(self.request_queue)})"
             
     def __iter__(self):
-        return iter(self.request_queue)
+        return iter(self.request_queue.items())
     
     def __len__(self):
         return len(self.request_queue)
@@ -88,7 +88,15 @@ class RequestQueue:
                 self.history[url].update({'failed': True, 'resolved': request.resolved})
             else:
                 self.history[url].update({'failed': False, 'resolved': request.resolved})
+            yield url, request
                 
     def retry_if_set(self):
+        successful_retries = set()
         for url, instance in self.failed_requests:
-            pass
+            if lazy_settings.RETRY:
+                for i in range(lazy_settings.RETRIES):
+                    if instance.request.status_code in lazy_settings.RETRY_CODES:
+                        instance._send()
+                        if instance.request.status_code == 200:
+                            successful_retries.add(instance)
+        return successful_retries
