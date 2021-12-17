@@ -2,8 +2,8 @@ import copy
 import os
 import secrets
 from collections import OrderedDict, defaultdict
-from functools import cached_property, lru_cache
-from typing import Any, Callable, List, Type, Union
+from functools import cached_property
+from typing import Any, Callable, List, Union
 
 from bs4 import BeautifulSoup
 # from pydispatch import dispatcher
@@ -14,7 +14,7 @@ from zineb.models.functions import (Add, Divide, ExtractDay, ExtractMonth,
                                     ExtractYear, Math, Multiply, Substract,
                                     When)
 from zineb.settings import settings
-from zineb.utils._datastructures import SmartDict
+from zineb.utils.containers import SmartDict
 from zineb.utils.formatting import LazyFormat
 
 

@@ -35,16 +35,3 @@
 # s.update('surname', 'Jenner')
 # s.update('name', 'Kylie')
 # print(s.save(extension='csv'))
-
-
-
-from zineb.models.fields import CharField
-from zineb.models.datastructure import Model
-
-
-class A(Model):
-    name = CharField()
-    
-a = A()
-a.add_value('name', 'Kendall')
-print(a.name)

@@ -1,9 +1,11 @@
 import importlib
 import os
+from typing import OrderedDict
 
 # from pydispatch import dispatcher
 from zineb.settings import base as initial_project_settings
 from zineb.utils.functionnal import LazyObject
+from zineb.utils.iteration import keep_while
 
 
 class UserSettings:
@@ -118,12 +120,20 @@ class Settings:
 
     def get(self, key, default=None):
         return self.__dict__.get(key, default)
-
+    
     def keys(self):
         return self.__dict__.keys()
 
     def has_setting(self, key):
         return key in self.__dict__.keys()
+    
+    def filter_by_prefix(self, prefix: str):
+        sub_settings = OrderedDict()
+        candidates = keep_while(lambda x: x.startswith(prefix), self.keys())
+        for candidate in candidates:
+            sub_settings[candidate] = self.__dict__[candidate]
+        return sub_settings
+            
 
 settings = Settings()
 

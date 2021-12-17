@@ -1,5 +1,7 @@
 import unittest
-from zineb.utils._datastructures import SmartDict
+
+from zineb.utils.containers import SmartDict
+
 
 class TestSmartDict(unittest.TestCase):
     def setUp(self):
@@ -49,6 +51,7 @@ class TestSmartDict(unittest.TestCase):
         dict1 = SmartDict.new_instance('name', 'surname')
         dict2 = SmartDict.new_instance('name')
         new_dict = dict1 + dict2
+
 
 
 if __name__ == '__main__':

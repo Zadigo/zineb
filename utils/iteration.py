@@ -4,7 +4,7 @@ from functools import lru_cache
 from typing import Callable, Iterable, Union
 
 from zineb import exceptions
-from zineb.settings import settings
+# from zineb.settings import settings
 from zineb.utils.formatting import LazyFormat
 
 
@@ -90,6 +90,8 @@ def collect_files(dir_name: str, func: Callable = None):
         - path (str): relative path to the directory
         - func (Callable): a func that can be used to filter the files
     """
+    from zineb.settings import settings
+    
     if settings.PROJECT_PATH is None:
         raise exceptions.ProjectNotConfiguredError()
 
