@@ -6,6 +6,7 @@ from io import StringIO
 from typing import Iterator, Type, Union
 
 from bs4 import BeautifulSoup
+from zineb.utils.iteration import drop_while
 
 # from xml.etree import ElementTree
 from zineb import global_logger, signals
@@ -19,28 +20,80 @@ from zineb.utils.queues import RequestQueue
 # from pydispatch import dispatcher
 
 
+class SpiderOptions:
+    allowed_options = ['domains', 'base_url', 'verbose_name', 'limit_requests_to']
+    
+    def __init__(self):
+        self.spider_name = None
+        self.python_path = None
+        defaults = {
+            'domains': [],
+            'base_url': None,
+            'verbose_name': None,
+            'limit_requests_to': 0
+        }
+        self.options = OrderedDict(defaults)
+        
+    def __repr__(self):
+        return f"{self.__class__.__name__}(spider={self.get_option_by_name('verbose_name')})"
+    
+    def __getitem__(self, name):
+        return self.options[name]
+            
+    def _check_options(self, options):
+        requires_list_or_tuple = ['domains', 'sorting']
+        
+        for key, value in options.items():
+            if key not in self.allowed_options:
+                raise ValueError(LazyFormat('Meta in spider {spider} received an illegal option: {option}', spider=self.spider_name, option=key))
+            
+            if key in requires_list_or_tuple:
+                if not isinstance(value, (list, tuple)):
+                    raise TypeError('Domains should be etc')
+                
+                for item in value:
+                    if not isinstance(item, str):
+                        raise TypeError('Domain should be a string')
+            else:
+                if not isinstance(value, (str, int)):
+                    raise TypeError('Value should be a string')
+            
+    def has_option(self, name):
+        return name in self.options
+    
+    def get_option_by_name(self, name):
+        return self.options[name]
+    
+    def update(self, options):
+        self._check_options(options)
+        self.options.update(options)
+
 
 class BaseSpider(type):
     def __new__(cls, name, bases, attrs):
         create_new = super().__new__
         if not bases:
             return create_new(cls, name, bases, attrs)
-
-        spider_options = OrderedDict()
+                
+        meta = SpiderOptions()
         if 'Meta' in attrs:
             _meta = attrs.pop('Meta')
-            options = _meta.__dict__
-
-            allowed_options = ['domains', 'base_url', 'verbose_name', 'sorting', 'limit_requests_to']
-            for key, option in options.items():
-                if not key.startswith('__'):
-                    if key in allowed_options:
-                        spider_options.setdefault(key, option)
-                    else:
-                        raise ValueError((f"Meta received an invalid option: '{key}'. "
-                        f"Authorized options are {', '.join(allowed_options)}"))
-        attrs.update({'_meta': spider_options})
-
+            _meta_dict = _meta.__dict__
+            
+            default_options = {}
+            cleaned_options = drop_while(lambda x: x[0].startswith('__'), _meta_dict.items())
+            cleaned_options = OrderedDict(list(cleaned_options))
+            default_options.update(cleaned_options)
+            
+            verbose_name = _meta_dict.get('verbose_name')
+            if verbose_name is None:
+                default_options['verbose_name'] = name
+            meta.spider_name = default_options['verbose_name']
+                        
+            meta.update(default_options)
+            meta.python_path = f"spiders.{name}"
+        attrs['_meta'] = meta
+        
         if 'start_urls' in attrs:            
             new_class = create_new(cls, name, bases, attrs)
 
@@ -120,45 +173,35 @@ class Spider(metaclass=BaseSpider):
         Call `_send` each requests and pass the response in
         the start method of the same class
         """
-        with self._prepared_requests as q:
-            for url, request in q.items():
-                if not isinstance(request, HTTPRequest):
-                    raise TypeError('HTTPinstance is not an instance of HTTPRequest')
-                request._send()
-                return_value = self.start(
-                    response=request.html_response,
-                    request=request,
-                    soup=request.html_response.html_page,
-                    url=url
-                )
-        
-        # if self._prepared_requests:
-        #     if not debug:
-        #         limit_requests_to = self._meta.get('limit_requests_to', len(self._prepared_requests))
+        if self._prepared_requests:
+            if not debug:
+                limit_requests_to = self._meta.get_option_by_name('limit_requests_to')
+                if limit_requests_to == 0:
+                    limit_requests_to = len(self._prepared_requests)
 
-        #         for i in range(0, limit_requests_to):
-        #             request = self._prepared_requests[i]
-        #             request._send()
+                for i in range(0, limit_requests_to):
+                    request = self._prepared_requests[i]
+                    request._send()
 
-        #             soup_object = request.html_response.html_page
-        #             self.start(
-        #                 request.html_response,
-        #                 request=request,
-        #                 soup=soup_object
-        #             )
+                    soup_object = request.html_response.html_page
+                    self.start(
+                        request.html_response,
+                        request=request,
+                        soup=soup_object
+                    )
 
-        #             # TODO: Work with return values from
-        #             # from the functions
-        #             # return_values_container = deque() 
-        #             # return_value = self.start()
-        #             # if return_value is not None:
-        #             #     return_values_container.append(return_value)
+                    # TODO: Work with return values from
+                    # from the functions
+                    # return_values_container = deque() 
+                    # return_value = self.start()
+                    # if return_value is not None:
+                    #     return_values_container.append(return_value)
 
-        #         # TODO:
-        #         # signal.send(dispatcher.Any, self, tag='Post.Initial.Requests', urls=self._prepared_requests)
-        #         # return self._resolve_return_containers(return_values_container)
-        #     else:
-        #         global_logger.logger.warn(f'You are using {self.__class__.__name__} in DEBUG mode')
+                # TODO:
+                # signal.send(dispatcher.Any, self, tag='Post.Initial.Requests', urls=self._prepared_requests)
+                # return self._resolve_return_containers(return_values_container)
+            else:
+                global_logger.logger.warn(f'You are using {self.__class__.__name__} in DEBUG mode')
 
     def start(self, response: Union[HTMLResponse, JsonResponse, XMLResponse], request: HTTPRequest=None, **kwargs):
         """

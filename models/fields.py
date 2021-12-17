@@ -81,16 +81,6 @@ class Field:
         """
         Returns the true python representation
         of a given value
-
-        Parameters
-        ----------
-
-            value (Any): [description]
-
-        Returns
-        -------
-
-            Any: [description]
         """
         dtype = use_dtype or self._dtype
         return convert_to_type(value, t=dtype, field_name=self._meta_attributes.get('field_name'))
@@ -212,17 +202,6 @@ class Field:
             
 
 class CharField(Field):
-    """
-    Field for text
-
-    Parameters
-    ----------
-    
-        - max_length (int, optional): [description]. Defaults to None.
-        - null (bool, optional): [description]. Defaults to True.
-        - default (Any, optional): [description]. Defaults to None.
-        - validators (): [description]. Defaults to [].
-    """
     name = 'char'
 
     def resolve(self, value):
@@ -236,7 +215,7 @@ class TextField(CharField):
         super().__init__(max_length=max_length, **kwargs)
 
 
-class NameField(CharField):
+class NameField(CharField):    
     name = 'name'
 
     def __init__(self, **kwargs):
@@ -313,16 +292,6 @@ class ImageField(UrlField):
 
 
 class IntegerField(Field):
-    """
-    Field for numbers
-
-    Parameters
-    ----------
-
-        - default (Any, optional): Default value if None. Defaults to None.
-        - min_value (int, optional): Minimum value. Defaults to None.
-        - max_value (int, optional): Maximum value. Defaults to None.
-    """
     name = 'integer'
     _dtype = int
 
