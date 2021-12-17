@@ -66,11 +66,6 @@ class BaseRequest:
 
         self.only_domains = global_settings.DOMAINS
         self.only_secured_requests = global_settings.get('ENSURE_HTTPS', False)
-        self.retries = {
-            'retry': global_settings.get('RETRY', False),
-            'retry_times': global_settings.get('RETRY_TIMES', 2),
-            'retry_http_codes': global_settings.get('RETRY_HTTP_CODES', [])
-        }
 
         self._url_meta = None
         self.url = self._precheck_url(url)
@@ -200,29 +195,9 @@ class BaseRequest:
             self.errors.append([e.args])
         except Exception as e:
             self.errors.extend([e.args])
-            
-        # TODO: Implement the retry
-        # else:
-        #     retry_codes = global_settings.RETRY_HTTP_CODES
-        #     test_if_retry = [
-        #         response.status_code in retry_codes,
-        #         global_settings.RETRY
-        #     ]
-        #     if all(test_if_retry):
-        #         global_logger.logger.error(f"The server response "
-        #         f"returned code {response.status_code}. Will attempt "
-        #         "retries if eneabled in settings file.")
-        #         response = self._retry()
 
         if self.errors or response is None:
             raise ResponseFailedError()
-
-        # retry = self.retries.get('retry', False)
-        # if retry:
-        #     retry_http_status_codes = self.retries.get('retry_http_status_codes', [])
-        #     if response.status_code in retry_http_status_codes:
-        #         # TODO: Might create an error
-        #         response = self._retry()
 
         if response.status_code == 200:
             self.resolved = True
@@ -242,25 +217,6 @@ class BaseRequest:
         self.root_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
 
         return response
-
-    def _retry(self) -> Response:
-        retry_responses = []
-        retry_times = self.retries.get('retry_times')
-        for _ in range(0, retry_times + 2):
-            response = self.session.send(self.prepared_request)
-            retry_responses.extend([(response.status_code, response)])
-        sorted_responses = sorted(retry_responses)
-        
-        other_success_codes = []
-        def filter_codes(response):
-            code = response[0]
-            if code == 200:
-                return True
-            else:
-                if code in other_success_codes:
-                    return True
-            return False
-        return list(filter(filter_codes, sorted_responses))[-1]
 
     @classmethod
     def follow(cls, url: str):
