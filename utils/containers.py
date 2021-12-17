@@ -1,3 +1,4 @@
+import copy
 import csv
 import json
 import os
@@ -65,12 +66,12 @@ class SmartDict:
             return 0
         return container[-1][0]
 
-    def _last_value(self, name: str):
-        return self.get_container(name)[-1][-1]
-
     @property
     def _next_id(self):
         return self._last_id + 1
+
+    def _last_value(self, name: str):
+        return self.get_container(name)[-1][-1]
 
     def get_container(self, name: str):
         return self.values[name]
@@ -198,3 +199,6 @@ class SmartDict:
         else:
             data = json.loads(json.dumps(self.as_list()))
             return json.dumps(data, sort_keys=True)
+
+    def copy_values(self):
+        return copy.deepcopy(dict(self.values))

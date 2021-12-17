@@ -1,8 +1,8 @@
 from collections import defaultdict
 from typing import Callable
 
-from utils.formatting import LazyFormat
 from zineb.utils.characters import create_random_string
+from zineb.utils.formatting import LazyFormat
 from zineb.utils.iteration import keep_while
 
 
@@ -59,7 +59,7 @@ class Transaction:
     def savepoint(self):
         savepoint_name = create_random_string(lowercased=True)
         model_data = self.model._cached_result
-        self.savepoints.update({savepoint_name: model_data.values.copy()})
+        self.savepoints.update({savepoint_name: model_data.copy_values()})
         return savepoint_name
     
     def rollback(self, savepoint: str=None):
@@ -72,6 +72,9 @@ class Transaction:
         """Rollback container on the first initial
         savepoint on a saving error"""
         return self.rollback(savepoint=self._initial_savepoint)
+    
+    def delete(self, savepoint: str):
+        del self.savepoints[savepoint]
 
 
 def transaction(model: Callable):
@@ -83,8 +86,3 @@ def transaction(model: Callable):
         transactions_registry.new(model, instance)
         
     return instance
-    
-
-# if not isinstance(model, Model):
-# message = LazyFormat("{obj} should be an instance of Model. Got {obj_type}", obj=model, obj_type=type(model))
-# raise TypeError(message)    
