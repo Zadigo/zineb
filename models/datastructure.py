@@ -258,8 +258,14 @@ class Base(type):
 
 
 class DataStructure(metaclass=Base):
+    # TODO: Use an internal container hook which
+    # allows to plug/create custom containers for
+    # the model either by the user or programmers
+    # internal_container = SmartDict
+      
     def __init__(self, html_document: BeautifulSoup=None, response: HTMLResponse=None):
         self._cached_result = SmartDict.new_instance(*self._meta.field_names)
+        # self._default_internal_container = self.internal_container.new_instance(*self._meta.field_names)
 
         self.html_document = html_document
         self.response = response
@@ -529,7 +535,6 @@ class Model(DataStructure):
             if settings.MEDIA_FOLDER is not None:
                 filename = os.path.join(settings.MEDIA_FOLDER, filename)
                 
-            # return self._cached_dataframe.to_json(filename, orient='records')
             self._cached_result.save(commit=commit, filename=filename, **kwargs)
             return dataframe
         return self._cached_dataframe.copy()    
