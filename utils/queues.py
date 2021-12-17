@@ -13,13 +13,9 @@ class RequestQueue:
     request_queue = OrderedDict()
     history = defaultdict(dict)
     
-    def __init__(self, spider: Callable, *urls, **request_params):
-        self.spider = spider
-        if not urls:
-            urls = spider.start_urls
+    def __init__(self, *urls, **request_params):
         self.url_strings = list(urls)
         
-        self.request_queue
         for i, url in enumerate(self.url_strings):
             self.request_queue[url] = HTTPRequest(url, counter=i, **request_params)
             

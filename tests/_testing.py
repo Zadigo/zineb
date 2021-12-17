@@ -35,3 +35,33 @@
 # s.update('surname', 'Jenner')
 # s.update('name', 'Kylie')
 # print(s.save(extension='csv'))
+
+
+# from zineb.app import Zineb
+
+# class TestSpider(Zineb):
+#     start_urls = ['http://example.com']
+
+# t = TestSpider()
+
+
+# class A(type):
+#     def __new__(cls, name, bases, attrs):
+#         return super().__new__(cls, name, bases, attrs)
+    
+# class B(metaclass=A):
+#     def __init__(self):
+#         e = E(self)
+        
+#     def __repr__(self):
+#         return self.b
+
+# class C(B):
+#     pass
+
+# class E:
+#     def __init__(self, x):
+#         print(x)
+
+# a = C()
+# print(a)
