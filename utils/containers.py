@@ -72,6 +72,23 @@ class SmartDict:
 
     def _last_value(self, name: str):
         return self.get_container(name)[-1][-1]
+    
+    def _rollback_data_to(self, values: dict):
+        # An internal function that allows other
+        # external functions to rollback the internal
+        # data to a given specific state
+        if not isinstance(values, (dict, defaultdict)):
+            raise ValueError('Values should be an instance of dict, OrderedDict or defaultdict')
+        
+        for key in values.keys():
+            if key not in self.field_names:
+                raise KeyError('Values should contain fields from the database')
+        
+        missing_fields = set(values.keys()) - set(self.field_names)
+        if len(missing_fields) > 0:
+            raise ValueError(LazyFormat('{fields} are missing in the incoming data', fields=','.join(missing_fields)))
+        
+        self.values = values
 
     def get_container(self, name: str):
         return self.values[name]
@@ -201,4 +218,4 @@ class SmartDict:
             return json.dumps(data, sort_keys=True)
 
     def copy_values(self):
-        return copy.deepcopy(dict(self.values))
+        return copy.deepcopy(self.values)
