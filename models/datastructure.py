@@ -32,6 +32,9 @@ class ModelRegistry:
 
     def __iter__(self):
         return iter(self.models)
+    
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.counter})"
 
     @property
     def models(self):
@@ -155,6 +158,24 @@ class ModelOptions(FieldMixin):
         # In that sense, we shouldn't be able to
         # add values to it or even save.
         return self.cached_options.get('template_model', False)
+    
+    def _run_checks(self, declared_fields=None):
+        checks = [
+            self._check_fields_ordering
+        ]
+        for check in checks:
+            # Since the model is not yet instantiated,
+            # we used the declared collected fields to
+            # run the check at the very top level. Other
+            # option would be to run this check at the
+            # __init__ level
+            check(declared_fields)
+    
+    def _check_fields_ordering(self, declared_fields):
+        for field in self.get_option_by_name('ordering'):
+            for declared_field in declared_fields:
+                if field not in declared_field:
+                    raise FieldError(field, [])
 
     def get_option_by_name(self, name):
         return self.cached_options.get(name)
@@ -178,7 +199,7 @@ class Base(type):
                 declared_fields.add((key, field_obj))
 
         default_options = [
-            ('label', f"models.base.{name}")
+            ('label', f"models.{name}")
         ]
         meta = ModelOptions(default_options)
 
@@ -226,7 +247,10 @@ class Base(type):
                 f"option. Valid options are: {', '.join(meta.authorized_options)}")
             default_options.extend(options)
             meta = meta(default_options)
-            
+            # Here we validate that the fields that
+            # were used in options that require field names
+            # are well present on the model 
+            meta._run_checks(declared_fields)
         attrs['_meta'] = meta
         
         new_class = super_new(cls, name, bases, attrs)

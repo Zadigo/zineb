@@ -35,3 +35,15 @@
 # s.update('surname', 'Jenner')
 # s.update('name', 'Kylie')
 # print(s.save(extension='csv'))
+
+from zineb.models.datastructure import Model
+from zineb.models import fields
+
+class MyModel(Model):
+    name = fields.CharField()
+    
+    class Meta:
+        ordering = ['name']
+        
+
+t = MyModel()
