@@ -7,8 +7,8 @@ from zineb.utils.formatting import LazyFormat
 
 def import_from_module(dotted_path: str):
     """
-    Imports an object or class from a given module then
-    tries to return it. 
+    Imports a module, gets an object then
+    tries to return it
     """
     try:
         path, klass = dotted_path.rsplit('.', maxsplit=1)
@@ -27,6 +27,7 @@ def import_from_module(dotted_path: str):
 
 
 def module_directory(module):
+    """Return the main directory of a module"""
     paths = list(getattr(module, '__path__', []))
     if len(paths) == 1:
         return paths[0]

@@ -1,0 +1,20 @@
+{
+    "version": "2.0.0",
+    "type": "shell",
+    "command": "${config:python.pythonPath}",
+    "tasks": [
+        {
+            "label": "Zineb Test Project",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared"
+            },
+            "args": [
+                // "${workspaceFolder}/tests/_project.py",
+                "${workspaceFolder}/tests/_timing.py"
+            ]
+        }
+    ]
+}

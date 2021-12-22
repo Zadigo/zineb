@@ -76,8 +76,8 @@ class Field:
             self._validators.add(model_validators.validate_is_not_null)
 
     def _bind(self, field_name, model=None):
-        # Bind the field's name on the model
-        # to the current field instance
+        """Bind the field's name registered 
+        on the model to this field instance"""
         self._meta_attributes.update(field_name=field_name)
         current_model = self._meta_attributes.get('model', None)
         if current_model is None and model is not None:
@@ -256,17 +256,6 @@ class Field:
             
 
 class CharField(Field):
-    """
-    Field for text
-
-    Parameters
-    ----------
-    
-        - max_length (int, optional): [description]. Defaults to None.
-        - null (bool, optional): [description]. Defaults to True.
-        - default (Any, optional): [description]. Defaults to None.
-        - validators (Callable, optional): [description]. Defaults to [].
-    """
     name = 'char'
     
     def _to_python_object(self, value, use_dtype=None):
@@ -285,7 +274,7 @@ class TextField(CharField):
         super().__init__(max_length=max_length, **kwargs)
 
 
-class NameField(CharField):
+class NameField(CharField):    
     name = 'name'
 
     def __init__(self, **kwargs):
@@ -346,6 +335,7 @@ class ImageField(URLField):
 
     def resolve(self, url):
         super().resolve(url)
+        
         if self.download:
             download_image_from_url(
                 self._cached_result,
@@ -392,8 +382,7 @@ class DecimalField(IntegerField):
     
 
 class DateFieldsMixin:
-    def __init__(self, date_format: str=None, 
-                 default: Any=None, tz_info: str=None):
+    def __init__(self, date_format: str=None, default: Any=None):
         super().__init__(default=default)
 
         self.date_parser = datetime.datetime.strptime
@@ -430,21 +419,18 @@ class AgeField(DateFieldsMixin, Field):
     name = 'age'
     _dtype = int
 
-    def __init__(self, date_format: str=None,
-                 default: Any = None, tz_info: str=None):
-        super().__init__(date_format=date_format, 
-                         default=default, tz_info=tz_info)
+    def __init__(self, date_format: str=None, default: Any = None):
+        super().__init__(date_format=date_format, default=default)
         self._cached_date = None
         
     def _to_python_object(self, result: str, use_dtype=None):
-        d = super()._to_python_object(result)
-        self._cached_date = d
-        return d
+        self._cached_date = super()._to_python_object(result)
+        return self._cached_date
         
     def _substract(self) -> int:
         current_date = datetime.datetime.now()
         return current_date.year - self._cached_date.year
-    
+
     def resolve(self, date: str):
         super().resolve(date)
         self._cached_result = self._substract()
@@ -514,10 +500,10 @@ class MappingFieldMixin:
         return result
         
     def resolve(self, value):
+        result = super().resolve(value)
         if isinstance(value, str):
-            return super().resolve(value)
-        self._cached_result = self._to_python_object(value)
-        
+            self._cached_result = detect_object_in_string(result)
+
 
 class ListField(MappingFieldMixin, Field):
     name = 'list'
@@ -554,8 +540,15 @@ class CommaSeperatedField(Field):
             raise ValidationError(LazyFormat(self._validation_error_message, **attrs))
         return ','.join(map(lambda x: str(x), values))
 
-    def resolve(self, values):
-        self._cached_result = self._to_python_object(values)
+    def resolve(self, values: List[Any]):
+        if isinstance(values, str):
+            values = detect_object_in_string(values)
+
+        if not isinstance(values, (list, tuple)):
+            raise TypeError('The values parameter should be of type str, list or tuple.')
+        
+        container = ','.join(map(lambda x: str(x), values))
+        self._cached_result = self._to_python_object(container)
 
 
 class RegexField(Field):
@@ -657,3 +650,4 @@ class Value:
         if name == 'result':
             value = deep_clean(value)
         return super().__setattr__(name, value)
+        
