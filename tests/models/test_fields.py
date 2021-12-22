@@ -17,18 +17,21 @@ class TestField(unittest.TestCase):
         # TODO: Put more values to test
         values_to_resolve = [
             '   Kendall Jenner',
-            ' \n \n Kendall \t Jenner '
+            ' \n \n Kendall \t Jenner ',
+            '<a>Kendall Jenner',
+            '<a>Kendall Jenner</a>'
         ]
         for value in values_to_resolve:
             with self.subTest(value=value):
-                result = self.field.resolve(value)
-                self.assertEqual(result, 'Kendall Jenner')
+                self.field.resolve(value)
+                self.assertEqual(self.field._cached_result, 'Kendall Jenner')
         
     def test_none_is_returned_as_is(self):
         # Check that None is returned and does
         # not block the application IF there is
         # no constraint on null type
-        self.assertIsNone(self.field.resolve(None))
+        self.field.resolve(None)
+        self.assertIsNone(self.field._cached_result)
 
     @unittest.expectedFailure
     def test_max_length_respected(self):
@@ -44,10 +47,11 @@ class TestField(unittest.TestCase):
 
     def test_get_default_instead_of_none(self):
         constrained_field = fields.Field(default='Hailey Baldwin')
-        self.assertEqual(constrained_field.resolve(None), 'Hailey Baldwin')
+        constrained_field.resolve(None)
+        self.assertEqual(constrained_field._cached_result, 'Hailey Baldwin')
 
-        result = constrained_field.resolve('Kendall Jenner')
-        self.assertEqual(result, 'Kendall Jenner')
+        constrained_field.resolve('Kendall Jenner')
+        self.assertEqual(constrained_field._cached_result, 'Kendall Jenner')
 
     def test_run_validators(self):
         def test_validator(value):
@@ -269,7 +273,8 @@ class TestUrlField(unittest.TestCase):
                 self.field.resolve(value)
                 self.assertIn(self.field._cached_result, [
                     'http://example.com','https://example.com',
-                    'ftp://example.com'
+                    'ftp://example.com', 'http://example.com/',
+                    'https://example.com/'
                 ])
     
     def test_invalid_urls(self):
@@ -291,7 +296,7 @@ class TestImageField(unittest.TestCase):
         for value in values_to_test:
             with self.subTest(value=value):
                 self.field.resolve(value)
-                self.assertIn(self.field._cached_result, ['http://example.com'])
+                self.assertIn(self.field._cached_result, ['http://example.com', 'http://example.com/'])
 
 
 class TestBooleanField(unittest.TestCase):
@@ -329,7 +334,7 @@ class TestJsonField(unittest.TestCase):
 
         d = datetime.datetime.now().date()
         self.field.resolve({'a': 1, 'b': d})
-        self.assertDictEqual(self.field._cached_result, {'a': 1, 'b': str(d)})
+        self.assertDictEqual(self.field._cached_result, {'a': 1, 'b': d})
 
         self.field.resolve("<a>{'a': 1}</a>")
         self.assertDictEqual(self.field._cached_result, {'a': 1})

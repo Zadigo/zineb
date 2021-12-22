@@ -35,8 +35,16 @@
 # s.as_csv()
 
 
-from zineb.models import fields
+# from zineb.models import fields
 
-u = fields.JsonField()
-u.resolve({'a': 1})
-print(u._cached_result)
+# u = fields.JsonField()
+# u.resolve({'a': 1})
+# print(u._cached_result)
+
+
+from zineb.models.fields import AgeField
+
+c = AgeField()
+# c.resolve('Kendall')
+c.resolve('1.1.2001')
+print(c._cached_result)
