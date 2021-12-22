@@ -182,7 +182,9 @@ class Field:
         # We should just run th validation process
         # in that case and avoid cleaning anything.
         if value is None:
-            return self._run_validation(value)
+            result = self._run_validation(value)
+            self._cached_result = result
+            return result
 
         if not isinstance(value, (str, int, float)):
             raise ValueError(LazyFormat('{value} should be a string, '
@@ -281,8 +283,6 @@ class ImageField(UrlField):
     def resolve(self, url):
         super().resolve(url)
         
-        
-
         if self.download:
             download_image_from_url(
                 self._cached_result,
