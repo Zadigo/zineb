@@ -37,13 +37,14 @@
 # print(s.save(extension='csv'))
 
 
-from zineb.models.datastructure import Model
-from zineb.models.fields import DateField
-from zineb.models.functions import ExtractYear
+# from zineb.models.datastructure import Model
+# from zineb.models.fields import DateField, IntegerField, AgeField, DecimalField
+# from zineb.models.functions import ExtractMonth
 
 
-class TestModel(Model):
-    age = DateField()
+# class TestModel(Model):
+#     age = IntegerField()
     
-m = TestModel()
-m.add_value('age', ExtractYear('1-1-2009'))
+# m = TestModel()
+# m.add_value('age', ExtractMonth('1-1-2009'))
+# print(m)

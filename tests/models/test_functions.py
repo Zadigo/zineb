@@ -1,6 +1,7 @@
 import unittest
 
 from zineb.models import functions
+from zineb.models import fields
 from zineb.tests.models import items
 
 
@@ -107,28 +108,28 @@ class TestWhen(unittest.TestCase):
 
 class TestExtractDates(unittest.TestCase):
     def setUp(self):
-        self.model = items.DateModel()
+        self.model = items.CalculatedModel()
 
     def test_day_resolution(self):
         instance = functions.ExtractDay('1987-1-1')
         instance.model = self.model
-        instance.field_name = 'date_of_birth'
-        result = instance.resolve()
-        self.assertEqual(result, 1)
+        instance.field_name = 'age'
+        instance.resolve()
+        self.assertEqual(instance._cached_data, 1)
 
     def test_year_resolution(self):
         instance = functions.ExtractYear('1987-1-1')
         instance.model = self.model
-        instance.field_name = 'date_of_birth'
-        result = instance.resolve()
-        self.assertEqual(result, 1987)
+        instance.field_name = 'age'
+        instance.resolve()
+        self.assertEqual(instance._cached_data, 1987)
 
     def test_month_resolution(self):
         instance = functions.ExtractMonth('1987-1-1')
         instance.model = self.model
-        instance.field_name = 'date_of_birth'
-        result = instance.resolve()
-        self.assertEqual(result, 1)
+        instance.field_name = 'age'
+        instance.resolve()
+        self.assertEqual(instance._cached_data, 1)
 
     def test_can_extract_from_any_format(self):
         dates = ['1987-1-1', '1.1.1987', '1-1-1987', '1/1/1987', 
@@ -137,8 +138,9 @@ class TestExtractDates(unittest.TestCase):
             with self.subTest(d=d):
                 instance = functions.ExtractDay(d)
                 instance.model = self.model
-                instance.field_name = 'date_of_birth'
-                self.assertEqual(instance.resolve(), 1)
+                instance.field_name = 'age'
+                instance.resolve()
+                self.assertEqual(instance._cached_data, 1)
 
     def test_can_extract_from_custom_format(self):
         dates = ['Oct 1 1987']
@@ -146,26 +148,14 @@ class TestExtractDates(unittest.TestCase):
             with self.subTest(d=d):
                 instance = functions.ExtractYear(d, date_format='%b %d %Y')
                 instance.model = self.model
-                instance.field_name = 'date_of_birth'
-                self.assertEqual(instance.resolve(), 1987)
-
-    # def test_can_extract_year(self):
-    #     self.model.add_value('age', functions.ExtractYear('11-1-1987'))
-    #     self.assertListEqual(self.model._cached_result.get_container('age'), [1987])
-
-    # def test_can_extract_month(self):
-    #     self.model.add_value('age', functions.ExtractMonth('11-1-1987'))
-    #     self.assertListEqual(self.model._cached_result.get_container('age'), [1])
-
-    # def test_can_extract_day(self):
-    #     self.model.add_value('age', functions.ExtractMonth('11-1-1987'))
-    #     self.assertListEqual(self.model._cached_result.get_container('age'), [11])
+                instance.field_name = 'age'
+                instance.resolve()
+                self.assertEqual(instance._cached_data, 1987)
 
     # @unittest.expectedFailure
-    # def test_field_should_be_a_datefield(self):
-    #     source_field = self.model._fields.cached_fields['age'] = fields.IntegerField()
-    #     self.model.add_value('age', functions.ExtractYear('11-1-2021'))
-    #     self.assertRaises(TypeError)
+    def test_field_should_not_be_a_datefield(self):
+        self.model._meta.cached_fields['age'] = fields.DateField()
+        self.assertRaises(TypeError, self.model.add_value, name='age', value=functions.ExtractYear('11-1-2021'))
 
 
 if __name__ == '__main__':

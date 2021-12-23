@@ -413,7 +413,8 @@ class DataStructure(metaclass=Base):
         if isinstance(value, instances):
             value.model = self
             value.field_name = name
-            return self._cached_result.update(name, value.resolve())
+            value.resolve()
+            return self._cached_result.update(name, value._cached_data)
 
         obj = self._get_field_by_name(name)
         obj.resolve(value)

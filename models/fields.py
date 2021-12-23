@@ -85,13 +85,6 @@ class Field:
             self._meta_attributes['model'] = model
 
     def _true_value_or_default(self, value):
-        # if self.default is not None and value is None:
-        #     return self.default
-        
-        # if self.default is not None and value == Empty:
-        #     return self.default
-
-        # return value
         if value is None and self.default is not None:
             return self.default
         elif value == 'Empty' and self.default is not None:
@@ -147,10 +140,6 @@ class Field:
         The Empty class is the pythonic representation
         for these kinds of strings
         """
-        # value = Empty
-        # result = self._run_validation(value)
-        # self._cached_result = result
-        # return self._cached_result
         if value == '':
             return Empty()
         return value
@@ -167,14 +156,7 @@ class Field:
         not on incoming data from the web since it does
         not apply any kind of formatting (spaces, escape
         characters or HTML tags)
-        """
-        # self._cached_result = self._run_validation(clean_value)
-        
-        # dtype = dtype or self._dtype
-        # self._cached_result = self._to_python_object(self._cached_result)
-
-        # return self._cached_result
-        
+        """        
         if clean_value == 'Empty' or clean_value is None:
             # Although a value could be empty or None, we still
             # allow he user to be able to validate he data
@@ -182,6 +164,14 @@ class Field:
         else:
             result = self._to_python_object(clean_value)
             self._cached_result = self._run_validation(result)
+            
+    # def _function_resolve(self, func):
+    #     """A method to resolve specific functions such
+    #     as ExtractYear, ExtractMonth... by avoiding """
+    #     try:
+    #         self._simple_resolve(func._cached_data)
+    #     except AttributeError:
+    #         raise
             
     def resolve(self, value: Any):
         """
@@ -231,41 +221,6 @@ class Field:
                 self._simple_resolve(clean_value)
             else:
                 self._simple_resolve(value_or_empty)
-        
-        # if value == '':
-        #     return self._check_emptiness(value)
-
-        # true_value = None
-        # if isinstance(value, beautiful_soup_tag):
-        #     try:
-        #         true_value = value.text
-        #     except AttributeError:
-        #         raise AttributeError(
-        #             LazyFormat("Could not get attribute text from '{value}'.", value=true_value)
-        #         )
-
-        # # There might be a case where a None
-        # # value slides in and breaks everything.
-        # # We should just run th validation process
-        # # in that case and avoid cleaning anything.
-        # if value is None:
-        #     return self._run_validation(value)
-
-        # if not isinstance(value, (str, int, float)):
-        #     raise ValueError(LazyFormat('{value} should be a string, '
-        #     'an integer or a float.', value=value))
-        
-        # # To make things easier, we'll just
-        # # be dealing with a string even though
-        # # its true Python representation is not
-        # true_value = str(value)
-
-        # if '>' in true_value or '<' in true_value:
-        #     true_value = html.remove_tags(value)
-
-        # clean_value = deep_clean(true_value)
-
-        # return self._simple_resolve(clean_value, convert=convert, dtype=dtype)
             
 
 class CharField(Field):
@@ -274,6 +229,7 @@ class CharField(Field):
     def _to_python_object(self, value):
         if value is None:
             return value
+        
         return self._dtype(value)
 
 
@@ -291,9 +247,10 @@ class NameField(CharField):
         super().__init__(**kwargs)
         
     def _to_python_object(self, value):
-        if value is None:
-            return value
-        return value.lower().title()
+        result = super()._to_python_object(value)
+        if result is None:
+            return result
+        return result.lower().title()
 
 
 class EmailField(CharField):
@@ -391,6 +348,7 @@ class DateFieldsMixin:
         super().__init__(default=default)
 
         self.date_parser = datetime.datetime.strptime
+        self._datetime_object = None
 
         formats = set(getattr(settings, 'DEFAULT_DATE_FORMATS'))
         formats.add(date_format)
@@ -410,11 +368,19 @@ class DateFieldsMixin:
             message = LazyFormat("Could not find a valid format for "
             "date '{d}' on field '{name}'.", d=result, name=self._meta_attributes.get('field_name'))
             raise ValidationError(message)
+        self._datetime_object = d
         return d.date()
+
+    # def _function_resolve(self, func):
+    #     self._datetime_object = getattr(func, '_datetime_object')
 
 
 class DateField(DateFieldsMixin, Field):
     name = 'date'
+    
+    # def _function_resolve(self, func):
+    #     super()._function_resolve(func)
+    #     self._cached_result = self._datetime_object.date()
 
 
 class AgeField(DateFieldsMixin, Field):
@@ -423,68 +389,67 @@ class AgeField(DateFieldsMixin, Field):
 
     def __init__(self, date_format: str=None, default: Any = None):
         super().__init__(date_format=date_format, default=default)
-        self._datetime_object = None
-        
-    def _to_python_object(self, result: str):
-        self._datetime_object = super()._to_python_object(result)
-        return self._datetime_object
-        
+                
     def _substract(self):
         current_date = datetime.datetime.now()
         return current_date.year - self._datetime_object.year
+    
+    # def _function_resolve(self, func):
+    #     super()._function_resolve(func)
+    #     self._cached_result = self._substract()
 
     def resolve(self, date: str):
         super().resolve(date)
         self._cached_result = self._substract()
 
 
-class FunctionField(Field):
-    """
-    Field that resolves a value by passing it through
-    different custom methods
-    """
-    name = 'function'
+# class FunctionField(Field):
+#     """
+#     Field that resolves a value by passing it through
+#     different custom methods
+#     """
+#     name = 'function'
 
-    def __init__(self, *methods: Callable[[Any], Any], output_field: Field = None, 
-                 default: Any = None, validators: list = []):
-        super().__init__(default=default, validators=validators)
+#     def __init__(self, *methods: Callable[[Any], Any], output_field: Field = None, 
+#                  default: Any = None, validators: list = []):
+#         super().__init__(default=default, validators=validators)
 
-        if not methods:
-            raise ValueError('FunctionField expects at least on method.')
+#         if not methods:
+#             raise ValueError('FunctionField expects at least on method.')
 
-        self.methods = []
-        self.output_field = output_field
+#         self.methods = []
+#         self.output_field = output_field
 
-        if output_field is not None:
-            if not isinstance(output_field, Field):
-                raise TypeError(("The output field should be one of "
-                        "zineb.models.fields types and should be "
-                        "instanciated e.g. FunctionField(output_field=CharField())"))
-        else:
-            self.output_field = CharField()
+#         if output_field is not None:
+#             if not isinstance(output_field, Field):
+#                 raise TypeError(("The output field should be one of "
+#                         "zineb.models.fields types and should be "
+#                         "instanciated e.g. FunctionField(output_field=CharField())"))
+#         else:
+#             self.output_field = CharField()
         
-        incorrect_elements = []
-        for method in methods:
-            if not callable(method):
-                incorrect_elements.append(method)
-            self.methods.append(method)
+#         incorrect_elements = []
+#         for method in methods:
+#             if not callable(method):
+#                 incorrect_elements.append(method)
+#             self.methods.append(method)
 
-        if incorrect_elements:
-            raise TypeError(LazyFormat('You should provide a list of '
-            'callables. Got: {incorrect_elements}', incorrect_elements=incorrect_elements))
+#         if incorrect_elements:
+#             raise TypeError(LazyFormat('You should provide a list of '
+#             'callables. Got: {incorrect_elements}', incorrect_elements=incorrect_elements))
 
-    def resolve(self, value):
-        super().resolve(value)
+#     def resolve(self, value):
+#         super().resolve(value)
 
-        new_result = None
-        for method in self.methods:
-            if new_result is None:
-                new_result = method(self._cached_result)
-            else:
-                new_result = method(new_result)
+#         new_result = None
+#         for method in self.methods:
+#             if new_result is None:
+#                 new_result = method(self._cached_result)
+#             else:
+#                 new_result = method(new_result)
 
-        self.output_field._simple_resolve(new_result)
-        self._cached_result = self.output_field._cached_result
+#         self.output_field._simple_resolve(new_result)
+#         self._cached_result = self.output_field._cached_result
 
 
 class MappingFieldMixin:
