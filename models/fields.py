@@ -3,6 +3,7 @@ import datetime
 import json
 import re
 from typing import Any, Callable, List, Tuple, Union
+from urllib.parse import urlparse
 
 from bs4.element import Tag as beautiful_soup_tag
 from w3lib import html
@@ -98,24 +99,23 @@ class Field:
         else:
             return value
 
-    def _to_python_object(self, value, use_dtype=None):
+    def _to_python_object(self, value):
         """
-        Returns the true python representation
+        A helper function that returns the true 
+        python representation of a given value
+        
+        NOTE: Subclasses should implement their own
+        way of returning the Python representation
         of a given value
         """
-        # dtype = use_dtype or self._dtype
-        # return convert_to_type(value, t=dtype, field_name=self._meta_attributes.get('field_name'))
         return value
 
     def _run_validation(self, value):
         # Default values should be validated
-        # too ? Otherwise the user might enter
-        # anykind of none validated value ??
+        # too in order to keep consistency in
+        # the model
         value = self._true_value_or_default(value)
 
-        # If the value is None, makes no sense
-        # to continue the validation, just return
-        # None instead
         if value is None:
             return None
 
@@ -155,7 +155,7 @@ class Field:
             return Empty()
         return value
 
-    def _simple_resolve(self, clean_value, dtype=None):
+    def _simple_resolve(self, clean_value):
         """
         A value resolution method that only runs validations.
 
@@ -176,12 +176,14 @@ class Field:
         # return self._cached_result
         
         if clean_value == 'Empty' or clean_value is None:
+            # Although a value could be empty or None, we still
+            # allow he user to be able to validate he data
             self._cached_result = self._run_validation(clean_value)
         else:
-            result = self._to_python_object(clean_value, use_dtype=dtype)
+            result = self._to_python_object(clean_value)
             self._cached_result = self._run_validation(result)
             
-    def resolve(self, value: Any, dtype: Any=None):
+    def resolve(self, value: Any):
         """
         This is the main resolution function that deals with
         making and incoming scrapped value from the internet
@@ -194,6 +196,15 @@ class Field:
         and/or call super().resolve() to benefit from the cleaning
         and normalizing logic
         """
+        # This is a security check so that we only take
+        # values that have a known Python type get a pass.
+        # Technically, we should only get strings from 
+        # the internet but exceptions can occur with 
+        # true numbers, list or dict
+        if not isinstance(value, (str, int, float, list, dict)):
+            raise ValueError(LazyFormat('{value} should be a string, '
+            'an integer or a float.', value=value))
+        
         if isinstance(value, beautiful_soup_tag):
             try:
                 value = value.text
@@ -203,9 +214,11 @@ class Field:
         if value is None:
             self._simple_resolve(value)
         else:
-            # To make things easier, we'll just
-            # be dealing with a string even though
-            # its true Python representation is not
+            # To make things easier especially for
+            # the string cleaning process below, we'll 
+            # just be dealing with a string and then
+            # retransform it to its true 
+            # representation later on
             true_value = str(value)
             
             value_or_empty = self._check_emptiness(true_value)
@@ -215,7 +228,7 @@ class Field:
                 
             if not value_or_empty == 'Empty':        
                 clean_value = deep_clean(value_or_empty)
-                self._simple_resolve(clean_value, dtype=dtype)
+                self._simple_resolve(clean_value)
             else:
                 self._simple_resolve(value_or_empty)
         
@@ -258,13 +271,10 @@ class Field:
 class CharField(Field):
     name = 'char'
     
-    def _to_python_object(self, value, use_dtype=None):
+    def _to_python_object(self, value):
         if value is None:
             return value
         return self._dtype(value)
-
-    def resolve(self, value):
-        super().resolve(value)
 
 
 class TextField(CharField):
@@ -280,13 +290,10 @@ class NameField(CharField):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         
-    def _to_python_object(self, value, use_dtype=None):
+    def _to_python_object(self, value):
         if value is None:
             return value
         return value.lower().title()
-
-    def resolve(self, value):
-        super().resolve(value)
 
 
 class EmailField(CharField):
@@ -324,8 +331,9 @@ class URLField(CharField):
 class ImageField(URLField):
     name = 'image'
 
-    def __init__(self, download: bool=False, as_thumnail: bool=False, download_to: str=None):
-        super().__init__()
+    def __init__(self, max_length: int=None, null: bool=True, validators: list=[], 
+                 download: bool=False, as_thumnail: bool=False, download_to: str=None):
+        super().__init__(max_length=max_length, null=null, validators=validators)
 
         self.download = download
         self.as_thumbnail = as_thumnail
@@ -358,7 +366,7 @@ class IntegerField(Field):
         if max_value is not None:
             self._validators.add(model_validators.MaxLengthValidator(max_value))
 
-    def _to_python_object(self, value, use_dtype=None):
+    def _to_python_object(self, value):
         try:
             return self._dtype(value)
         except:
@@ -371,9 +379,6 @@ class IntegerField(Field):
                     'name': self._meta_attributes.get('name')
                 }
                 raise ValidationError(LazyFormat(self._validation_error_message, **attrs))
-
-    def resolve(self, value):
-        super().resolve(value)
 
 
 class DecimalField(IntegerField):
@@ -391,7 +396,7 @@ class DateFieldsMixin:
         formats.add(date_format)
         self.date_formats = formats
 
-    def _to_python_object(self, result: str, use_dtype=None):
+    def _to_python_object(self, result: str):
         for date_format in self.date_formats:
             try:
                 d = self.date_parser(result, date_format)
@@ -411,9 +416,6 @@ class DateFieldsMixin:
 class DateField(DateFieldsMixin, Field):
     name = 'date'
 
-    def resolve(self, date: str):        
-        super().resolve(date)
-
 
 class AgeField(DateFieldsMixin, Field):
     name = 'age'
@@ -421,15 +423,15 @@ class AgeField(DateFieldsMixin, Field):
 
     def __init__(self, date_format: str=None, default: Any = None):
         super().__init__(date_format=date_format, default=default)
-        self._cached_date = None
+        self._datetime_object = None
         
-    def _to_python_object(self, result: str, use_dtype=None):
-        self._cached_date = super()._to_python_object(result)
-        return self._cached_date
+    def _to_python_object(self, result: str):
+        self._datetime_object = super()._to_python_object(result)
+        return self._datetime_object
         
-    def _substract(self) -> int:
+    def _substract(self):
         current_date = datetime.datetime.now()
-        return current_date.year - self._cached_date.year
+        return current_date.year - self._datetime_object.year
 
     def resolve(self, date: str):
         super().resolve(date)
@@ -486,7 +488,7 @@ class FunctionField(Field):
 
 
 class MappingFieldMixin:
-    def _to_python_object(self, value, use_dtype=None):
+    def _to_python_object(self, value):
         result = detect_object_in_string(value)
         if not isinstance(result, (list, dict)):
             attrs = {
@@ -622,12 +624,6 @@ class Value:
     """
     A simple field that can be used to represent a value
     extracted frome the internet
-
-    Parameters
-    ----------
-
-        - value (Any): a value from the internet. Defaults to None
-        - field_name (str): field's name. Defaults to None.
     """
     result = None
 
@@ -645,4 +641,3 @@ class Value:
         if name == 'result':
             value = deep_clean(value)
         return super().__setattr__(name, value)
-        
