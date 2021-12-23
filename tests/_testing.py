@@ -42,9 +42,10 @@
 # print(u._cached_result)
 
 
-from zineb.models.fields import AgeField
+from zineb.models.fields import ListField, JsonField
 
-c = AgeField()
-# c.resolve('Kendall')
-c.resolve('1.1.2001')
+c = JsonField()
+# c.resolve('[1, 2, 3]')
+# c.resolve([1, 2, 3])
+c.resolve("{'a': 1}")
 print(c._cached_result)

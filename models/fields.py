@@ -498,12 +498,7 @@ class MappingFieldMixin:
             }
             raise ValidationError(LazyFormat(self._validation_error_message, **attrs))
         return result
-        
-    def resolve(self, value):
-        result = super().resolve(value)
-        if isinstance(value, str):
-            self._cached_result = detect_object_in_string(result)
-
+    
 
 class ListField(MappingFieldMixin, Field):
     name = 'list'
