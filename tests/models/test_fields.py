@@ -1,13 +1,12 @@
 import datetime
 import re
 import unittest
-from unittest.case import TestCase
+from unittest.case import TestCase, expectedFailure
 
 from zineb.exceptions import ValidationError
 from zineb.models import fields
 from zineb.models.fields import (BooleanField, CharField, DecimalField,
                                  RegexField, Value)
-from zineb.tests import TEST_DATE_FORMATS
 
 
 class TestField(unittest.TestCase):
@@ -18,18 +17,21 @@ class TestField(unittest.TestCase):
         # TODO: Put more values to test
         values_to_resolve = [
             '   Kendall Jenner',
-            ' \n \n Kendall \t Jenner '
+            ' \n \n Kendall \t Jenner ',
+            '<a>Kendall Jenner',
+            '<a>Kendall Jenner</a>'
         ]
         for value in values_to_resolve:
             with self.subTest(value=value):
-                result = self.field.resolve(value)
-                self.assertEqual(result, 'Kendall Jenner')
+                self.field.resolve(value)
+                self.assertEqual(self.field._cached_result, 'Kendall Jenner')
         
     def test_none_is_returned_as_is(self):
         # Check that None is returned and does
         # not block the application IF there is
         # no constraint on null type
-        self.assertIsNone(self.field.resolve(None))
+        self.field.resolve(None)
+        self.assertIsNone(self.field._cached_result)
 
     @unittest.expectedFailure
     def test_max_length_respected(self):
@@ -41,15 +43,15 @@ class TestField(unittest.TestCase):
     def test_not_null_respected(self):
         constrained_field = fields.Field(null=False)
         constrained_field._meta_attributes['field_name'] = 'test_field'
-        constrained_field.resolve('')
-        self.assertRaises(ValueError)
+        self.assertRaises(ValueError, constrained_field.resolve, '')
 
     def test_get_default_instead_of_none(self):
         constrained_field = fields.Field(default='Hailey Baldwin')
-        self.assertEqual(constrained_field.resolve(None), 'Hailey Baldwin')
+        constrained_field.resolve(None)
+        self.assertEqual(constrained_field._cached_result, 'Hailey Baldwin')
 
-        result = constrained_field.resolve('Kendall Jenner')
-        self.assertEqual(result, 'Kendall Jenner')
+        constrained_field.resolve('Kendall Jenner')
+        self.assertEqual(constrained_field._cached_result, 'Kendall Jenner')
 
     def test_run_validators(self):
         def test_validator(value):
@@ -61,32 +63,16 @@ class TestField(unittest.TestCase):
         self.field._validators = [test_validator, test_validator_2]
         result = self.field._run_validation('Kendall Jenner')
         self.assertEqual(result, 'Kendall Jenner Kardashian')
-
-
-def custom_validator(value):
-    if value == 'Kendall':
-        return value + ' Jenner'
-    return value
-
-
-def custom_validator_2(value):
-    if value == 'Kendall Jenner':
-        raise ValidationError(f'{value} is not permitted')
-
-
-class TestFieldValidation(unittest.TestCase):
-    def setUp(self):
-        self.field = fields.CharField(validators=[custom_validator])
-        self.invalid_field = fields.CharField(validators=[custom_validator_2])
-
-    def test_custom_validation(self):
-        self.field.resolve('Kendall')
-        self.assertEqual(self.field._cached_result, 'Kendall Jenner')
-
+        
     @unittest.expectedFailure
     def test_validation_raises_error(self):
-        self.assertRaises(ValidationError, self.invalid_field.resolve, 'Kendall Jenner')
-
+        def raising_validator(value):
+            if value == 'Kendall':
+                raise ValidationError('Value is not good')
+            return value
+        self.field._default_validators = [raising_validator]
+        self.assertRaises(ValidationError, self.field.resolve, 'Kendall')
+        
 
 class TestCharfields(unittest.TestCase):
     def setUp(self):
@@ -128,6 +114,10 @@ class TestEmailField(unittest.TestCase):
         email = 'kendall.jenner@gmail.com'
         self.field.resolve(email)
         self.assertEqual(self.field._cached_result, email)
+        
+    def test_email_in_limit_domains(self):
+        field = fields.EmailField(limit_to_domains=['outlook.com'])
+        self.assertRaises(ValidationError, field.resolve, 'kendall.jenner@gmail.com')
 
 
 class TestIntegerField(unittest.TestCase):
@@ -137,8 +127,9 @@ class TestIntegerField(unittest.TestCase):
     def test_resolution(self):
         numbers = ['15', 15]
         for number in numbers:
-            self.field.resolve(number)
-            self.assertEqual(self.field._cached_result, 15)
+            with self.subTest(number=number):
+                self.field.resolve(number)
+                self.assertEqual(self.field._cached_result, 15)
 
     @unittest.expectedFailure
     def test_max_value_raises_error(self):
@@ -164,7 +155,7 @@ class TestDecimalField(TestCase):
                 self.assertIsInstance(self.field._cached_result, float)
 
 
-class TestDateField(unittest.TestCase):
+class TestDateFields(unittest.TestCase):
     def setUp(self) -> None:
         self.d = '15/06/2002'
         
@@ -179,7 +170,7 @@ class TestDateField(unittest.TestCase):
     
     def test_age_resolution(self):
         # Test basic age resolution with builtin formats
-        dates = ['2002-06-15', '2002.06.15', '2002/06/15', '15.06.2002', '02.6.15']
+        dates = ['2002-06-15', '2002.06.15', '2002/06/15', '15.6.2002']
         for date in dates:
             self.agefield.resolve(date)
             # Make sure that incoming dates respect the Y-m-d format
@@ -261,11 +252,16 @@ class TestCommaSeparatedField(unittest.TestCase):
             with self.subTest(value=value):
                 self.field.resolve([1, 2, 3])
                 self.assertEqual(self.field._cached_result, '1,2,3')
+                
+    # def test_special_resolution(self):
+    #     value = "1,a,4,3,fast-fashion,hoohle@gmail.com,goole1__intelligent,hoodieislife,ùùei><,<>"
+    #     self.field.resolve(value)
+    #     self.assertEqual(self.field._cached_result, value)
 
 
 class TestUrlField(unittest.TestCase):
     def setUp(self):
-        self.field = fields.UrlField()
+        self.field = fields.URLField()
         
     def test_resolution(self):
         values_to_test = [
@@ -277,7 +273,8 @@ class TestUrlField(unittest.TestCase):
                 self.field.resolve(value)
                 self.assertIn(self.field._cached_result, [
                     'http://example.com','https://example.com',
-                    'ftp://example.com'
+                    'ftp://example.com', 'http://example.com/',
+                    'https://example.com/'
                 ])
     
     def test_invalid_urls(self):
@@ -299,7 +296,7 @@ class TestImageField(unittest.TestCase):
         for value in values_to_test:
             with self.subTest(value=value):
                 self.field.resolve(value)
-                self.assertIn(self.field._cached_result, ['http://example.com'])
+                self.assertIn(self.field._cached_result, ['http://example.com', 'http://example.com/'])
 
 
 class TestBooleanField(unittest.TestCase):
@@ -337,7 +334,7 @@ class TestJsonField(unittest.TestCase):
 
         d = datetime.datetime.now().date()
         self.field.resolve({'a': 1, 'b': d})
-        self.assertDictEqual(self.field._cached_result, {'a': 1, 'b': str(d)})
+        self.assertDictEqual(self.field._cached_result, {'a': 1, 'b': d})
 
         self.field.resolve("<a>{'a': 1}</a>")
         self.assertDictEqual(self.field._cached_result, {'a': 1})
