@@ -4,12 +4,15 @@ from typing import Any, Callable, Union
 from zineb.exceptions import ModelNotImplementedError
 from zineb.utils.conversion import string_to_number
 from zineb.utils.formatting import LazyFormat
-
+from zineb.settings import lazy_settings
 
 class ExpressionMixin:
     model = None
     _cached_data = None
     field_name = None
+    
+    def _to_python_object(self, value):
+        return value
 
     def get_field_object(self):
         try:
@@ -215,38 +218,71 @@ class DateExtractorMixin:
 
     def __init__(self, value: Any, output_field: Callable=None, date_format: str=None):
         self.value = value
-        self.date = None
+        self.datetime_object = None
         self.output_field = output_field
-        self.date_format = date_format
+        # self.date_format = date_format
+        
+        self.date_parser = datetime.datetime.strptime
+        
+        formats = set(getattr(lazy_settings, 'DEFAULT_DATE_FORMATS'))
+        formats.add(date_format)
+        self.date_formats = formats
+        
+    def _to_python_object(self, value):
+        for date_format in self.date_formats:
+            try:
+                d = self.date_parser(value, date_format)
+            except:
+                d = None
+            else:
+                if d:
+                    break
+
+        if d is None:
+            message = LazyFormat("Could not find a valid format for "
+            "date '{d}' on field '{name}'.", d=value, name=self._meta_attributes.get('field_name'))
+            raise ValueError(message)
+        return d.date()
 
     def resolve(self):
         from zineb.models.fields import DateField
+        
+        self.datetime_object = self._to_python_object(self.value)
+        
+        source_field = super().get_field_object()
 
         # IMPORTANT: In order to extract a year, a month
         # a day... from the incoming value, we logically 
         # should only get to deal with a DateField
-        source_field = super().get_field_object()
-        if not isinstance(source_field, DateField):
-            attrs = {
-                'field_name':self.field_name,
-                'field':source_field.__class__.__name__
-            }
-            raise TypeError(LazyFormat("Field object for '{field_name}' should be "
-            "an instance of DateField. Got: {field}", **attrs))
+        
+        # TODO: Instead of using the source field to
+        # resolve the date strings, we can resolve it
+        # locally and then transfer the result to 
+        # the field in question
+        
+        
+        # source_field = super().get_field_object()
+        # if not isinstance(source_field, DateField):
+        #     attrs = {
+        #         'field_name':self.field_name,
+        #         'field':source_field.__class__.__name__
+        #     }
+        #     raise TypeError(LazyFormat("Field object for '{field_name}' should be "
+        #     "an instance of DateField. Got: {field}", **attrs))
 
-        if self.output_field is None:
-            self.output_field = source_field
+        # if self.output_field is None:
+        #     self.output_field = source_field
 
-        if self.date_format is not None:
-            source_field.date_formats.add(self.date_format)
-        source_field.resolve(self.value)
+        # if self.date_format is not None:
+        #     source_field.date_formats.add(self.date_format)
+        # source_field.resolve(self.value)
 
-        self._cached_data = source_field._cached_result
-        result = getattr(self._cached_data, self.lookup_name)
+        # self._cached_data = source_field._cached_result
+        result = getattr(self.datetime_object, self.lookup_name)
         if isinstance(self.output_field, DateField):
             return result
         else:
-            self.output_field._simple_resolve(result, convert=True)
+            self.output_field._simple_resolve(result)
             return self.output_field._cached_result
 
 

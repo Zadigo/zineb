@@ -1,14 +1,12 @@
 import unittest
-from datetime import datetime
 
-from zineb.models import fields, functions
-from zineb.models.datastructure import Model
-from zineb.tests.models import BareModel, DateModel
+from zineb.models import functions
+from zineb.tests.models import items
 
 
 class TestMathOperations(unittest.TestCase):
     def setUp(self):
-        self.model = BareModel()
+        self.model = items.BareModel()
     
     def test_addition(self):
         instance = functions.Add(5)
@@ -54,8 +52,8 @@ class TestMathOperations(unittest.TestCase):
 
 class TestWhen(unittest.TestCase):
     def setUp(self):
-        self.model = BareModel()
-        instance = functions.When('age__gt=15', 20, else_condition=15)
+        self.model = items.BareModel()
+        instance = functions.When('age__gt=15', 20)
         instance._cached_data = 25
         instance.model = self.model
         self.instance = instance
@@ -93,10 +91,11 @@ class TestWhen(unittest.TestCase):
             'age__contains=15'
         ]
         for expression in expressions:
-            field_name, exp, value = self.instance.parse_expression(expression)
-            self.assertEqual(field_name, 'age')
-            self.assertIn(exp, ['gt', 'lt', 'eq', 'contains'])
-            self.assertEqual(value, '15')
+            with self.subTest(expression=expression):
+                field_name, exp, value = self.instance.parse_expression(expression)
+                self.assertEqual(field_name, 'age')
+                self.assertIn(exp, ['gt', 'lt', 'eq', 'contains'])
+                self.assertEqual(value, '15')
 
     # def test_adding_to_model(self):
     #     self.model.add_case(15, self.instance)
@@ -108,7 +107,7 @@ class TestWhen(unittest.TestCase):
 
 class TestExtractDates(unittest.TestCase):
     def setUp(self):
-        self.model = DateModel()
+        self.model = items.DateModel()
 
     def test_day_resolution(self):
         instance = functions.ExtractDay('1987-1-1')
@@ -135,18 +134,20 @@ class TestExtractDates(unittest.TestCase):
         dates = ['1987-1-1', '1.1.1987', '1-1-1987', '1/1/1987', 
                 'Oct 1, 1987', '1-1-02', '02-1-1', '1.1.02']
         for d in dates:
-            instance = functions.ExtractDay(d)
-            instance.model = self.model
-            instance.field_name = 'date_of_birth'
-            self.assertEqual(instance.resolve(), 1)
+            with self.subTest(d=d):
+                instance = functions.ExtractDay(d)
+                instance.model = self.model
+                instance.field_name = 'date_of_birth'
+                self.assertEqual(instance.resolve(), 1)
 
     def test_can_extract_from_custom_format(self):
         dates = ['Oct 1 1987']
         for d in dates:
-            instance = functions.ExtractYear(d, date_format='%b %d %Y')
-            instance.model = self.model
-            instance.field_name = 'date_of_birth'
-            self.assertEqual(instance.resolve(), 1987)
+            with self.subTest(d=d):
+                instance = functions.ExtractYear(d, date_format='%b %d %Y')
+                instance.model = self.model
+                instance.field_name = 'date_of_birth'
+                self.assertEqual(instance.resolve(), 1987)
 
     # def test_can_extract_year(self):
     #     self.model.add_value('age', functions.ExtractYear('11-1-1987'))

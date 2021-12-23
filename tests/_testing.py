@@ -35,3 +35,15 @@
 # s.update('surname', 'Jenner')
 # s.update('name', 'Kylie')
 # print(s.save(extension='csv'))
+
+
+from zineb.models.datastructure import Model
+from zineb.models.fields import DateField
+from zineb.models.functions import ExtractYear
+
+
+class TestModel(Model):
+    age = DateField()
+    
+m = TestModel()
+m.add_value('age', ExtractYear('1-1-2009'))

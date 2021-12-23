@@ -151,6 +151,12 @@ class Field:
             self._cached_result = self._to_python_object(self._cached_result)
 
         return self._cached_result
+    
+    def _function_resolve(self, func):
+        """"Internal method used to resolve the data of
+        functions such as ExtractYear, ExtractMonth [...]"""
+        if not callable(func):
+            raise ValueError('Func should be a callable')
 
     def resolve(self, value: Any, convert: bool=False, dtype: Any=None):
         """

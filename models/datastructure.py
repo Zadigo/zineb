@@ -270,11 +270,6 @@ class DataStructure(metaclass=Base):
         """
         Gets the cached field object that was registered
         on the model via the FieldDescriptor
-
-        Parameters
-        ----------
-
-            - field_name (str): the field name to get
         """
         return self._meta.get_field(field_name)
 
