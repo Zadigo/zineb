@@ -280,3 +280,51 @@ class ExtractDay(DateExtractorMixin, FunctionsMixin):
 #             raise ValueError()
         
 #         self._cached_data = self.value[:self.by]
+
+
+class ComparisionMixin(FunctionsMixin):
+    def __init__(self, *values):
+        values = list(values)
+        types = []
+        values_length = len(values)
+        
+        # Make sure that each value is of the same
+        # type by comparing the previous one to the one
+        # ahead of it. If one comparision fails,
+        # does not matter, everything fails
+        
+        for value in values:
+            types.append(type(value).__name__)
+        
+        results = []
+        for i, name in enumerate(types):
+            if i == values_length - 1:
+                break
+            results.append(name == types[i + 1])
+            
+        if not all(results):
+            raise ValueError('All the values should be of the same type')
+        self.values = values 
+    
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.values})"
+
+
+class Greatest(ComparisionMixin):
+    """Takes a list of values and returns the greatest
+    one. Each values should be of the same type"""
+        
+    def resolve(self):
+        self._cached_data = max(self.values)
+        
+        
+class Smallest(ComparisionMixin):
+    """Takes a list of values and returns the smallest
+    one. Each values should be of the same type"""
+    
+    def resolve(self):
+        self._cached_data = min(self.values)
+
+
+# class Replace(FunctionsMixin):
+#     def __init__(self, value: Any, by: Any):
