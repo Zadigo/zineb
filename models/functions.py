@@ -1,8 +1,10 @@
 import datetime
+import math
 from typing import Any, Callable, Union
 
 from zineb.exceptions import ModelNotImplementedError
-from zineb.utils.conversion import string_to_number
+from zineb.models.fields import Value
+from zineb.utils.conversion import convert_if_number, string_to_number
 from zineb.utils.formatting import LazyFormat
 
 
@@ -101,7 +103,47 @@ class Divide(Math):
         field = super().resolve()
         self._cached_data = field._cached_result / self.by
         return self._cached_data
+    
+    
+# class StatisticsMixin(ExpressionMixin):
+#     def __init__(self, *values: Union[int, float]):
+#         clean_values = []
+#         for value in values:
+#             clean_values.append(Value(value))
+#         self.values = clean_values
+    
+#     def resolve(self):
+#         numerical_values = map(lambda x: convert_if_number(x), self.values)
+#         return list(numerical_values)
+    
 
+# class Mean(StatisticsMixin):
+#     """
+#     Returns the mean value from a list of
+#     numerical values
+#     """
+    
+#     def resolve(self):
+#         values = super().resolve()
+#         self._cached_data = sum(values) / len(values)        
+#         return self._cached_data
+    
+    
+# class StDev(StatisticsMixin):
+#     """Returns the standard deviation of
+#     a list of numerical values"""
+    
+#     @staticmethod
+#     def calculate_variance(values, mean):
+#         a = map(lambda x: math.pow(x - mean, 2), values)
+#         return sum(a) / len(values)
+    
+#     def resolve(self):
+#         values = super().resolve()
+#         mean = sum(values) / len(values)
+#         variance = self.calculate_variance(values, mean)
+#         return math.sqrt(variance)
+        
 
 class When:
     """Returns a parsed value if a condition is
@@ -260,3 +302,7 @@ class ExtractMonth(DateExtractorMixin, ExpressionMixin):
 
 class ExtractDay(DateExtractorMixin, ExpressionMixin):
     lookup_name = 'day'
+
+
+m = Mean('1', '3')
+print(m.resolve())
