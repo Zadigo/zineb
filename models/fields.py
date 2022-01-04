@@ -39,6 +39,30 @@ class Empty:
         return value == '' or value == 'Empty'
 
 
+class Value:
+    """
+    A simple field that can be used to represent a value
+    extracted from the internet and that will be properly
+    cleaned and resolved for implementing directly
+    into the model
+    """
+    result = None
+
+    def __init__(self, value: Any):
+        self.result = value
+
+    def __str__(self):
+        return self.result
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.result})"
+
+    def __setattr__(self, name, value):
+        if name == 'result':
+            value = deep_clean(value)
+        return super().__setattr__(name, value)
+
+
 class Field:
     """Base class for all fields """
 
@@ -81,6 +105,7 @@ class Field:
         on the model to this field instance"""
         self._meta_attributes.update(field_name=field_name)
         current_model = self._meta_attributes.get('model', None)
+        
         if current_model is None and model is not None:
             self._meta_attributes['model'] = model
 
@@ -186,6 +211,10 @@ class Field:
         and/or call super().resolve() to benefit from the cleaning
         and normalizing logic
         """
+        if isinstance(value, Value):
+            self._bind(value.field_name)
+            return self._simple_resolve(str(value))
+            
         # This is a security check so that we only take
         # values that have a known Python type get a pass.
         # Technically, we should only get strings from 
@@ -290,6 +319,9 @@ class ImageField(URLField):
 
     def __init__(self, max_length: int=None, null: bool=True, validators: list=[], 
                  download: bool=False, as_thumnail: bool=False, download_to: str=None):
+        valid_extensions = ['jpeg', 'jpg', 'png']
+        self._default_validators.extend([model_validators.validate_extension(valid_extensions)])
+        
         super().__init__(max_length=max_length, null=null, validators=validators)
 
         self.download = download
@@ -583,26 +615,3 @@ class BooleanField(Field):
                 value = Empty
             result = self._run_validation(value)              
         self._cached_result = self._to_python_object(result)
-
-
-class Value:
-    """
-    A simple field that can be used to represent a value
-    extracted frome the internet
-    """
-    result = None
-
-    def __init__(self, value: Any, field_name: str=None):
-        self.result = value
-        self.field_name = field_name
-
-    def __str__(self):
-        return self.result
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}({self.result})"
-
-    def __setattr__(self, name, value):
-        if name == 'result':
-            value = deep_clean(value)
-        return super().__setattr__(name, value)
