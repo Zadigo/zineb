@@ -46,7 +46,7 @@ def load_command_class(name: str) -> Callable:
         Command (type): the Command instance
     """
     paths = collect_commands()
-    for path in   paths:
+    for path in paths:
         module_name = basename(path)
         name, _ = module_name.split('.')
         try:
