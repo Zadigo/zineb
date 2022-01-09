@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Callable, OrderedDict
+from typing import OrderedDict
 
 from zineb.http.request import HTTPRequest
 from zineb.settings import lazy_settings
