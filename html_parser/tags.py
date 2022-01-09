@@ -100,14 +100,12 @@ class BaseTag(NavigationMixin):
 
 
     def __str__(self):
-        return ''.join(self.get_representation)
+        # return ''.join(self.get_representation)
+        return f"<{self.name}>{self.contents}</{self.name}>"
     
     def __repr__(self):
         return self.__str__()
         # return f"<{self.name}></{self.name}>"
-
-
-
     
     def __eq__(self, instance_or_name):
         if isinstance(instance_or_name, BaseTag):
@@ -142,6 +140,10 @@ class BaseTag(NavigationMixin):
     #     pass
 
     def add_child(self, tag: Callable):
+        # if self.contents:
+        #     for content in self.contents:
+        #         if not content.is_data:
+        #           content.add_child(tag)
         self.contents.append(tag)
 
     def has_attr(self, name: str):

@@ -1,4 +1,5 @@
 from zineb.html_parser.builders import BaseBuilder
+from zineb.html_parser.algorithm import CustomHTMLParser
 
 
 # HTML = """
@@ -23,18 +24,27 @@ from zineb.html_parser.builders import BaseBuilder
 # </html>
 # """
 
-HTML = """
-<html>
-    <div id="title">
-        <div>
-            <img src="http://example.com">
-        </div>
-    </div>
-</html>
-"""
+# HTML = """
+# <html>
+#     <div id="title">
+#         <div>
+#             <img src="http://example.com">
+#         </div>
+#     </div>
+# </html>
+# """
 
 
-builder = BaseBuilder()
-builder.start_iteration(HTML)
-builder.finalize()
-print(builder)
+# builder = BaseBuilder()
+# builder.start_iteration(HTML)
+# builder.finalize()
+# print(builder)
+
+
+
+
+b = BaseBuilder()
+x = CustomHTMLParser(b)
+x.feed("""<html><span>Some value</span><h1>item</h1></html>""")
+x.close()
+print(b)

@@ -1,6 +1,7 @@
 from collections import deque
 from functools import cached_property
 from typing import Callable, Counter
+from html_parser.utils import TOP_LEVEL_TAGS
 
 from zineb.html_parser.algorithm import CustomHTMLParser
 from zineb.html_parser.tags import (ClosingTag, Comment, HTMLDocument, SimpleData,
@@ -23,10 +24,10 @@ class BaseBuilder:
         self._current_data = []
         self._unclosed_tags = Counter()
         self._collected_tags = []
+        self._html_body = None
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.html_tree})"
-        # return f"{self.__class__.__name__}({self.parent})"
     
     @classmethod
     def start_iteration(cls, html_text: str, document: Callable=None):
@@ -43,10 +44,15 @@ class BaseBuilder:
     @property
     def _get_last_item(self):
         try:
-            # return self.TREE[-1]
             return self._collected_tags[-1]
         except:
             return None
+        
+    @property
+    def _get_previous_item(self):
+        if not self._collected_tags:
+            return None
+        return self._collected_tags[-2]
     
     @cached_property
     def number_of_tags(self):
@@ -85,75 +91,113 @@ class BaseBuilder:
 
     def add_to_tree(self, tag):
         self.TREE.append(tag)
-                
+        
+    def get_first_occurrence(self, name: str):
+        """Get the very first occurence of a tag"""
+        result = None
+        for tag in self._collected_tags:
+            if not tag.closed and tag.name == name:
+                result = tag
+                break
+        return result
+        
     def handle_inner_data(self, data: str):
-        tag = SimpleData(data)
-
-        # self.add_to_tree(tag)
-        self._current_data.append(tag)
-        
-        # We had a previous tag, also implement
-        # it in the current tag
-        # if self._current_tag is not None and not self._current_tag.is_data:
-        #     self._current_tag.add_child(tag)
-        # self.parent.add_child(tag)
-
+        self._get_last_item.add_child(data)
+    
     def handle_start_tag(self, name: str, attrs: dict, **kwargs):
-        tag = Tag.as_instance(name=name, attrs=attrs, self_closing=False)
-        tag.self_closing = self.is_self_closing(name)
-        
-        # Track the tags that are currently opened
-        # and close them when they are met in the
-        # handle_end_tag definition
-        self._unclosed_tags.update(name)
-
-        # If we have data that was parsed, integrate
-        # it in the current tag
-        # if self._current_data_tag is not None:
-        #     self._current_tag.add_child(tag)
-
-        # We had a previous tag, also implement
-        # it in the current tag
-        if self._current_tag is not None:
-            self._current_tag.add_child(tag)
-        
-        # self.parent.add_child(tag)
-        self._collected_tags.append(tag)
-        # self.add_to_tree(tag)
-        self._current_tag = self._get_last_item
-
+        new_tag = Tag.as_instance(name, attrs, **kwargs)
+        new_tag.self_closing = self.is_self_closing(name)
+        self._current_tag = new_tag
+        self._unclosed_tags.update({name: 1})
+        if name == 'html':
+            self._html_body = new_tag
+        self._collected_tags.append(new_tag)
+        # self._html_body.add_child(new_tag)
+        self.TREE.append(new_tag)
+            
     def handle_end_tag(self, name: str, nsprefix=None):
-        self._unclosed_tags.subtract(name)
-        # if self._get_last_item is not None:
-        #     self._get_last_item.closed = True
-        
-        # if self._current_data:
+        if self._unclosed_tags[name] > 0:
+            self._unclosed_tags.subtract([name])
+            initial_start_tag = self.get_first_occurrence(name)
+            if initial_start_tag is not None:
+                initial_start_tag.closed = True
             
-        # if requires_closing(name):
-        #     closing_tag = ClosingTag(name)
-        #     self.add_to_tree(closing_tag)
+                
+    # def handle_inner_data(self, data: str):
+    #     tag = SimpleData(data)
+
+    #     # self.add_to_tree(tag)
+    #     self._current_data.append(tag)
+        
+    #     # We had a previous tag, also implement
+    #     # it in the current tag
+    #     # if self._current_tag is not None and not self._current_tag.is_data:
+    #     #     self._current_tag.add_child(tag)
+    #     # self.parent.add_child(tag)
+
+    # def handle_start_tag(self, name: str, attrs: dict, **kwargs):
+    #     tag = Tag.as_instance(name=name, attrs=attrs, self_closing=False)
+    #     tag.self_closing = self.is_self_closing(name)
+        
+    #     # Track the tags that are currently opened
+    #     # and close them when they are met in the
+    #     # handle_end_tag definition
+    #     self._unclosed_tags.update({name: 1})
+
+    #     # If we have data that was parsed, integrate
+    #     # it in the current tag
+    #     # if self._current_data_tag is not None:
+    #     #     self._current_tag.add_child(tag)
+
+    #     # We had a previous tag, also implement
+    #     # it in the current tag
+    #     if self._current_tag is not None:
+    #         self._current_tag.add_child(tag)
+        
+    #     # self.parent.add_child(tag)
+    #     self._collected_tags.append(tag)
+    #     # self.add_to_tree(tag)
+    #     self._current_tag = self._get_last_item
+
+    # def handle_end_tag(self, name: str, nsprefix=None):
+    #     # Check that we have a corresponding unclosed
+    #     # tag and if so, get the last item and mark
+    #     # it as closed
+    #     if self._unclosed_tags[name] > 0:
+    #         pass
+        
+    #     self._unclosed_tags.subtract([name])
+        
+    #     # if self._get_last_item is not None:
+    #     #     self._get_last_item.closed = True
+        
+    #     # if self._current_data:
             
-        # self._current_data = None
+    #     # if requires_closing(name):
+    #     #     closing_tag = ClosingTag(name)
+    #     #     self.add_to_tree(closing_tag)
+            
+    #     # self._current_data = None
         
-        if self._current_tag is not None:
-            # self._current_tag.contents = self._current_data[-1]
-            if self._current_tag.namee != self._get_last_item.name:
-                self._c
-        self._current_data = []
-        self.add_to_tree(self._get_last_item)
+    #     if self._current_tag is not None:
+    #         # self._current_tag.contents = self._current_data[-1]
+    #         if self._current_tag.name != self._get_last_item.name:
+    #             self._c
+    #     self._current_data = []
+    #     self.add_to_tree(self._get_last_item)
 
-    def handle_comment(self, data: str):
-        tag = Comment(data)
-        self.add_to_tree(tag)
+    # def handle_comment(self, data: str):
+    #     tag = Comment(data)
+    #     self.add_to_tree(tag)
 
-    def handle_self_closing_tag(self, name: str, attrs: list):
-        tag = Tag(name, attrs, self_closing=True)
-        self.add_to_tree(tag)
+    # def handle_self_closing_tag(self, name: str, attrs: list):
+    #     tag = Tag(name, attrs, self_closing=True)
+    #     self.add_to_tree(tag)
         
         
-# HTML = """<html>Simple</html>"""
-HTML = """<html>Simple <b>talent</b></html>"""
-# HTML = """<html><div></div><div></div></html>"""
-builder = BaseBuilder()
-builder.start_iteration(HTML)
-print(builder)
+# # HTML = """<html>Simple</html>"""
+# HTML = """<html>Simple <b>talent</b></html>"""
+# # HTML = """<html><div></div><div></div></html>"""
+# builder = BaseBuilder()
+# builder.start_iteration(HTML)
+# print(builder)

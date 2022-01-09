@@ -1,5 +1,8 @@
 import re
 
+TOP_LEVEL_TAGS = {'html', 'head', 'body'}
+
+
 CLOSING_TAGS = {
     'html', 'body', 'main', 'article', 'div', 'span',
     'script', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'p',

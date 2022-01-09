@@ -42,8 +42,3 @@ class CustomHTMLParser(HTMLParser):
 
     def handle_comment(self, data: str):
         self.builder_instance.handle_comment(data)
-
-
-# custom = CustomParser()
-# custom.feed(HTML)
-# custom.close()
