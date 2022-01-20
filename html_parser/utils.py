@@ -36,9 +36,7 @@ def filter_by_attrs(data, attrs: dict={}):
 
 
 def filter_by_name_or_attrs(data, name, attrs={}):
-    """External helper function that is used to filter
-    over a queryset data by name or by
-    certain attrs"""
+    """Filter by name or attributes"""
     tags_by_name = filter(lambda x: x.name == name, data)
 
     def attrs_filtering_option(x):
@@ -54,8 +52,7 @@ def filter_by_name_or_attrs(data, name, attrs={}):
 
 def break_when(func, items):
     """Iterate over a list of items and
-    break on the first matching item"""
-    item = None
+    breaks on the first match"""
     for item in items:
         if func(item):
             break
