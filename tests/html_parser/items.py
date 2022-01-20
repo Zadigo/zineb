@@ -56,3 +56,13 @@ SIBLINGS_HTML = """
     </body>
 </html>
 """
+
+
+SIMPLE_HTML = """
+<html>
+    <body>
+        <span id="1">1</span>
+        <span id="2">2</span>
+    </body>
+</html>
+"""

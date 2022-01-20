@@ -1,7 +1,10 @@
 import unittest
+from typing import Generator
 
+from zineb.html_parser.html_tags import BaseTag, ElementData, NewLine, Tag
+from zineb.html_parser.parsers import General
 from zineb.html_parser.queryset import QuerySet
-from zineb.html_parser.tags import BaseTag, ElementData, NewLine, Tag
+from zineb.tests.html_parser.items import SIMPLE_HTML
 
 # TAGS = [Tag('a'), Tag('a', attrs=[('id', 'test')]), Tag('p', attrs=[('data-test', 'test')])]
 
@@ -25,10 +28,8 @@ class TestBaseTag(unittest.TestCase):
     def test_find(self):
         # <a><span>something</span></a>
         link = Tag('a')
-    
         span = Tag('span')
         span._internal_data = [ElementData('something')]
-        
         link._children = [span]
         
         result = link.find('span')
@@ -51,6 +52,10 @@ class TestBaseTag(unittest.TestCase):
         
         first_span = result.first
         self.assertEqual(first_span.string, '1')
+        
+        for item in result:
+            with self.subTest(item=item):
+                self.assertEqual(item.name, 'span')
             
     def test_can_get_string(self):
         # Test that we can get the string contained
@@ -62,7 +67,109 @@ class TestBaseTag(unittest.TestCase):
         # Test that when we have multiple tags within
         # the given tag, that we get None
         tag._internal_data = [ElementData('something'), NewLine()]
-        self.assertIsNone(tag.string)
+        self.assertEqual(tag.string, 'something')
+        
+    
+class TestQueryFunctions(unittest.TestCase):
+    """Test core functionnalities of query
+    and navigation functions"""
+    
+    def setUp(self):
+        extractor = General()
+        extractor.resolve(SIMPLE_HTML)
+        # Use this tag as source tag to evaluate
+        # how the functions work
+        self.measure_tag = extractor.manager.find('span')
+    
+    def test_previous_element(self):
+        newline = self.measure_tag.previous_element
+        self.assertSequenceEqual(newline.name, 'newline')
+        
+        body = self.measure_tag.previous_element.previous_element
+        self.assertSequenceEqual(body.name, 'body')
+        
+    def test_next_element(self):
+        span_data = self.measure_tag.next_element
+        self.assertSequenceEqual(span_data.name, 'data')
+        self.assertSequenceEqual(span_data.string, '1')
+    
+    def test_parents(self):
+        parents_should_be = ['html', 'body']
+        for item in self.measure_tag.parents:
+            with self.subTest(item=item):
+                self.assertIn(item.name, parents_should_be)
+                
+    def test_parent(self):
+        body = self.measure_tag.parent
+        self.assertTrue(body == 'body')
+        
+    def test_get_attr(self):
+        self.assertEqual(self.measure_tag.get_attr('id'), '1')
+        
+    def test_get_previous(self):
+        html = self.measure_tag.get_previous('html')
+        self.assertTrue(html == 'html')
+        
+    def test_get_next(self):
+        span = self.measure_tag.get_next('span')
+        self.assertTrue(span == 'span')
+        self.assertTrue(span.get_attr('id'), '2')
+        
+    def test_get_all_previous(self):
+        expected_previous = ['html']
+        generator = self.measure_tag.get_all_previous('html')
+        self.assertIsInstance(generator, Generator)
+        
+        for item in generator:
+            with self.subTest(item=item):
+                self.assertTrue(item.name in expected_previous)
+                
+    def test_get_all_next(self):
+        expected_previous = ['span']
+        generator = self.measure_tag.get_all_next('span')
+        self.assertIsInstance(generator, Generator)
+        
+        for item in generator:
+            with self.subTest(item=item):
+                self.assertTrue(item.name in expected_previous)
+    
+    def test_get_parent(self):
+        body = self.measure_tag.get_parent('body')
+        self.assertEqual(body,'body')  
+        
+    def test_attrs_list(self):
+        keys = self.measure_tag.attrs_list
+        self.assertListEqual(keys, ['id'])
+        
+    def test_tag_does_not_exist(self):
+        # Assert that trying to find a tag that
+        # does not exist within the children of
+        # the tag returns None
+        self.assertIsNone(self.measure_tag.find('a'))
+        self.assertEqual(len(self.measure_tag.find_all('a')), 0)
+        
+        
+class TestSpecialTagTests(unittest.TestCase):
+    def test_newline(self):
+        # This tag shoudld always return
+        # false on has_attr and None on
+        # get_attr
+        newline = NewLine(extractor=None)
+        self.assertFalse(newline.has_attr('id'))
+        self.assertIsNone(newline.get_attr('id'))
+        
+    def test_element_data(self):
+        element_data = ElementData('Kendall')
+        # Assert that we can compare a raw
+        # string to the class
+        self.assertTrue(element_data, 'Kendall')
+        
+        result = element_data + 'Jenner'
+        self.assertEqual(result, 'KendallJenner')
+        
+        data1 = ElementData('Kendall')
+        data2 = ElementData('Jenner')
+        self.assertEqual(data1 + data2, 'KendallJenner')
     
     
 if __name__ == '__main__':

@@ -25,8 +25,8 @@ class TestExtractor(unittest.TestCase):
         
     def test_complex_tag_creation(self):
         virtual_tree = ['html', 'body', 'a']
-        for item in virtual_tree:
-            self.extractor.start_tag(item, [], position=(None, None))
+        for i, item in enumerate(virtual_tree):
+            self.extractor.start_tag(item, [], position=(None, None), index=i)
             
         for item in virtual_tree:
             self.extractor.end_tag(item)
