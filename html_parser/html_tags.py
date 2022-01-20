@@ -1,10 +1,12 @@
 from collections import OrderedDict, deque
 from functools import cached_property
-from typing import Callable, Union, List, Tuple
-from html_parser.utils import break_when, filter_by_name
+from typing import Callable, List, Tuple, Union
 
 from zineb.html_parser.queryset import QuerySet
 from zineb.utils.characters import deep_clean
+from zineb.utils.iteration import drop_while
+
+from html_parser.utils import break_when
 
 
 class QueryMixin:
@@ -134,10 +136,18 @@ class BaseTag(QueryMixin):
     def string(self) -> Union[str, None]:
         # When we have one item, return it,
         # otherwise, with multiple data elements
-        # we cannot tell which element to refer
-        # to then we should just return None
+        # we need a specific logic to determine
+        # exactly what to return...
         if len(self._internal_data) == 1:
             return self._internal_data[0]
+        
+        # In a case where we have one solid
+        # string data an only null strings,
+        # then we should return that item
+        result = list(drop_while(lambda x: x == '\n', self._internal_data))
+        if result:
+            return result[-1]
+        
         return None
 
     @property
@@ -221,13 +231,19 @@ class StringMixin(QueryMixin):
 
 class NewLine(StringMixin):
     """Represents a newline as \\n"""
+    
     def __init__(self):
         super().__init__('\n')
+        self.name = 'newline'
+        
+    def __eq__(self, value):
+        return value == '\n'
                 
 
 class ElementData(StringMixin):
     """Represents a data element within
     a tag e.g. Kendall in <span>Kendall</span>"""
+    
     def __init__(self, data):
         super().__init__(data)
         self.name = 'data'
@@ -235,6 +251,7 @@ class ElementData(StringMixin):
 
 class Comment(StringMixin):
     """Represents a comment"""
+    
     def __init__(self, data):
         super().__init__(data)
         self.name = 'comment'

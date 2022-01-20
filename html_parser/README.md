@@ -277,12 +277,12 @@ Defers the resolution of the new query.
 
 ```python
 queryset = extractor.manager.find_all('div')
-result = queryset.generator('a', attrs={'id': 'test'})
+links = queryset.generator('a', attrs={'id': 'test'})
 
-for item in result:
+for link in links:
     # Do something
 
-# Generator
+# Generator -> QuerySet([<a id="test">])
 ```
 
 #### Update
@@ -306,7 +306,7 @@ Returns all the children of a tag.
 tag = extractor.manager.find('div')
 tag.children
 
-# String
+# QuerySet([<a>, <a id="test">])
 ```
 
 #### Find
@@ -343,7 +343,7 @@ Get the element directly before the current tag.
 tag = extractor.manager.find('div')
 new_tag = tag.previous_element
 
-# Tag
+# Tag -> <body>, ...
 ```
 
 #### Next element
@@ -354,7 +354,7 @@ Get the element directly after the current tag.
 tag = extractor.manager.find('div')
 new_tag = tag.next_element
 
-# Tag
+# Tag -> <div>, <span>, ...
 ```
 
 #### Contents
@@ -365,7 +365,7 @@ Get all the content within the tag.
 tag = extractor.manager.find('div')
 result = tag.contents
 
-# List
+# List -> ['Click', 'Kendall', ...]
 ```
 
 #### Get attribute
@@ -465,4 +465,49 @@ tag = extractor.manager.find('div')
 tag.string
 
 # String
+```
+
+## Base tags
+
+When the XXX parses the html document, it transforms each of the string tags into Python objects with which you can interract. There are three main categories of tags: `Tag`, `ElementData `, `NewLine `and `Commnent`.
+
+`Tag` is the only item on which you can call additional querying functions like `find_all` or `find` because it is the only one that can logically contain children.
+
+## Extractors
+
+In certain situations, you might want to extract very specific things in such as images, tables or the whole text on the html page. XXX comes with extractors that can execute these veery specific and often common tasks in parsing a web page.
+
+All extractors are subclasses of the main `Extractor`.
+
+### ImageExtractor
+
+Extracts all the images from a web page.
+
+```python
+extractor = ImageExtractor()
+images = extractor.get_images()
+
+# QuerySet([<img src="http://website.com/1.jpg">])
+```
+
+### TextExtractor
+
+Extracts the whole text from a web page.
+
+```python
+extractor = TextExtractor()
+images = extractor.get_text()
+
+# List -> ['Some text', ...]
+```
+
+### TableExtractor
+
+Extracts the whole text from a web page.
+
+```python
+extractor = TableExtractor()
+images = extractor.get_values()
+
+# List -> [[], [1, 165], [2, 176], ...]
 ```

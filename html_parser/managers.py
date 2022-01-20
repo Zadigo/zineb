@@ -3,13 +3,13 @@ from typing import Union
 
 from zineb.html_parser.html_tags import Tag
 from zineb.html_parser.queryset import QuerySet
-from zineb.html_parser.utils import HTML_TAGS
+from zineb.html_parser.utils import HTML_TAGS, filter_by_name_or_attrs
 from zineb.utils.iteration import keep_while
 
 
 class Manager:
-    def __init__(self, instance):
-        self.instance = instance
+    def __init__(self, extractor):
+        self._extractor_instance = extractor
 
     def __getattr__(self, value):
         if value in HTML_TAGS:
@@ -22,7 +22,7 @@ class Manager:
     @cached_property
     def get_title(self) -> str:
         title = None
-        with self.instance as items:
+        with self._extractor_instance as items:
             for item in items:
                 if item.name == 'title':
                     title = item.string
@@ -40,51 +40,15 @@ class Manager:
         return self.find_all('table')
 
     def find(self, name: str, attrs: dict = {}) -> Tag:
-        """Returns the first found element"""
-        tag_to_return = None
-        for tag in self.instance.get_container:
-            if tag == name:
-                if attrs:
-                    for attr, value in attrs.items():
-                        result = tag.get_attr(attr)
-                        if result is not None:
-                            if result == value and tag == name:
-                                tag_to_return = tag
-                else:
-                    tag_to_return = tag
-                    break
-        return tag_to_return
+        """Get a tag by name or attribute. If there are multiple
+        tags, the first item of the list is returned"""
+        result = filter_by_name_or_attrs(self._extractor_instance, name, attrs)
+        return list(result)[0]
 
-    def find_all(self, name_or_names: Union[str, list], attrs: dict = None):
-        """Finds all the elements"""
-        def filtering_function(tag):
-            if isinstance(name_or_names, list):
-                return tag.name in name_or_names
-            return tag == name_or_names
-
-        queryset = keep_while(filtering_function, self.instance.get_container)
-        return QuerySet.copy(queryset)
-
-    # def filter(self, **expressions):
-    #     """A function that allows finding items using query expressions"""
-    #     tokens = []
-    #     for key, value in expressions.items():
-    #         # a__class__eq="google"
-    #         items = key.split('__')
-    #         if len(items) < 2:
-    #             raise ValueError(
-    #                 'Expression should contain at least 2 values: the tag name and the attribute e.g. a__class')
-    #         if len(items) == 2:
-    #             items.append('eq')
-
-    #         tokens.append((items, value))
-
-    #     tags = []
-    #     for lhs, rhs in tokens:
-    #         name, attr, comparator = lhs
-    #         tag = self.find(name, attrs={attr: rhs})
-    #         tags.append(tag)
-    #     return QuerySet.copy(tags)
+    def find_all(self, name: Union[str, list], attrs: dict = None):
+        """Filter tags by name or by attributes"""
+        result = filter_by_name_or_attrs(self._extractor_instance, name, attrs)
+        return QuerySet.copy(result)
 
     def save(self, filename: str):
         pass

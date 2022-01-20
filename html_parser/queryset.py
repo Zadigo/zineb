@@ -1,10 +1,13 @@
-from typing import Any, Generator, Iterator, Union
+from typing import Generator, Iterator, List, Union
 
-from zineb.html_parser.utils import break_when, filter_by_name_or_attrs
-from zineb.utils.iteration import drop_while, keep_while
+from zineb.html_parser.utils import filter_by_name_or_attrs
+from zineb.utils.iteration import drop_while
 
 
 class QuerySet:
+    """Represents the aggregation of multiple
+    tags from the html page"""
+    
     def __init__(self):
         self._data = []
         self._queryset = []
@@ -54,9 +57,10 @@ class QuerySet:
         pass
 
     def find(self, name: str, attrs: dict = {}):
-        """Get a tag by name or attribute"""
-        # items = filter_by_name_or_attrs(self._queryset_or_internal_data, name, attrs)
-        # return items 
+        """Get a tag by name or attribute. If there are multiple
+        tags, the first item of the list is returned"""
+        result = filter_by_name_or_attrs(self._queryset_or_internal_data, name, attrs)
+        return list(result)[0]
 
     def find_all(self, name: str, attrs: dict = {}):
         """Filter tags by name or by attributes"""
@@ -64,7 +68,7 @@ class QuerySet:
         self._queryset = result
         return QuerySet.copy(result)
 
-    def exclude(self, name: str, attrs: dict = {}):
+    def exclude(self, name: str, attrs: dict={}):
         """Exclude tags with a specific name or attributes"""
         values = []
         for item in self._queryset_or_internal_data:
@@ -82,15 +86,33 @@ class QuerySet:
     def distinct(self, *attrs):
         """Return tags with a distinct attribute"""
 
-    def values(self):
-        """Return the string contained for each tag in the queryset"""
-        # TODO: Determine if we should return the string values
-        # of the children of the tag in addition with the internal
-        # data of tag
+    def values(self, *attrs: List[str], include_fields: bool=False):
+        """Return the string or an attribute contained 
+        for each tag in the queryset. By default, if no
+        attribute is provided, the string is returned
+        by defalult"""
+        contents = []
+        
+        if not attrs:
+            attrs.append('string')
+        
+        for item in self._queryset_or_internal_data:
+            values = []
+            for attr in attrs:
+                if attr == 'string':
+                    values.append(getattr(item, attr))
+                else:
+                    values.append(item[attr])
+            contents.append(values)
+            
+        if include_fields:
+            contents.insert(0, list(attrs))
+        
+        return contents
     
     def values_list(self, *attrs):
-        """Returns a list of tuples using
-        the provided attributes e.g. [(('id', 'test'), ('data', 'test'))]
+        """Returns a list of tuples using the provided 
+        attributes e.g. [(('id', 'test'), ('data', 'test'))]
         """
 
     def dates(self, name: str = None):
@@ -146,3 +168,8 @@ class QuerySet:
     def update(self, name: str, attr: str, value: str):
         """Update the attribute list of a list of items
         within the queryset"""
+
+    def filter(self, *funcs):
+        """Function for running more complexe
+        queries on the html page"""
+        pass

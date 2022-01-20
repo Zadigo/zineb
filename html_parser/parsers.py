@@ -10,6 +10,10 @@ from zineb.html_parser.utils import break_when
 
 
 class Algorithm(HTMLParser):
+    """Subclasses html.HTMlParser in order to
+    process the html tags. This should not be
+    subclassed or used directly"""
+    
     def __init__(self, extractor, **kwargs):
         self.extractor = extractor
         super().__init__(**kwargs)
@@ -31,6 +35,9 @@ class Algorithm(HTMLParser):
 
 
 class Extractor:
+    """The main interface that deals with processing
+    each tag sent by the Algorithm"""
+    
     HTML_PAGE = None
 
     def __init__(self):
@@ -153,19 +160,36 @@ class Extractor:
         # print('/', tag, tag_to_close)
 
     def internal_data(self, data):
-        data_instance = ElementData(data)
+        data_instance = None
+        # \n is sometimes considered as
+        # data witthin a tag we need to 
+        # deal with strings that
+        # come as "\n   " and represent
+        # them as NewLine if necessary
+        if '\n' in data:
+            element = data.strip(' ')
+            if element == '\n':
+                data_instance = NewLine()
+            else:
+                data_instance = ElementData(element)
+        else:
+            data_instance = ElementData(data)
+            
         try:
+            # Certain tags do not have an internal_data
+            # attribute and will raise an error because 
+            # technically they are not supposed to contain
+            # data. In that specific case, if the current tag
+            # is a data element, just skip on error
             self._current_tag._internal_data.append(data_instance)
         except:
-            # print("Does not have current")
             pass
-        else:
-            self.recursively_add_tag(data_instance)
-            self.container.append(data_instance)
+        self.recursively_add_tag(data_instance)
+        self.container.append(data_instance)
         # print(data)
 
     def self_closing_tag(self, tag, attrs, **kwargs):
-        """Handle tags that are self closed example <link />"""
+        """Handle tags that are self closed example <link>, <img>"""
         self._opened_tags.update([tag])
 
         klass = Tag(tag, attrs, extractor=self)
@@ -193,7 +217,11 @@ class Extractor:
 
 
 class General(Extractor):
-    def __init__(self, html: Union[str, StringIO] = None):
+    """The main class used to process the html page.
+    It implements the default manager for querying
+    the different items on the html page"""
+    
+    def __init__(self, html: Union[str, StringIO]=None):
         self.manager = Manager(self)
         super().__init__()
 

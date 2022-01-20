@@ -9,13 +9,13 @@ HTML_TAGS = {
     'mark', 'meta', 'meter', 'nav', 'noscript', 'object', 'ol', 'optgroup',
     'option', 'select', 'param', 'picture', 'pre', 'progress', 'q', 'ruby',
     'section', 'small', 'source', 'span', 'style', 'sub', 'svg', 'template',
-    'title', 'tfoot', 'u', 'var', 'video', 'time'
+    'title', 'tfoot', 'u', 'var', 'video', 'time', 'img', 'iframe'
 }
 
 
 SELF_CLOSING_TAGS = {
     'link', 'br', 'base', 'embed', 'input', 'hr',
-    'meta', 'video'
+    'meta', 'video', 'img'
 }
 
 

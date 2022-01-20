@@ -1,8 +1,10 @@
-from zineb.html_parser.queryset import QuerySet
+import requests
 from zineb.html_parser.html_tags import ElementData, Tag
+from zineb.html_parser.parsers import Extractor, General
+from zineb.html_parser.queryset import QuerySet
 from zineb.html_parser.utils import (filter_by_attrs, filter_by_name,
                                      filter_by_name_or_attrs)
-from zineb.html_parser.parsers import General
+from zineb.tests.html_parser import items
 
 # """
 # <html>
@@ -32,8 +34,6 @@ from zineb.html_parser.parsers import General
 
 # Test extractor
 
-from zineb.html_parser.parsers import Extractor, General
-from zineb.tests.html_parser import items
 
 # extractor = Extractor()
 # virtual_tree = ['html', 'body', 'a']
@@ -69,10 +69,22 @@ from zineb.tests.html_parser import items
 # print(h.manager)
 
 
-import requests
 
-r = requests.get('http://example.com')
-g = General()
-g.resolve(r.content)
-link = g.manager.find('h1')
-print(link.get_all_next('a'))
+# r = requests.get('http://example.com')
+# g = General()
+# g.resolve(r.content)
+# link = g.manager.find('h1')
+# print(link.get_all_next('a'))
+
+
+s = """
+<html>
+    <a id="test">1</a>
+    <a>2</a>
+</html>
+"""
+
+e = General()
+e.resolve(s)
+q1 = e.manager.find_all('a')
+print(q1.values('string'))
