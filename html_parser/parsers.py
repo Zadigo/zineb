@@ -4,8 +4,8 @@ from html.parser import HTMLParser
 from io import StringIO
 from typing import Union
 
+from zineb.html_parser.html_tags import Comment, ElementData, NewLine, Tag
 from zineb.html_parser.managers import Manager
-from zineb.html_parser.tags import Tag, Comment, NewLine, ElementData
 from zineb.html_parser.utils import break_when
 
 
@@ -38,17 +38,30 @@ class Extractor:
         self._opened_tags = Counter()
 
         self._current_tag = None
-        # self._immediately_parsed_element = None
 
         # Contains the collected tags
         # and represents the HTML tree
         self.container = deque()
+        
+        # Stores all the positions of
+        # the items that were parsed
+        self._coordinates = []
 
     def __repr__(self):
         return f"{self.__class__.__name__}({list(self.container)})"
 
     def __getitem__(self, index):
         return self.container[index]
+    
+    def __iter__(self):
+        return iter(self.container)
+    
+    # def __contains__(self, value):
+    #     print(value)
+    #     return value in self.container
+    
+    def __len__(self):
+        return len(self.container)
 
     def __enter__(self, **kwargs):
         return self.container
@@ -68,35 +81,32 @@ class Extractor:
             # There is not previous so
             # just return None
             return None
+        
+    def _get_default_prettifier(self, html: str) -> str:
+        """Function that normalizes the incoming
+        html string so that we can deal with a
+        standard format"""
+        from lxml.etree import tostring
+        from lxml.html import fromstring
+        
+        return tostring(fromstring(html), encoding='unicode', pretty_print=True)
 
     def recursively_add_tag(self, instance):
         """Adds the current tag recursively 
-        to all the previous tags"""
+        to all the previous tags that are open"""
         for i in range(0, len(self.container) - 1):
             tag = self.container[i]
             if not tag.closed:
                 tag._children.append(instance)
 
     def resolve(self, html: str):
-        self.HTML_PAGE = html
-        self.algorithm.feed(html)
+        """Entrypoint for transforming each html 
+        string tags into Python objects"""
+        
+        self.HTML_PAGE = self._get_default_prettifier(html)
+        # self.HTML_PAGE = html
+        self.algorithm.feed(self.HTML_PAGE)
         self.algorithm.close()
-
-        # Create relationships
-        # container = self.get_container
-        # for i in range(len(container)):
-        #     tag = container[i]
-        #     if i > 0:
-        #         try:
-        #             # When we've reached the limit of the
-        #             # array this raises and error that
-        #             # we'll just skip
-        #             tag.next_element = container[i + 1]
-        #         except IndexError:
-        #             pass
-        #         tag.previous_element = container[i - 1]
-        #     else:
-        #         tag.next_element = container[i + 1]
 
     def start_tag(self, tag, attrs, **kwargs):
         self._opened_tags.update([tag])
@@ -123,16 +133,21 @@ class Extractor:
         # all the previous tags
         self.recursively_add_tag(klass)
 
-        v_position, h_position = kwargs.get('position')
+        v_position, h_position = kwargs.get('position', (None, None))
         klass.vertical_position = v_position
         klass.horizontal_position = h_position
-
+        self._coordinates.append((v_position, h_position))
+        
+        # print(kwargs.get('position'))
         # print(kwargs)
         # print(tag)
 
     def end_tag(self, tag):
         def filter_function(x):
-            return x == tag and not self._current_tag.closed
+            # return x == tag and not self._current_tag.closed
+            return x == tag and not x.closed
+        # TODO: Function sometimes returns the wrong
+        # tag that needs to be closed
         tag_to_close = break_when(filter_function, self.container)
         tag_to_close.closed = True
         # print('/', tag, tag_to_close)
@@ -177,7 +192,7 @@ class Extractor:
         klass.horizontal_position = h_position
 
 
-class HTMLSoup(Extractor):
+class General(Extractor):
     def __init__(self, html: Union[str, StringIO] = None):
         self.manager = Manager(self)
         super().__init__()
@@ -187,46 +202,3 @@ class HTMLSoup(Extractor):
         #     if isinstance(html, StringIO):
         #         html_string = html.read()
         #     self.resolve(html_string)
-
-
-# s = """
-# <html>
-#     <body>
-#         <a id="test">Question</a>
-#         <a href="http://example.com">
-#             <span>Height</span>
-#             <span>173cm</span>
-#         </a>
-#         <a class="google">Test</a>
-#     </body>
-# </html>
-# """
-
-# s = """<html><span>Amazing</span><span>Amazing2</span></html>"""
-
-# s = """
-# <html>
-# <head>
-# <title>Page title</title>
-# <link href="http://example.com" />
-# </head>
-# <body>
-# Some text
-# </body>
-# </html>
-# """
-# s = """<html><head><link href="http://example.com"/></head></html>"""
-
-# s = """<html><head><title>Something</title></head></html>"""
-
-# s = """<html><body><!-- My comment --><span>Something</span></body></html>"""
-
-s = """<html><body><table id="my-table"><tbody><tr><td>1</td><td>2</td></tr></tbody></table></body></html>"""
-
-# g = HTMLSoup()
-# g.resolve(s)
-
-
-# test_tags = [Tag('a'), Tag('b'), Tag('p')]
-# result = filter_by_name_or_attrs(test_tags, 'a')
-# print(list(result))

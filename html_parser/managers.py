@@ -1,9 +1,9 @@
 from functools import cached_property
 from typing import Union
 
+from zineb.html_parser.html_tags import Tag
 from zineb.html_parser.queryset import QuerySet
 from zineb.html_parser.utils import HTML_TAGS
-from zineb.tags import Tag
 from zineb.utils.iteration import keep_while
 
 
@@ -20,7 +20,7 @@ class Manager:
         return f"{self.__class__.__name__}()"
 
     @cached_property
-    def get_title(self):
+    def get_title(self) -> str:
         title = None
         with self.instance as items:
             for item in items:
@@ -53,15 +53,6 @@ class Manager:
                 else:
                     tag_to_return = tag
                     break
-            # if attrs:
-            #     for attr, value in attrs.items():
-            #         result = tag.get_attr(attr)
-            #         if result is not None:
-            #             if result == value and tag == name:
-            #                 break
-            # else:
-            #     if tag == name:
-            #         break
         return tag_to_return
 
     def find_all(self, name_or_names: Union[str, list], attrs: dict = None):
@@ -74,36 +65,30 @@ class Manager:
         queryset = keep_while(filtering_function, self.instance.get_container)
         return QuerySet.copy(queryset)
 
-    def filter(self, **expressions):
-        """A function that allows finding items using query expressions"""
-        tokens = []
-        for key, value in expressions.items():
-            # a__class__eq="google"
-            items = key.split('__')
-            if len(items) < 2:
-                raise ValueError(
-                    'Expression should contain at least 2 values: the tag name and the attribute e.g. a__class')
-            if len(items) == 2:
-                items.append('eq')
+    # def filter(self, **expressions):
+    #     """A function that allows finding items using query expressions"""
+    #     tokens = []
+    #     for key, value in expressions.items():
+    #         # a__class__eq="google"
+    #         items = key.split('__')
+    #         if len(items) < 2:
+    #             raise ValueError(
+    #                 'Expression should contain at least 2 values: the tag name and the attribute e.g. a__class')
+    #         if len(items) == 2:
+    #             items.append('eq')
 
-            tokens.append((items, value))
+    #         tokens.append((items, value))
 
-        tags = []
-        for lhs, rhs in tokens:
-            name, attr, comparator = lhs
-            tag = self.find(name, attrs={attr: rhs})
-            tags.append(tag)
-        return QuerySet.copy(tags)
+    #     tags = []
+    #     for lhs, rhs in tokens:
+    #         name, attr, comparator = lhs
+    #         tag = self.find(name, attrs={attr: rhs})
+    #         tags.append(tag)
+    #     return QuerySet.copy(tags)
 
     def save(self, filename: str):
         pass
 
-    # def annotate(self, *funcs: Callable):
-    #     for func in funcs:
-    #         if not isinstance(func, Function):
-    #             raise ValueError('func should be an instance of Function')
-
-    #         result = self.find_all(func.tag_name, func.tag_attrs)
-    #         for item in result:
-    #             # modified_result = func.resolve(item)
-    #             yield func.resolve(item)
+    def live_update(self, url: str=None, html: str=None):
+        """Fetch a newer version of the html page
+        using a url or a string"""
