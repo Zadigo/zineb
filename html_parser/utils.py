@@ -1,3 +1,5 @@
+from ctypes import Union
+
 HTML_TAGS = {
     'html', 'body', 'main', 'p', 'a', 'br', 'table', 'td', 'tr',
     'th', 'b', 'i', 'script', 'span', 'abbr', 'address', 'area',

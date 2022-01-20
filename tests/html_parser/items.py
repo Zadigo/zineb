@@ -7,6 +7,9 @@ NORMAL_HTML = """
             <span>173cm</span>
         </a>
         <a class="google">Test</a>
+        <div>
+            <span id="1">Fast</span>
+        </div>
     </body>
 </html>
 """

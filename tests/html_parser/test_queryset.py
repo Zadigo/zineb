@@ -1,7 +1,7 @@
 import unittest
 
 from zineb.html_parser.queryset import QuerySet
-from zineb.html_parser.tags import ElementData, Tag
+from zineb.html_parser.html_tags import ElementData, Tag
 
 
 class TestQueryset(unittest.TestCase):

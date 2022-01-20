@@ -154,3 +154,9 @@ DEFAULT_DATE_FORMATS = (
 # found at https://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 
 TIME_ZONE = 'America/Chicago'
+
+
+# Determines the default html parser
+# to use to parse an HTML page
+
+DEFAULT_HTML_PARSER = 'zineb.html_parser.parsers.General'

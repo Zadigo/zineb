@@ -43,7 +43,10 @@ class Manager:
         """Get a tag by name or attribute. If there are multiple
         tags, the first item of the list is returned"""
         result = filter_by_name_or_attrs(self._extractor_instance, name, attrs)
-        return list(result)[0]
+        try:
+            return list(result)[0]
+        except IndexError:
+            raise ValueError('Tag with x does not exist')
 
     def find_all(self, name: Union[str, list], attrs: dict = None):
         """Filter tags by name or by attributes"""

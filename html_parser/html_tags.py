@@ -3,10 +3,9 @@ from functools import cached_property
 from typing import Callable, List, Tuple, Union
 
 from zineb.html_parser.queryset import QuerySet
+from zineb.html_parser.utils import break_when, filter_by_name
 from zineb.utils.characters import deep_clean
 from zineb.utils.iteration import drop_while
-
-from html_parser.utils import break_when
 
 
 class QueryMixin:
@@ -18,14 +17,14 @@ class QueryMixin:
     def previous_element(self):
         """Returns the element directly before this tag"""
         def filtering_function(x):
-            return x.vertical_position == self.vertical_position - 1
+            return x.index == self.index - 1
         return break_when(filtering_function, self._extractor_instance)
 
     @property
     def next_element(self):
         """Returns the element directly next to this tag"""
         def filtering_function(x):
-            return x.vertical_position == self.vertical_position + 1
+            return x.index == self.index + 1
         return break_when(filtering_function, self._extractor_instance)
     
     @property
@@ -33,52 +32,70 @@ class QueryMixin:
         """Returns all the data present
         within the tag"""
         return []
+    
+    @cached_property    
+    def parents(self):
+        """List of parents for the tag"""
+        return self._parents
+    
+    @cached_property
+    def parent(self):
+        """Parent for the tag"""
+        return self.get_parents[-1]
 
     def get_attr(self, name: str) -> Union[str, None]:
         """Returns the value of an attribute"""
         return self.attrs.get(name, None)
 
     def get_previous(self, name: str):
-        """Get the previous element in respect to the name"""
-        with self._extractor_instance as items:
-            pass
-        
+        """Get the previous element in 
+        respect to the name"""
+        try:
+            return list(self.get_all_previous(name))[-1]
+        except:
+            return None
+         
     def get_next(self, name: str):
-        """Get the next element in respect to the name"""
-        with self._extractor_instance as items:
-            pass
+        """Get the next element in 
+        respect to the name"""
+        try:
+            return list(self.get_all_next(name))[-1]
+        except:
+            return None
         
     def get_all_previous(self, name: str):
         """Get all the previous elements in
         respect to the name"""
         if not self._has_extractor:
             raise TypeError('To use to query with tags, need an extractor')
-        results = []
+        
         with self._extractor_instance as items:
             for item in items:
-                if (item.vertical_position < self.vertical_position and
-                    item.name == name):
-                    results.append(item)
-        return QuerySet.copy(results)
-
-
+                if item.name == name:
+                    if item.index < self.index:
+                        yield item
+    
     def get_all_next(self, name: str):
+        """Get all the next elements in
+        respect to the name"""
         if not self._has_extractor:
             raise TypeError('To use to query with tags, need an extractor')
-        results = []
+        
         with self._extractor_instance as items:
             for item in items:
-                if (item.vertical_position > self.vertical_position and
-                    item.name == name):
-                    results.append(item)
-        return QuerySet.copy(results)
-
-    def children(self, **expression):
+                if item.name == name:
+                    if item.index > self.index:
+                        yield item
+        
+    def children(self, **attrs):
         pass
-
+    
     def get_parent(self, name: str):
-        pass
-
+        """Return a specific parent from list
+        of available parents"""
+        result = filter_by_name(self.parents, name)
+        return list(result)[-1]
+    
     def get_previous_sibling(self, name: str):
         pass
 
@@ -99,6 +116,7 @@ class BaseTag(QueryMixin):
 
         self.vertical_position = 0
         self.horizontal_position = 0
+        self.index = 0
 
         # An instance of the class that extracts
         # in order to be able to access other
@@ -106,6 +124,8 @@ class BaseTag(QueryMixin):
         # if not isinstance(extractor, Extractor):
         #     raise TypeError('Extractor should be an instance of Extractor')
         self._extractor_instance = extractor
+        
+        self._parents = []
 
     def __repr__(self):
         if self.attrs:
@@ -113,9 +133,12 @@ class BaseTag(QueryMixin):
         return f'<{self.name}>'
 
     def __hash__(self):
-        return hash(self.name)
+        attrs = ''.join(self.attrs.values())
+        return hash((self.name, self.index, attrs))
 
     def __eq__(self, value):
+        # truth_array = [value in list(self.attrs.values()), value == self.name]
+        # return any(truth_array)
         return value == self.name
 
     def __getitem__(self, value):
@@ -195,21 +218,24 @@ class Tag(BaseTag):
 
 
 class StringMixin(QueryMixin):
-    def __init__(self, data):
+    def __init__(self, data, extractor=None):
         self.name = None
         self.data = data
         self.closed = True
 
-        self.horizontal_position = 0
         self.vertical_position = 0
+        self.horizontal_position = 0
+        self.index = 0
+        
+        self._extractor_instance = extractor
 
-        self.parents = []
-        self.parent = None
+        self._parents = []
 
     def __repr__(self):
         return self.data
 
     def __eq__(self, value):
+        # return self.data == value or value in self.attrs.values()
         return self.data == value
 
     def __contains__(self, value):
@@ -217,6 +243,9 @@ class StringMixin(QueryMixin):
     
     def __add__(self, value):
         return self.data + str(value)
+    
+    def __hash__(self):
+        return hash((self.name, self.data))
 
     @property
     def string(self):
@@ -232,26 +261,32 @@ class StringMixin(QueryMixin):
 class NewLine(StringMixin):
     """Represents a newline as \\n"""
     
-    def __init__(self):
-        super().__init__('\n')
+    def __init__(self, extractor=None):
+        super().__init__('\n', extractor=extractor)
         self.name = 'newline'
         
     def __eq__(self, value):
         return value == '\n'
+    
+    def __repr__(self):
+        return '\\n'
+    
+    def __hash__(self):
+        return hash((self.name, self.data))
                 
 
 class ElementData(StringMixin):
     """Represents a data element within
     a tag e.g. Kendall in <span>Kendall</span>"""
     
-    def __init__(self, data):
-        super().__init__(data)
+    def __init__(self, data, extractor=None):
+        super().__init__(data, extractor=extractor)
         self.name = 'data'
 
 
 class Comment(StringMixin):
     """Represents a comment"""
     
-    def __init__(self, data):
-        super().__init__(data)
+    def __init__(self, data, extractor=None):
+        super().__init__(data, extractor=extractor)
         self.name = 'comment'

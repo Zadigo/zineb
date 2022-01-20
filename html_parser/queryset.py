@@ -148,10 +148,7 @@ class QuerySet:
         """Checks if a tag exists within the queryset"""
         results = []
         for item in self._queryset_or_internal_data:
-            if name in item:
-                results.append(True)
-            else:
-                results.append(False)
+            results.append(name == item)
         return any(results)
 
     def explain(self):
