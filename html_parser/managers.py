@@ -4,7 +4,6 @@ from typing import Union
 from zineb.html_parser.html_tags import Tag
 from zineb.html_parser.queryset import QuerySet
 from zineb.html_parser.utils import HTML_TAGS, filter_by_name_or_attrs
-from zineb.utils.iteration import keep_while
 
 
 class Manager:
@@ -29,15 +28,17 @@ class Manager:
                     break
         return title
 
-    @cached_property
-    def links(self):
-        """Returns all the links contained in the HTML page"""
-        return self.find_all('a')
+    # @cached_property
+    # def links(self):
+    #     """Returns all the links contained 
+    #     in the HTML page"""
+    #     return self.find_all('a')
 
-    @cached_property
-    def tables(self):
-        """Returns all the tables contained within the HTML page"""
-        return self.find_all('table')
+    # @cached_property
+    # def tables(self):
+    #     """Returns all the tables contained 
+    #     within the HTML page"""
+    #     return self.find_all('table')
 
     def find(self, name: str, attrs: dict = {}) -> Tag:
         """Get a tag by name or attribute. If there are multiple
