@@ -33,6 +33,12 @@ class QueryMixin:
         within the tag"""
         return []
     
+    @property
+    def attrs_list(self):
+        """Return the attribute keys
+        that are present on the tag"""
+        return list(self.attrs)
+
     @cached_property    
     def parents(self):
         """List of parents for the tag"""
@@ -41,8 +47,8 @@ class QueryMixin:
     @cached_property
     def parent(self):
         """Parent for the tag"""
-        return self.get_parents[-1]
-
+        return self.parents[-1]
+    
     def get_attr(self, name: str) -> Union[str, None]:
         """Returns the value of an attribute"""
         return self.attrs.get(name, None)
@@ -156,7 +162,7 @@ class BaseTag(QueryMixin):
         return QuerySet.copy(self._children)
 
     @property
-    def string(self) -> Union[str, None]:
+    def string(self):
         # When we have one item, return it,
         # otherwise, with multiple data elements
         # we need a specific logic to determine
@@ -235,7 +241,6 @@ class StringMixin(QueryMixin):
         return self.data
 
     def __eq__(self, value):
-        # return self.data == value or value in self.attrs.values()
         return self.data == value
 
     def __contains__(self, value):
@@ -245,13 +250,13 @@ class StringMixin(QueryMixin):
         return self.data + str(value)
     
     def __hash__(self):
-        return hash((self.name, self.data))
+        return hash((self.name, self.data, self.index))
 
     @property
     def string(self):
         return self.data
 
-    def has_attr(self):
+    def has_attr(self, name: str):
         return False
 
     def get_attr(self, name: str):
