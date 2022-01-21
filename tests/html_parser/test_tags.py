@@ -6,12 +6,42 @@ from zineb.html_parser.parsers import General
 from zineb.html_parser.queryset import QuerySet
 from zineb.tests.html_parser.items import SIMPLE_HTML
 
-# TAGS = [Tag('a'), Tag('a', attrs=[('id', 'test')]), Tag('p', attrs=[('data-test', 'test')])]
 
 class TestBaseTag(unittest.TestCase):
     def test_has_attribute(self):
         tag = Tag('a')
         self.assertFalse(tag.has_attr('id'))
+        
+    def test_tag_equality(self):
+        link1 = Tag('a')
+        link2 = Tag('a', attrs=[('id', 'test')])
+        self.assertFalse(link1 == link2)
+        
+        link1 = Tag('a')
+        link2 = Tag('a')
+        self.assertTrue(link1 == link2)
+        
+    def test_can_change_attribute_directly(self):
+        link = Tag('a')
+        link['id'] = 'test'
+        self.assertTrue(link.has_attr('id'))
+        
+    def test_can_delete_attribute_directly(self):
+        link = Tag('a', attrs=[('id', 'test')])
+        self.assertTrue(link.has_attr('id'))
+        del link['id']
+        self.assertFalse(link.has_attr('id'))
+        
+    def test_contains(self):
+        # div > span + p
+        link = Tag('div')
+        span = Tag('span')
+        link._children = [span, Tag('p')]
+        self.assertTrue(span in link)
+        
+        # TODO: Maybe when the user wants to
+        # use a string to do the comparision
+        # provide the ability to do so
         
     def test_build_attrs(self):
         tag = Tag('a')
@@ -27,6 +57,7 @@ class TestBaseTag(unittest.TestCase):
         
     def test_find(self):
         # <a><span>something</span></a>
+        # a > span{something}
         link = Tag('a')
         span = Tag('span')
         span._internal_data = [ElementData('something')]
@@ -38,6 +69,7 @@ class TestBaseTag(unittest.TestCase):
         
     def test_find_all(self):
         # <a><span>1</span><p>2</p></a>
+        # a > span{1} + p{2}
         link = Tag('a')
 
         span1 = Tag('span')
