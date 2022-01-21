@@ -104,6 +104,9 @@ class Extractor:
         from lxml.html import fromstring
         
         return tostring(fromstring(html), encoding='unicode', pretty_print=True)
+    
+    def _add_coordinates(self, tag, coordinates):
+        pass
 
     def recursively_add_tag(self, instance):
         """Adds the current tag recursively 
@@ -145,11 +148,12 @@ class Extractor:
         # all the previous tags
         self.recursively_add_tag(klass)
 
-        v_position, h_position = kwargs.get('position', (None, None))
-        klass.vertical_position = v_position
-        klass.horizontal_position = h_position
-        self._coordinates.append((v_position, h_position))
+        # TODO: Create a unique class that
+        # does this specific task
+        coordinates = kwargs.get('position')
+        klass._coordinates = coordinates
         klass.index = kwargs.get('index')
+        self._coordinates.append(coordinates)
         
         # print(tag, kwargs.get('position'))
         # print(kwargs)
@@ -178,12 +182,13 @@ class Extractor:
                 data_instance = ElementData(element, extractor=self)
         else:
             data_instance = ElementData(data, extractor=self)
-            
-        x, y = kwargs.get('position', (None, None))
-        data_instance.vertical_position = x
-        data_instance.horizontal_position = y
+
         # print('>', data_instance, kwargs.get('position'))
+        
+        coordinates = kwargs.get('position')
+        data_instance._coordinates = coordinates
         data_instance.index = kwargs.get('index')
+        self._coordinates.append(coordinates)
 
         try:
             # Certain tags do not have an internal_data
@@ -211,9 +216,10 @@ class Extractor:
 
         self.recursively_add_tag(klass)
 
-        v_position, h_position = kwargs.get('position')
-        klass.vertical_position = v_position
-        klass.horizontal_position = h_position
+        coordinates = kwargs.get('position')
+        klass._coordinates = coordinates
+        klass.index = kwargs.get('index')
+        self._coordinates.append(coordinates)
         
     def parse_comment(self, data: str, **kwargs):
         klass = Comment(data)
@@ -223,9 +229,10 @@ class Extractor:
         
         self.recursively_add_tag(klass)
         
-        v_position, h_position = kwargs.get('position')
-        klass.vertical_position = v_position
-        klass.horizontal_position = h_position
+        coordinates = kwargs.get('position')
+        klass._coordinates = coordinates
+        klass.index = kwargs.get('index')
+        self._coordinates.append(coordinates)
 
 
 class HTMLPageParser(Extractor):
