@@ -255,8 +255,9 @@ class General(Extractor):
         if not defer_resolution:
             self.resolve(self._original_page)
         
-        # if html is not None:
-        #     html_string = html
-        #     if isinstance(html, StringIO):
-        #         html_string = html.read()
-        #     self.resolve(html_string)
+    @property
+    def page_has_content(self):
+        return (
+            self._original_page is not None or
+            self._original_page != ''
+        )
