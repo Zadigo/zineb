@@ -163,7 +163,7 @@ class Extractor:
 
     def end_tag(self, tag):
         def filter_function(x):
-            return x == tag and not x.closed
+            return x.name == tag and not x.closed
         
         tag_to_close = break_when(filter_function, self.container)
         tag_to_close.closed = True
