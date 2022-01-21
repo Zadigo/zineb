@@ -10,18 +10,8 @@ from zineb.settings import settings
 def keep_while(func: Callable, values: Iterable):
     """
     A custom keep_while function that does not stop
-    on False but completes all the list
-
-    Parameters
-    ----------
-
-        func (Callable): [description]
-        values (Iterable): [description]
-
-    Yields
-    ------
-
-        Any: value to return
+    iterating on the first False result 
+    but completes all the list
     """
     for value in values:
         result = func(value)
@@ -31,19 +21,9 @@ def keep_while(func: Callable, values: Iterable):
 
 def drop_while(func: Callable, values: Iterable):
     """
-    A custom drop_while function that does not stop
-    on True but completes all the list
-
-    Parameters
-    ----------
-
-        func (Callable): [description]
-        values (Iterable): [description]
-
-    Yields
-    ------
-    
-        Any: value to return
+    A custom keep_while function that does not stop
+    iterating on the first False result 
+    but completes all the list
     """
     for value in values:
         result = func(value)
@@ -56,12 +36,6 @@ def split_while(func: Callable, values: Iterable):
     Splits a set of values in seperate lists
     depending on whether the result of the function
     return True or False
-
-    Parameters
-    ----------
-
-        func (Callable): [description]
-        values (Iterable): [description]
 
     Returns
     -------
@@ -76,9 +50,9 @@ def split_while(func: Callable, values: Iterable):
 @lru_cache(maxsize=0)
 def collect_files(path: str, func: Callable = None):
     """
-    Collect all the files within specific
+    Collect all the files within a specific
     directory of your project. This utility function
-    is very useful with the FileCrawler:
+    is very useful with the FileCrawler.
 
         class Spider(FileCrawler):
             start_files = collect_files('some/path')
