@@ -22,6 +22,17 @@ SELF_CLOSING_TAGS = {
 }
 
 
+def filter_by_names(items, names):
+    """Filter using multiple tag names"""
+    if names:
+        for item in items:
+            if item.name in names:
+                yield item
+    else:
+        for item in items:
+            yield item
+
+
 def filter_by_name(items, name):
     """Filter by name"""
     for item in items:
