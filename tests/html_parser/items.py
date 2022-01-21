@@ -66,3 +66,15 @@ SIMPLE_HTML = """
     </body>
 </html>
 """
+
+
+IMAGE_HTML = """
+<html>
+    <body>
+        <img src="kendall.jpg">
+        <div>
+            <img src="kylie.jpg">
+        </div>
+    </body>
+</html>
+"""
