@@ -93,8 +93,12 @@ class QueryMixin:
                     if item.index > self.index:
                         yield item
         
-    def children(self, **attrs):
-        pass
+    def get_children(self, *names):
+        """Return children by names contained
+        within the tag. If no name is provided,
+        returns all of them"""
+        items = filter_by_names(self._children, names)
+        return QuerySet.copy(items)
     
     def get_parent(self, name: str):
         """Return a specific parent from list
