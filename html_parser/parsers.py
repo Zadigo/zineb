@@ -228,7 +228,7 @@ class Extractor:
         klass.horizontal_position = h_position
 
 
-class General(Extractor):
+class HTMLPageParser(Extractor):
     """The main class used to process the html page.
     It implements the default manager for querying
     the different items on the html page"""
