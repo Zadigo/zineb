@@ -2,7 +2,7 @@ import unittest
 from typing import Generator
 
 from zineb.html_parser.html_tags import BaseTag, ElementData, NewLine, Tag
-from zineb.html_parser.parsers import General
+from zineb.html_parser.parsers import HTMLPageParser
 from zineb.html_parser.queryset import QuerySet
 from zineb.tests.html_parser.items import SIMPLE_HTML
 
@@ -107,8 +107,7 @@ class TestQueryFunctions(unittest.TestCase):
     and navigation functions"""
     
     def setUp(self):
-        extractor = General()
-        extractor.resolve(SIMPLE_HTML)
+        extractor = HTMLPageParser(SIMPLE_HTML)
         # Use this tag as source tag to evaluate
         # how the functions work
         self.measure_tag = extractor.manager.find('span')

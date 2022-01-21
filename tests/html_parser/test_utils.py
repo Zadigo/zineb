@@ -2,6 +2,7 @@ import unittest
 from zineb.html_parser.html_tags import Tag, ElementData
 from zineb.html_parser.utils import filter_by_attrs, filter_by_name, filter_by_name_or_attrs
 
+# div + a > span{Question}
 link = Tag('a', attrs=[('id', 'test')])
 span = Tag('span')
 span_data = ElementData('Question')
@@ -19,6 +20,10 @@ class TestFilters(unittest.TestCase):
             with self.subTest(item=item):
                 self.assertEqual(item.name, 'span')
                 
+    def test_filter_by_name_not_exist(self):
+        result = filter_by_name(tags, 'p')
+        self.assertListEqual(list(result), [])
+                
     def test_filter_by_attrs(self):
         result = filter_by_attrs(tags, {'id': 'test'})
         for item in result:
@@ -30,6 +35,12 @@ class TestFilters(unittest.TestCase):
         for item in result:
             with self.subTest(item=item):
                 self.assertEqual(item.name, 'a')
+                self.assertDictEqual(item.attrs, {'id': 'test'})
+    
+    def test_filter_imbrication(self):
+        by_names = filter_by_name(tags, 'a')
+        by_attrs = filter_by_attrs(by_names, {'id': 'test'})
+        self.assertEqual(len(list(by_attrs)), 1)
         
                         
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 import requests
 from zineb.html_parser.html_tags import ElementData, Tag
-from zineb.html_parser.parsers import Extractor, General
+from zineb.html_parser.parsers import Extractor, HTMLPageParser
 from zineb.html_parser.queryset import QuerySet
 from zineb.html_parser.utils import (filter_by_attrs, filter_by_name,
                                      filter_by_name_or_attrs)
@@ -62,7 +62,7 @@ from zineb.tests.html_parser import items
 
 # # from zineb.tests.html_parser import items
 
-# # h = General()
+# # h = HTMLPageParser()
 # # s = """<div id="1"><span>1</span></div><div id="2"></div>"""
 # # h.resolve(s)
 # # div = h.manager.find_all('div')
@@ -70,11 +70,10 @@ from zineb.tests.html_parser import items
 
 
 
-# # r = requests.get('http://example.com')
-# # g = General()
-# # g.resolve(r.content)
-# # link = g.manager.find('h1')
-# # print(link.get_all_next('a'))
+r = requests.get('http://example.com')
+g = HTMLPageParser(r.content)
+link = g.manager.find_all('a')
+print(link)
 
 
 # # html = Tag('html')
@@ -95,8 +94,9 @@ from zineb.tests.html_parser import items
 
 
 
-# e = General()
-# e.resolve(items.NORMAL_HTML)
-# a = e.manager.find('a')
-# print(a._internal_data)
+# from bs4 import BeautifulSoup
 
+# with open('tests/html_parser/test4.html', encoding='utf-8') as f:
+#     # s = BeautifulSoup(f, 'html.parser')
+#     # d = s.find_all('div')
+#     # print(d)

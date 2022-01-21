@@ -14,7 +14,8 @@ class TestExtractor(unittest.TestCase):
         
     def test_tag_creation_functions(self):
         self.extractor.start_tag('a', [('id', 'test')])
-        self.assertIn('a', self.extractor)
+        link = self.extractor.container_as_queryset.first
+        self.assertIn(link, self.extractor)
         
         # The created tag should technically not
         # be closed since we did not call end_tag
