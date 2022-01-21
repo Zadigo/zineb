@@ -69,19 +69,11 @@ class QuerySet:
         return QuerySet.copy(result)
 
     def exclude(self, name: str, attrs: dict={}):
-        """Exclude tags with a specific name or attributes"""
-        values = []
-        for item in self._queryset_or_internal_data:
-            truth_array = [item.name != name]
-            
-            for attr, value in attrs.items():
-                result = item.get_attr(attr)
-                truth_array.append(result == value)
-                
-            if any(truth_array):
-                values.append(item)
-                
-        return QuerySet.copy(values)
+        """Exclude tags with a specific name or attribute"""
+        def filtering_function(x):
+            return x.name == name and x.attrs == attrs
+        result = drop_while(filtering_function, self._data)
+        return QuerySet.copy(result)
 
     def distinct(self, *attrs):
         """Return tags with a distinct attribute"""
