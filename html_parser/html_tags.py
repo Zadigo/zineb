@@ -124,8 +124,7 @@ class BaseTag(QueryMixin):
         self._internal_data = deque()
         self._children = deque()
 
-        self.vertical_position = 0
-        self.horizontal_position = 0
+        self._coordinates = tuple()
         self.index = 0
 
         # An instance of the class that extracts
