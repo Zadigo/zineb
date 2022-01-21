@@ -10,7 +10,6 @@ class QuerySet:
     
     def __init__(self):
         self._data = []
-        self._queryset = []
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self._data})"
@@ -19,10 +18,13 @@ class QuerySet:
         return iter(self._data)
 
     def __getitem__(self, index):
-        return self._queryset_or_internal_data[index]
+        return self._data
 
     def __len__(self):
         return len(self._data)
+    
+    def __contains__(self, obj):
+        return obj in self._data
 
     @classmethod
     def copy(cls, data: Union[Generator, Iterator]):
@@ -39,20 +41,9 @@ class QuerySet:
         return self._data[-1]
 
     @property
-    def count(self) -> int:
+    def count(self):
         return len(self._data)
     
-    @property
-    def _queryset_or_internal_data(self):
-        # If the user has already run a query
-        # on the previous or current queryset,
-        # the logical move is to query the
-        # new queryset and not the global data.
-        # This function returns either the newly
-        # created queryet if one exists
-        # or the global data.
-        return self._queryset or self._data
-
     def save(self, filename: str):
         pass
 
@@ -65,7 +56,6 @@ class QuerySet:
     def find_all(self, name: str, attrs: dict = {}):
         """Filter tags by name or by attributes"""
         result = filter_by_name_or_attrs(self._data, name, attrs)
-        self._queryset = result
         return QuerySet.copy(result)
 
     def exclude(self, name: str, attrs: dict={}):
@@ -88,7 +78,7 @@ class QuerySet:
         if not attrs:
             attrs.append('string')
         
-        for item in self._queryset_or_internal_data:
+        for item in self._data:
             values = []
             for attr in attrs:
                 if attr == 'string':
@@ -114,6 +104,7 @@ class QuerySet:
 
     def union(self, *querysets):
         """Combine the results of one or more querysets
+        into a new queryset
         
         Example
         -------
@@ -125,29 +116,30 @@ class QuerySet:
             q3 = q1.union(q2)
         """
         results = []
-        results.extend(self._queryset_or_internal_data)
+        results.extend(self._data)
         for queryset in querysets:
             if not isinstance(queryset, QuerySet):
                 raise TypeError('Queryset is not an instance of Queryet')
-            results.extend(queryset._queryset_or_internal_data)
+            results.extend(queryset._data)
         return self.copy(results)
 
     def exists(self):
-        """Checks wheter there are any items in th quersyet"""
+        """Checks whether there are any 
+        items in th quersyet"""
         return self.count > 0
 
     def contains(self, name: str):
         """Checks if a tag exists within the queryset"""
         results = []
-        for item in self._queryset_or_internal_data:
-            results.append(name == item)
+        for item in self._data:
+            results.append(name == item.name)
         return any(results)
 
     def explain(self):
         """Returns explicit information about the items contained
         in the queryset e.g. link <a> with data ... x attributes"""
         for item in self._queryset_or_internal_data:
-            msg = f"name: {item.name}, tag: {repr(item)}, data: {item.string}"
+            msg = f"name: {item.name}, tag: {repr(item)}, children: {len(item.children)}"
             print(msg)
 
     def generator(self, name: str, attrs: dict = {}):
