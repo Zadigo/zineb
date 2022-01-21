@@ -47,7 +47,7 @@ class QueryMixin:
     @cached_property
     def parent(self):
         """Parent for the tag"""
-        return self.parents[-1]
+        return self.parents[-1]        
     
     def get_attr(self, name: str) -> Union[str, None]:
         """Returns the value of an attribute"""
