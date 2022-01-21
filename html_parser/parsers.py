@@ -233,10 +233,28 @@ class General(Extractor):
     It implements the default manager for querying
     the different items on the html page"""
     
-    def __init__(self, html: Union[str, StringIO]=None):
+    def __init__(self, html: Union[str, bytes, TextIOWrapper, StringIO],
+                 defer_resolution: bool=False, skip_newlines: bool=False):
         self.manager = Manager(self)
-        super().__init__()
+        super().__init__(skip_newlines=skip_newlines)
 
+        string = None
+        if isinstance(html, TextIOWrapper):
+            string = html.read()
+        elif isinstance(html, StringIO):
+            string = html.read()
+        elif isinstance(html, bytes):
+            string, size = utf_8.decode(html, errors='strict')
+        elif isinstance(html, str):
+            string = html
+        else:
+            string = ''
+            
+        self._original_page = string
+        
+        if not defer_resolution:
+            self.resolve(self._original_page)
+        
         # if html is not None:
         #     html_string = html
         #     if isinstance(html, StringIO):
