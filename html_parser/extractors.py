@@ -1,4 +1,3 @@
-from enum import unique
 from functools import cached_property
 from typing import List
 
@@ -8,10 +7,11 @@ from zineb.html_parser.queryset import QuerySet
 from zineb.html_parser.utils import break_when
 from zineb.utils.iteration import keep_while
 
-TABLE_TAGS = ['table', 'thead', 'tr', 'th', 'td', 'tbody']
+TABLE_TAGS = ['table', 'thead', 'tr', 'th', 'td', 'tbody', 'tfoot']
 
 
 class TableExtractor(Extractor):
+    """A parser that only deals with tables"""
     def __init__(self, class_or_id_name: str=None, base_url: str=None, processors: List=[]):
         super().__init__()
         self.class_or_id_name = class_or_id_name
@@ -49,9 +49,13 @@ class TableExtractor(Extractor):
             
             self.recursively_add_tag(instance)
             
+            self._add_coordinates(instance, kwargs.get('position'))
+            instance.index = kwargs.get('index')
+            
     def end_tag(self, tag):
         def filtering_function(x):
-            return x == 'table' and not x.closed
+            return x.name == 'table' and not x.closed
+        
         tag_to_close = break_when(filtering_function, self.container)
         tag_to_close.closed = True
         
@@ -126,7 +130,7 @@ class ImageExtractor(Extractor):
     def end_tag(self, tag):
         return False
     
-    def internal_data(self, data):
+    def internal_data(self, data, **kwargs):
         return False
         
     def parse_comment(self, data: str, **kwargs):
@@ -135,7 +139,9 @@ class ImageExtractor(Extractor):
     def self_closing_tag(self, tag, attrs, **kwargs):
         self._opened_tags.update([tag])
         
-        klass = Tag(tag, attrs, extractor=self)
-        self.container.append(klass)
-        self._current_tag = klass
-        klass.closed = True
+        instance = Tag(tag, attrs, extractor=self)
+        self.container.append(instance)
+        self._current_tag = instance
+        instance.closed = True
+        instance.index = kwargs.get('index')
+        self._add_coordinates(instance, kwargs.get('position'))
