@@ -84,8 +84,10 @@ class Extractor:
         return False
 
     @cached_property
-    def get_container(self):
-        return self.container
+    def container_as_queryset(self):
+        """Retunrns the container as
+        a QuerySet instance"""
+        return QuerySet.copy(self.container)
 
     @property
     def get_previous_tag(self):
