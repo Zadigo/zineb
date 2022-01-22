@@ -50,7 +50,7 @@ class QuerySet:
     def find(self, name: str, attrs: dict = {}):
         """Get a tag by name or attribute. If there are multiple
         tags, the first item of the list is returned"""
-        result = filter_by_name_or_attrs(self._queryset_or_internal_data, name, attrs)
+        result = filter_by_name_or_attrs(self._data, name, attrs)
         return list(result)[0]
 
     def find_all(self, name: str, attrs: dict = {}):
