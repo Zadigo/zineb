@@ -1,12 +1,11 @@
 from collections import OrderedDict, deque
 from functools import cached_property
-from typing import Callable, Iterator, List, Tuple, Union
+from typing import Callable, List, Tuple, Union
 
 from zineb.html_parser.queryset import QuerySet
-from zineb.html_parser.utils import (SELF_CLOSING_TAGS, break_when,
-                                     filter_by_name, filter_by_names)
+from zineb.html_parser.utils import break_when, filter_by_name, filter_by_names
 from zineb.utils.characters import deep_clean
-from zineb.utils.iteration import drop_while, keep_while
+from zineb.utils.iteration import drop_while
 
 
 class QueryMixin:
@@ -55,24 +54,24 @@ class QueryMixin:
         return self.attrs.get(name, None)
 
     def get_previous(self, name: str):
-        """Get the previous element in 
-        respect to the name"""
+        """Get the previous element by name on the page
+        that appears after this element"""
         try:
             return list(self.get_all_previous(name))[-1]
         except:
             return None
          
     def get_next(self, name: str):
-        """Get the next element in 
-        respect to the name"""
+        """Get the next element by name on this
+        page that appears after this tag"""
         try:
-            return self.get_children().find(name)
+            return list(self.get_all_next(name))[0]
         except:
             return None
         
     def get_all_previous(self, name: str):
-        """Get all the previous elements in
-        respect to the name"""
+        """Get all the previous elements before this
+        tag in respect to the name"""
         if not self._has_extractor:
             raise TypeError('To use to query with tags, need an extractor')
         
@@ -83,8 +82,8 @@ class QueryMixin:
                         yield item
     
     def get_all_next(self, name: str):
-        """Get all the next elements in
-        respect to the name"""
+        """Get all the next elements after this
+        tag in respect to the name"""
         if not self._has_extractor:
             raise TypeError('To use to query with tags, need an extractor')
         
@@ -161,8 +160,11 @@ class TagMixin:
                 raise TypeError('Extractor should be an instance of Extractor')
         self._extractor_instance = extractor
 
-        
-    #     self._internal_data = deque()        
+        # self._internal_data = deque()
+    
+    @property
+    def is_empty_element(self):
+        return not self._internal_data or not self._children     
     
     @cached_property
     def _attrs_to_string(self):
@@ -246,7 +248,7 @@ class BaseTag(TagMixin, QueryMixin):
 
     @property
     def children(self):
-        return QuerySet.copy(reversed(self._children))
+        return QuerySet.copy(self._children)
 
     @property
     def string(self):
@@ -316,6 +318,10 @@ class StringMixin(TagMixin, QueryMixin):
     @property
     def string(self):
         return self.data
+    
+    @property
+    def is_empty_element(self):
+        return False
 
     @cached_property
     def _attrs_to_string(self):
@@ -356,6 +362,10 @@ class NewLine(StringMixin):
     
     def __repr__(self):
         return '\\n'
+    
+    @property
+    def is_empty_element(self):
+        return True
                     
 
 class ElementData(StringMixin):
