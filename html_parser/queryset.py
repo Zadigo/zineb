@@ -44,8 +44,8 @@ class QuerySet:
     def count(self):
         return len(self._data)
     
-    def save(self, filename: str):
-        pass
+    # def save(self, filename: str):
+    #     pass
 
     def find(self, name: str, attrs: dict = {}):
         """Get a tag by name or attribute. If there are multiple
@@ -65,14 +65,14 @@ class QuerySet:
         result = drop_while(filtering_function, self._data)
         return QuerySet.copy(result)
 
-    def distinct(self, *attrs):
-        """Return tags with a distinct attribute"""
+    # def distinct(self, *attrs):
+    #     """Return tags with a distinct attribute"""
 
     def values(self, *attrs: List[str], include_fields: bool=False):
         """Return the string or an attribute contained 
         for each tag in the queryset. By default, if no
         attribute is provided, the string is returned
-        by defalult"""
+        by default"""
         contents = []
         
         if not attrs:
@@ -92,15 +92,15 @@ class QuerySet:
         
         return contents
     
-    def values_list(self, *attrs):
-        """Returns a list of tuples using the provided 
-        attributes e.g. [(('id', 'test'), ('data', 'test'))]
-        """
+    # def values_list(self, *attrs):
+    #     """Returns a list of tuples using the provided 
+    #     attributes e.g. [(('id', 'test'), ('data', 'test'))]
+    #     """
 
-    def dates(self, name: str = None):
-        """If a tag is a date type e.g. <datetime /> or contains a date, this
-        will transform the values within them to a list of python
-        datetime objects"""
+    # def dates(self, name: str = None):
+    #     """If a tag is a date type e.g. <datetime /> or contains a date, this
+    #     will transform the values within them to a list of python
+    #     datetime objects"""
 
     def union(self, *querysets):
         """Combine the results of one or more querysets
@@ -162,7 +162,7 @@ class QuerySet:
             item.update_attr(attr, value)
         return QuerySet.copy(items)
 
-    def filter(self, *funcs):
-        """Function for running more complexe
-        queries on the html page"""
-        pass
+    # def filter(self, *funcs):
+    #     """Function for running more complexe
+    #     queries on the html page"""
+    #     pass
