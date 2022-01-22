@@ -1,11 +1,13 @@
 from collections import Counter, deque
+from encodings import utf_8
 from functools import cached_property
 from html.parser import HTMLParser
-from io import StringIO
+from io import FileIO, StringIO, TextIOWrapper
 from typing import Union
 
 from zineb.html_parser.html_tags import Comment, ElementData, NewLine, Tag
 from zineb.html_parser.managers import Manager
+from zineb.html_parser.queryset import QuerySet
 from zineb.html_parser.utils import break_when
 from zineb.utils.iteration import keep_while
 
@@ -47,7 +49,7 @@ class Extractor:
     
     HTML_PAGE = None
 
-    def __init__(self):
+    def __init__(self, skip_newlines: bool=False):
         self.algorithm = Algorithm(self)
         self._opened_tags = Counter()
 
@@ -60,6 +62,11 @@ class Extractor:
         # Stores all the positions of
         # the items that were parsed
         self._coordinates = []
+        
+        # Whether to include newlines in the
+        # collection when iterating over
+        # the elements of the page
+        self.skip_newlines = skip_newlines
 
     def __repr__(self):
         return f"{self.__class__.__name__}({list(self.container)})"
@@ -69,11 +76,7 @@ class Extractor:
     
     def __iter__(self):
         return iter(self.container)
-    
-    # def __contains__(self, value):
-    #     print(value)
-    #     return value in self.container
-    
+        
     def __len__(self):
         return len(self.container)
 
@@ -90,11 +93,11 @@ class Extractor:
         return QuerySet.copy(self.container)
 
     @property
-    def get_previous_tag(self):
+    def _get_previous_tag(self):
         try:
             return self.container[-2]
         except IndexError:
-            # There is not previous so
+            # There is no previous so
             # just return None
             return None
         
@@ -147,8 +150,15 @@ class Extractor:
 
         # Add the newly created tag to
         # the children list of the
-        # all the previous tags
+        # all the previous opened tags
         self.recursively_add_tag(klass)
+        
+        # The sibling is the previous
+        # closed tag from the list
+        previous_tag = self._get_previous_tag
+        if previous_tag is not None:
+            if previous_tag.closed:
+                pass
 
         # TODO: Create a unique class that
         # does this specific task
@@ -201,7 +211,6 @@ class Extractor:
             self._current_tag._internal_data.append(data_instance)
         except:
             pass
-        
         
         self.recursively_add_tag(data_instance)
         self.container.append(data_instance)
