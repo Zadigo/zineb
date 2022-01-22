@@ -144,8 +144,18 @@ class QuerySet:
 
     def generator(self, name: str, attrs: dict = {}):
         """Defers the evaluation of the query to a latter time"""
-        return filter_by_name_or_attrs(self._queryset_or_internal_data, name , attrs)
+        return filter_by_name_or_attrs(self._data, name , attrs)
 
+    def update_attr(self, name: str, attr: str, value: str):
+        """
+        Update the attribute list of a list of items
+        within the queryset
+        
+        Returns
+        -------
+        
+            QuerySet (type): list of updated items
+        
     def update(self, name: str, attr: str, value: str):
         """Update the attribute list of a list of items
         within the queryset"""
