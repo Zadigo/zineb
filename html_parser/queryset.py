@@ -156,9 +156,11 @@ class QuerySet:
         
             QuerySet (type): list of updated items
         
-    def update(self, name: str, attr: str, value: str):
-        """Update the attribute list of a list of items
-        within the queryset"""
+        """
+        items = list(filter_by_name(self._data, name))
+        for item in items:
+            item.update_attr(attr, value)
+        return QuerySet.copy(items)
 
     def filter(self, *funcs):
         """Function for running more complexe
