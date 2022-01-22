@@ -66,7 +66,7 @@ class QueryMixin:
         """Get the next element in 
         respect to the name"""
         try:
-            return list(self.get_all_next(name))[-1]
+            return self.get_children().find(name)
         except:
             return None
         
