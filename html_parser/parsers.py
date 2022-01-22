@@ -155,10 +155,10 @@ class Extractor:
         
         # The sibling is the previous
         # closed tag from the list
-        previous_tag = self._get_previous_tag
-        if previous_tag is not None:
-            if previous_tag.closed:
-                pass
+        # previous_tag = self._get_previous_tag
+        # if previous_tag is not None:
+        #     if previous_tag.name == 'tag' and previous_tag.closed:
+        #         print('previous', previous_tag)
 
         # TODO: Create a unique class that
         # does this specific task
@@ -278,4 +278,4 @@ class HTMLPageParser(Extractor):
         return (
             self._original_page is not None or
             self._original_page != ''
-        )
+   

@@ -63,6 +63,8 @@ extractor.manager.find('a')
 # Tag -> <a>
 ```
 
+You can also specify specific tags such as `ElementData` tags or `NewLine` tags as _data_ or _newline_ respectively.
+
 #### Find all
 
 Returns a specific tag on the page. Returns a (#QuerySet)[QuerySet].

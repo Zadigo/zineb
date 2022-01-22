@@ -5,6 +5,7 @@ from zineb.html_parser.queryset import QuerySet
 from zineb.html_parser.utils import (filter_by_attrs, filter_by_name,
                                      filter_by_name_or_attrs)
 from zineb.tests.html_parser import items
+from bs4 import BeautifulSoup
 
 # # """
 # # <html>
@@ -102,5 +103,16 @@ from zineb.tests.html_parser import items
 #     # print(d)
 
 
-s = """<html><body><div></div><div></div></body></html>"""
+s = """
+    <html>
+        <body>
+            <div>Google <span>Technique</span></div>
+            <div></div>
+        </body>
+    </html>
+"""
 p = HTMLPageParser(s)
+# print(p.manager.find('div').children.find('data'))
+
+# p = BeautifulSoup(s, 'html.parser')
+# print(list(p.find('div').children))

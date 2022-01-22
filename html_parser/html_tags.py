@@ -116,22 +116,22 @@ class QueryMixin:
     def delete(self):
         pass
 
-    def insert_before(self, *tags):
-        pass
+    # def insert_before(self, *tags):
+    #     pass
 
-    def insert_after(self, *tags):
-        pass
+    # def insert_after(self, *tags):
+    #     pass
 
-    def insert_data(self, data: str):
-        pass
+    # def insert_data(self, data: str):
+    #     pass
 
     def update_attr(self, attr: str, value: str):
         """Update the attributes of all the tags
         within the queryset"""
         self.attrs.update({attr: value})
 
-    def update_data(self, data: str):
-        pass
+    # def update_data(self, data: str):
+    #     pass
 
 
 class TagMixin:
@@ -246,7 +246,7 @@ class BaseTag(TagMixin, QueryMixin):
 
     @property
     def children(self):
-        return QuerySet.copy(self._children)
+        return QuerySet.copy(reversed(self._children))
 
     @property
     def string(self):

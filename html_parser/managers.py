@@ -1,36 +1,38 @@
-from functools import cached_property
 import secrets
-from typing import Callable, Union
-
-from importlib_metadata import re
+from functools import cached_property
+from typing import Union
 
 from zineb.html_parser.html_tags import BaseTag, Tag
 from zineb.html_parser.queryset import QuerySet
 from zineb.html_parser.utils import (HTML_TAGS, SELF_CLOSING_TAGS,
                                      filter_by_name_or_attrs)
 
+from html_parser.utils import filter_by_name
+
 
 class Manager:
     def __init__(self, extractor):
         self._extractor_instance = extractor
 
-    def __getattr__(self, value):
-        if value in HTML_TAGS:
-            return self.find(value)
-        return value
+    # def __getattr__(self, value):
+    #     # Allows something like x.manager.div
+    #     # which will return the first
+    #     # matching item in the collection
+    #     if value in HTML_TAGS:
+    #         return self.find(value)
+    #     return value
 
     def __repr__(self):
-        return f"{self.__class__.__name__}()"
+        name = f"{self._extractor_instance.__class__.__name__}{self.__class__.__name__}"
+        return f"{name}(tags={len(self._extractor_instance)})"
 
     @cached_property
-    def get_title(self) -> str:
-        title = None
-        with self._extractor_instance as items:
-            for item in items:
-                if item.name == 'title':
-                    title = item.string
-                    break
-        return title
+    def get_title(self) -> Union[str, None]:
+        items = filter_by_name(self._extractor_instance, 'title')
+        try:
+            return list(items)[0]
+        except:
+            return None
 
     # @cached_property
     # def links(self):
@@ -87,12 +89,12 @@ class Manager:
     #                 instance.save(f)
     #                 yield True
 
-    def save(self, filename: str):
-        pass
+    # def save(self, filename: str):
+    #     pass
 
-    def live_update(self, url: str=None, html: str=None):
-        """Fetch a newer version of the html page
-        using a url or a string"""
+    # def live_update(self, url: str=None, html: str=None):
+    #     """Fetch a newer version of the html page
+    #     using a url or a string"""
 
     # def insert(self, position: int, tag: Callable):
     #     """Insert a tag at the designed position
