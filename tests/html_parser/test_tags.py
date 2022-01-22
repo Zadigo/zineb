@@ -132,18 +132,18 @@ class TestQueryFunctions(unittest.TestCase):
                 
     def test_parent(self):
         body = self.measure_tag.parent
-        self.assertTrue(body == 'body')
+        self.assertTrue(body == Tag('body'))
         
     def test_get_attr(self):
         self.assertEqual(self.measure_tag.get_attr('id'), '1')
         
     def test_get_previous(self):
         html = self.measure_tag.get_previous('html')
-        self.assertTrue(html == 'html')
+        self.assertTrue(html == Tag('html'))
         
     def test_get_next(self):
         span = self.measure_tag.get_next('span')
-        self.assertTrue(span == 'span')
+        self.assertTrue(span == Tag('span', attrs=[('id', '2')]))
         self.assertTrue(span.get_attr('id'), '2')
         
     def test_get_all_previous(self):
@@ -166,7 +166,7 @@ class TestQueryFunctions(unittest.TestCase):
     
     def test_get_parent(self):
         body = self.measure_tag.get_parent('body')
-        self.assertEqual(body,'body')  
+        self.assertEqual(body, Tag('body'))  
         
     def test_attrs_list(self):
         keys = self.measure_tag.attrs_list
@@ -182,13 +182,17 @@ class TestQueryFunctions(unittest.TestCase):
         
 class TestSpecialTagTests(unittest.TestCase):
     def test_newline(self):
-        # This tag shoudld always return
+        # These tags shoudld always return
         # false on has_attr and None on
         # get_attr
         newline = NewLine(extractor=None)
         self.assertFalse(newline.has_attr('id'))
         self.assertIsNone(newline.get_attr('id'))
         
+        element_data = ElementData('Kendall')
+        self.assertFalse(element_data.has_attr('id'))
+        self.assertIsNone(element_data.get_attr('id'))
+                
     def test_element_data(self):
         element_data = ElementData('Kendall')
         # Assert that we can compare a raw
@@ -201,6 +205,10 @@ class TestSpecialTagTests(unittest.TestCase):
         data1 = ElementData('Kendall')
         data2 = ElementData('Jenner')
         self.assertEqual(data1 + data2, 'KendallJenner')
+        
+    def test_string_tag_returns_empty_queryset(self):
+        string_tag = ElementData('Kendall')
+        self.assertFalse(string_tag.get_children.exists())
     
     
 if __name__ == '__main__':

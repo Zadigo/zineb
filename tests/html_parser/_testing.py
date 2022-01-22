@@ -70,10 +70,10 @@ from zineb.tests.html_parser import items
 
 
 
-r = requests.get('http://example.com')
-g = HTMLPageParser(r.content)
-link = g.manager.find_all('a')
-print(link)
+# r = requests.get('http://example.com')
+# g = HTMLPageParser(r.content)
+# link = g.manager.find_all('a')
+# print(link)
 
 
 # # html = Tag('html')
@@ -100,3 +100,7 @@ print(link)
 #     # s = BeautifulSoup(f, 'html.parser')
 #     # d = s.find_all('div')
 #     # print(d)
+
+
+s = """<html><body><div></div><div></div></body></html>"""
+p = HTMLPageParser(s)
