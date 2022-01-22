@@ -1,6 +1,6 @@
 from typing import Generator, Iterator, List, Union
 
-from zineb.html_parser.utils import filter_by_name_or_attrs
+from zineb.html_parser.utils import filter_by_name, filter_by_name_or_attrs
 from zineb.utils.iteration import drop_while
 
 
