@@ -285,11 +285,8 @@ class BaseTag(TagMixin, QueryMixin):
         """Find all elements that match a given tag name
         or attribute within the children elements
         of the tag"""
-        results_to_return = []
-        for child in self.children:
-            if child.name == name:
-                results_to_return.append(child)
-        return QuerySet.copy(results_to_return)
+        result = filter_by_name_or_attrs(self._children, name, attrs)
+        return QuerySet.copy(result)
 
 
 class Tag(BaseTag):
