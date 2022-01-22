@@ -1,4 +1,4 @@
-# XXXX
+# HTML Page Parser
 
 xxx is a modern HTML parser with which you can query anything on a given page.
 
@@ -93,9 +93,11 @@ extractor.manager.live_update(url='http://example.com')
 
 ### QuerySet API
 
-Certain functions will return a list of tags that are aggregated under `QuerySet`. This implements additional querying functionnalities but also allows for the original html data to stay untouched. Each query generates a new queryset with sub data that can be queried.
+A `QuerySet` is simply just an aggregation of multiple tags under one main interface or API. Many aggregating functions will then return a queryset class.
 
-The queries on QuerySet allows to deal with aggregation of multiple tags.
+This class implements additional querying functionnalities but also allows for the original html data to stay untouched.
+
+Each query generates a new queryset of its own with sub data that can also then be queried.
 
 Consider this example:
 
@@ -103,7 +105,7 @@ Consider this example:
 queryset.find_all('a').find_all('a', attrs={'id': 'test'}).exclude('a', attrs={'id': 'test2'})
 ```
 
-Each element of the chain returns a new `QuerySet` copy on which we can run additional queries. This can be done until we reach the tag level or that the queryset is empty.
+Each element of the chain returns a new `QuerySet` copy on which we can run additional queries. This can be done until we reach the tag level or that the queryset is not empty.
 
 Note that every time a new `QuerySet` is created, the data that the next element of the chain will use to filter tags will be the result of the previous query stored in the previously created one.
 
@@ -182,7 +184,7 @@ tags = queryset.exclude('a', attrs={'id': 'test'})
 # QuerySet([<a>, <a>])
 ```
 
-#### Distinct
+#### Distinct - Bêta
 
 Return elements that have a very disting attribute.
 
@@ -204,7 +206,7 @@ tags = queryset.values()
 # List -> ['Click', 'Press', ...]
 ```
 
-#### Values list
+#### Values list -  Bêta
 
 Returns the data or any attributes value contained within each tag of the queryset. You can specify which attributes to return specifically.
 
@@ -215,7 +217,7 @@ tags = queryset.values('id', 'string')
 # List -> [[('id', 'test'), ('data', 'Click)], ...]
 ```
 
-#### Dates
+#### Dates - Bêta
 
 Returns the date within an html tag as Python objects. If no date can be parsed, None will be stored in the return values.
 
@@ -270,12 +272,12 @@ Displays in verbose text what the queryset is composed of.
 queryset = extractor.manager.find_all('div')
 queryset.explain()
 
-# name: 'div', tag: <div>, ...
+# 1. name: 'div', tag: <div>, children: 1
 ```
 
 #### Generator
 
-Defers the resolution of the new query.
+Defers the resolution of the new query for eventual optimization purposes.
 
 ```python
 queryset = extractor.manager.find_all('div')
@@ -289,26 +291,94 @@ for link in links:
 
 #### Update
 
-Update all the attribute list of the items within the queryset.
+Update all the attribute list of the items within the queryset that goes by the given name.
 
 ```python
 queryset = extractor.manager.find_all('div')
 result = queryset.update('a', 'id', 'test2')
+
+# QuerySet([<div>]) -> QuerySet([<div id="test2">])
 ```
 
 ### BaseTag API
 
 Tags also provide additional query functionnalities for the children within them. Therefore calling one of these functions will only query the child elements of the tag.
 
+#### Parents
+
+Returns all the parents of the tag.
+
+```python
+tag = extractor.manager.find('div')
+parents = tag.parents
+
+# QuerySet([<html>, <body>])
+```
+
+#### Parent
+
+Returns the immediate parent of the tag.
+
+```python
+tag = extractor.manager.find('div')
+parents = tag.parent
+
+# Tag -> <body>
+```
+
+#### Get parent
+
+Get a specific parent from the list of parents of the current tag.
+
+```python
+tag = extractor.manager.find('div')
+queryset = tag.get_parent('body')
+
+# Tag -> <body>
+```
+
+#### Get previous sibling - Bêta
+
+Get the previous sibling of the current tag.
+
+```python
+tag = extractor.manager.find('div')
+queryset = tag.get_previous_sibling('div')
+
+# Tag -> <div>
+```
+
+#### Contents
+
+Get all the content within the tag.
+
+```python
+tag = extractor.manager.find('div')
+result = tag.contents
+
+# List -> ['Click', 'Kendall', ...]
+```
+
 #### Children
 
-Returns all the children of a tag.
+Returns all the children of the given tag.
 
 ```python
 tag = extractor.manager.find('div')
 tag.children
 
 # QuerySet([<a>, <a id="test">])
+```
+
+#### Get children
+
+Returns all the children of the given tag going by specific names.
+
+```python
+tag = extractor.manager.find('div')
+tag.get_children('a', 'span')
+
+# QuerySet([<a>, <span>])
 ```
 
 #### Find
@@ -333,9 +403,31 @@ tag.find_all('a')
 # QuerySet([<a>, <a>])
 ```
 
+#### Get attribute
+
+Returns an attribute of the tag as a string
+
+```python
+tag = extractor.manager.find('div', attrs={'id': 'test', 'class': 'color'})
+tag.get_attr('id')
+
+# str -> "test"
+```
+
+#### Delete
+
+Deletes the tag from the global collection list.
+
+```python
+tag = extractor.manager.find('div')
+tag.delete()
+
+# <html><div></div> -> [<html>, <div>] -> [<html>]
+```
+
 ## Navigating the DOM
 
-At the tag level, you can navigate the DOM very easily using these functions.
+The `BaseTag` API also includes additional functionnalities to navigate the DOM efficiently.
 
 #### Previous element
 
@@ -359,17 +451,6 @@ new_tag = tag.next_element
 # Tag -> <div>, <span>, ...
 ```
 
-#### Contents
-
-Get all the content within the tag.
-
-```python
-tag = extractor.manager.find('div')
-result = tag.contents
-
-# List -> ['Click', 'Kendall', ...]
-```
-
 #### Get attribute
 
 Get the attribute of a given tag.
@@ -383,29 +464,29 @@ queryset = tag.get_attr('div')
 
 #### Get previous
 
-Get the previous element before the current tag by name.
+Get the previous element before the current tag going by a specific name.
 
 ```python
 tag = extractor.manager.find('div')
-queryset = tag.get_previous('div')
+tag.get_previous('div')
 
-# Tag -> <div>
+# Tag -> <div> or None
 ```
 
 #### Get next
 
-Get the next element before the current tag by name.
+Get the next element before the current tag going by a specific name.
 
 ```python
 tag = extractor.manager.find('div')
-queryset = tag.get_next('div')
+tag.get_next('div')
 
-# Tag -> <div>
+# Tag -> <div> or None
 ```
 
 #### Get all previous
 
-Get the all the previous elements before the current tag by name.
+Get the all the previous elements before the current tag going by a specific name.
 
 ```python
 tag = extractor.manager.find('div')
@@ -416,7 +497,7 @@ queryset = tag.get_all_previous('div')
 
 #### Get all next
 
-Get the all the next elements after the current tag by name.
+Get the all the next elements after the current tag going by a specific name.
 
 ```python
 tag = extractor.manager.find('div')
@@ -425,29 +506,7 @@ queryset = tag.get_all_next('div')
 # QuerySet([<div>, <a>])
 ```
 
-#### Get parent
-
-Get the parent of the current tag.
-
-```python
-tag = extractor.manager.find('div')
-queryset = tag.get_parent
-
-# QuerySet([<div>, <a>])
-```
-
-#### Get previous sibling
-
-Get the previous sibling of the current tag.
-
-```python
-tag = extractor.manager.find('div')
-queryset = tag.get_previous_sibling('div')
-
-# Tag -> <div>
-```
-
-#### Get next sibling
+#### Get next sibling - Bêta
 
 Get the next sibling of the current tag.
 
@@ -460,20 +519,36 @@ queryset = tag.get_next_sibling('div')
 
 #### String
 
-Get the content of a given tag.
+Get the content within the tag.
 
 ```python
 tag = extractor.manager.find('div')
 tag.string
 
-# String
+# <div>Kendall</div> -> Tag -> "Kendall"
 ```
 
 ## Base tags
 
-When the XXX parses the html document, it transforms each of the string tags into Python objects with which you can interract. There are three main categories of tags: `Tag`, `ElementData `, `NewLine `and `Commnent`.
+When the XXX parses the html document, it transforms each of the string tags into Python objects with which you can interract. There are three main categories of tags: `Tag`, `ElementData `, `NewLine `and `Comment`.
 
-`Tag` is the only item on which you can call additional querying functions like `find_all` or `find` because it is the only one that can logically contain children.
+### Tag
+
+Represents the majority of HTML tags wihin a document: `a`, `img` etc.
+
+This is the only item on which you can call additional querying functions like `find_all` or `find` because it is the only one that can logically contain children.
+
+### ElementData
+
+Represents the data contained within an HTML tag. For instance, in this tag, `<div>Kendall</div>`, `Kendall` is the element's data.
+
+### NewLine
+
+Reprents a newline marked as `\n` from the HTML document.
+
+### Comment
+
+Reprents a comment form the HTML document. This is similar to the `ElementData` tag.
 
 ## Extractors
 
@@ -513,3 +588,21 @@ images = extractor.get_values()
 
 # List -> [[], [1, 165], [2, 176], ...]
 ```
+
+## Doing complexe queries
+
+You can run more complex queries on the page using the `Q` field.
+
+Consider this example:
+
+```python
+query = Q(a__id="fast") & Q(a__id__ne="slow") | Q(a__id__in=["medium", "moderate"])
+
+with open(path_to_file, encoding='utf-8') a f:
+    parser = HTMLPageParser(html_string)
+    queryset = parser.find_all(query)
+
+# QuerySet([<a id="fast">, <a id="slow">])
+```
+
+As you can see, we are testing links so that those who have an id of _test_ or _color_ or that those who have an id attribute of _medium_ or _moderate_ from the list appear in the queryset.

@@ -138,8 +138,8 @@ class QuerySet:
     def explain(self):
         """Returns explicit information about the items contained
         in the queryset e.g. link <a> with data ... x attributes"""
-        for item in self._queryset_or_internal_data:
-            msg = f"name: {item.name}, tag: {repr(item)}, children: {len(item.children)}"
+        for i, item in enumerate(self._queryset_or_internal_data):
+            msg = f"{i}. name: {item.name}, tag: {repr(item)}, children: {len(item.children)}"
             print(msg)
 
     def generator(self, name: str, attrs: dict = {}):
@@ -150,12 +150,6 @@ class QuerySet:
         """
         Update the attribute list of a list of items
         within the queryset
-        
-        Returns
-        -------
-        
-            QuerySet (type): list of updated items
-        
         """
         items = list(filter_by_name(self._data, name))
         for item in items:

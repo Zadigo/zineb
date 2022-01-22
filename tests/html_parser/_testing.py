@@ -112,7 +112,7 @@ s = """
     </html>
 """
 p = HTMLPageParser(s)
-# print(p.manager.find('div').children.find('data'))
-
+div = p.manager.find('div')
+print(div.get_parent(''))
 # p = BeautifulSoup(s, 'html.parser')
 # print(list(p.find('div').children))

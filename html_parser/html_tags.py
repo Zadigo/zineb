@@ -43,7 +43,7 @@ class QueryMixin:
     @cached_property    
     def parents(self):
         """List of parents for the tag"""
-        return self._parents
+        return QuerySet.copy(self._parents)
     
     @cached_property
     def parent(self):
