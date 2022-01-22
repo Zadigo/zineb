@@ -278,4 +278,4 @@ class HTMLPageParser(Extractor):
         return (
             self._original_page is not None or
             self._original_page != ''
-   
+        )
