@@ -274,12 +274,12 @@ class BaseTag(TagMixin, QueryMixin):
     
     def find(self, name: str, attrs: dict = {}):
         """Find a tag within the children of the tag"""
-        result_to_return = None
-        for child in self.children:
-            if child.name == name:
-                result_to_return = child
-                break
-        return result_to_return
+        result = filter_by_name_or_attrs(self._children, name, attrs)
+        try:
+            return list(result)[0]
+        except:
+            return None
+        
 
     def find_all(self, name: str, attrs: dict = {}, limit: int=None):
         """Find all elements that match a given tag name
