@@ -2,8 +2,10 @@ from collections import Counter, deque
 from encodings import utf_8
 from functools import cached_property
 from html.parser import HTMLParser
-from io import FileIO, StringIO, TextIOWrapper
+from io import StringIO, TextIOWrapper
 from typing import Union
+
+from importlib_metadata import itertools
 
 from zineb.html_parser.html_tags import Comment, ElementData, NewLine, Tag
 from zineb.html_parser.managers import Manager
@@ -18,6 +20,9 @@ class Algorithm(HTMLParser):
     subclassed or used directly"""
     
     def __init__(self, extractor, **kwargs):
+        from zineb.html_parser.extractors import Extractor
+        if not isinstance(extractor, Extractor):
+            raise TypeError('Extractor should be an instance of extractor')
         self.extractor = extractor
         self.index = 0
         super().__init__(**kwargs)
@@ -28,19 +33,39 @@ class Algorithm(HTMLParser):
         return self.index
 
     def handle_startendtag(self, tag, attrs):
-        self.extractor.self_closing_tag(tag, attrs, position=self.getpos())
+        """Handles tags such as <img /> or <img>"""
+        self.extractor.self_closing_tag(tag, attrs, position=self.getpos(), index=self._increase_index)
 
     def handle_starttag(self, tag, attrs):
+        """Handles tags such as <div>"""
         self.extractor.start_tag(tag, attrs, position=self.getpos(), index=self._increase_index)
 
     def handle_endtag(self, tag):
+        """Handles tags such as </div>"""
         self.extractor.end_tag(tag)
 
     def handle_data(self, data):
+        """Handles data within tags 'Kendall' in <span>Kendall</span>"""
         self.extractor.internal_data(data, position=self.getpos(), index=self._increase_index)
         
     def handle_comment(self, data):
+        """Handles comments"""
         self.extractor.parse_comment(data, position=self.getpos())
+        
+    def handle_charref(self, name):
+        print('charref', name)
+        
+    def handle_entityref(self, name):
+        print('entity', name)
+        
+    def handle_pi(self, data):
+        print('pi', data)
+        
+    def handle_decl(self, decl):
+        print('declaration', decl)
+        
+    def unknown_decl(self, data):
+        print('unknown', data)
 
 
 class Extractor:
@@ -49,7 +74,7 @@ class Extractor:
     
     HTML_PAGE = None
 
-    def __init__(self, skip_newlines: bool=False):
+    def __init__(self, skip_newlines=False, remove_white_space=False, track_line_numbers=False):
         self.algorithm = Algorithm(self)
         self._opened_tags = Counter()
 
@@ -63,10 +88,14 @@ class Extractor:
         # the items that were parsed
         self._coordinates = []
         
-        # Whether to include newlines in the
-        # collection when iterating over
-        # the elements of the page
+        # TODO: Whether to include \n in the
+        # collection or not
         self.skip_newlines = skip_newlines
+
+        self.track_line_numbers = track_line_numbers
+        # TODO: Whether to keep ' ' data elements
+        # in the collection or not
+        self.remove_white_space = remove_white_space
 
     def __repr__(self):
         return f"{self.__class__.__name__}({list(self.container)})"
@@ -100,6 +129,22 @@ class Extractor:
             # There is no previous so
             # just return None
             return None
+
+    @staticmethod
+    def _reformat_fragment(fragment):
+        """When a string comes as a fragment of full
+        document, recompose the whole structure"""
+        return f"<html><head></head><body>{fragment}</body></html>"
+    
+    def _iter_chunks(self, chunk_size=100):
+        """Divide each tags in chunks for
+        optimized iteration"""
+        iterator = iter(self.container)
+        while True:
+            chunk = tuple(itertools.islice(iterator, chunk_size))
+            if not chunk:
+                break
+            yield chunk
         
     def _get_default_prettifier(self, html: str) -> str:
         """Function that normalizes the incoming
@@ -111,11 +156,22 @@ class Extractor:
         return tostring(fromstring(html), encoding='unicode', pretty_print=True)
     
     def _add_coordinates(self, tag, coordinates):
-        pass
+        """Reference each tag with an index number
+        and eventually the line position returned
+        by the HTMLParser"""
+        tag._coordinates = coordinates.get('position')
+        tag.index = coordinates.get('index')
+        
+        if self.track_line_numbers:
+            self._coordinates.append(coordinates)
 
     def recursively_add_tag(self, instance):
         """Adds the current tag recursively 
         to all the previous tags that are open"""
+        # TODO: Optimize iteration on this section
+        # because it is getting called multiple times
+        # and can probably slow down as more tags
+        # are being added to the container
         for i in range(0, len(self.container) - 1):
             tag = self.container[i]
             if not tag.closed:
@@ -162,19 +218,20 @@ class Extractor:
 
         # TODO: Create a unique class that
         # does this specific task
-        coordinates = kwargs.get('position')
-        klass._coordinates = coordinates
-        klass.index = kwargs.get('index')
-        self._coordinates.append(coordinates)
+        # coordinates = kwargs.get('position')
+        # klass._coordinates = coordinates
+        # klass.index = kwargs.get('index')
+        # self._coordinates.append(coordinates)
+        self._add_coordinates(klass, kwargs)
         
-        # print(tag, kwargs.get('position'))
-        # print(kwargs)
-        # print(tag)
+        # print(tag, kwargs)
+        # print(tag, klass)
 
     def end_tag(self, tag):
+        # TODO: Try to optimize iteration
+        # on this section
         def filter_function(x):
             return x.name == tag and not x.closed
-        
         tag_to_close = break_when(filter_function, self.container)
         tag_to_close.closed = True
         # print('/', tag, tag_to_close)
@@ -191,16 +248,23 @@ class Extractor:
             if element == '\n':
                 data_instance = NewLine(extractor=self)
             else:
+                # TODO: Elements such as \n\n or ' ' need to be dealt
+                # with because they are currently treated by default
+                # as ElementData
                 data_instance = ElementData(element, extractor=self)
         else:
+            # TODO: Elements such as \n\n or ' ' need to be dealt
+            # with because they are currently treated by default
+            # as ElementData
             data_instance = ElementData(data, extractor=self)
 
         # print('>', data_instance, kwargs.get('position'))
         
-        coordinates = kwargs.get('position')
-        data_instance._coordinates = coordinates
-        data_instance.index = kwargs.get('index')
-        self._coordinates.append(coordinates)
+        # coordinates = kwargs.get('position')
+        # data_instance._coordinates = coordinates
+        # data_instance.index = kwargs.get('index')
+        # self._coordinates.append(coordinates)
+        self._add_coordinates(data_instance, kwargs)
 
         try:
             # Certain tags do not have an internal_data
@@ -240,10 +304,11 @@ class Extractor:
         
         self.recursively_add_tag(klass)
         
-        coordinates = kwargs.get('position')
-        klass._coordinates = coordinates
-        klass.index = kwargs.get('index')
-        self._coordinates.append(coordinates)
+        # coordinates = kwargs.get('position')
+        # klass._coordinates = coordinates
+        # klass.index = kwargs.get('index')
+        # self._coordinates.append(coordinates)
+        self._add_coordinates(klass, kwargs)
 
 
 class HTMLPageParser(Extractor):
@@ -252,9 +317,10 @@ class HTMLPageParser(Extractor):
     the different items on the html page"""
     
     def __init__(self, html: Union[str, bytes, TextIOWrapper, StringIO],
-                 defer_resolution: bool=False, skip_newlines: bool=False):
+                 defer_resolution: bool=False, skip_newlines: bool=False,
+                 track_line_numbers: bool=False):
         self.manager = Manager(self)
-        super().__init__(skip_newlines=skip_newlines)
+        super().__init__(skip_newlines=skip_newlines, track_line_numbers=track_line_numbers)
 
         string = None
         if isinstance(html, TextIOWrapper):
