@@ -1,4 +1,5 @@
 from typing import Generator, Iterator, List, Union
+from html_parser.utils import map_function
 
 from zineb.html_parser.utils import filter_by_name, filter_by_name_or_attrs
 from zineb.utils.iteration import drop_while
@@ -18,13 +19,25 @@ class QuerySet:
         return iter(self._data)
 
     def __getitem__(self, index):
-        return self._data
+        return self._data[index]
 
     def __len__(self):
         return len(self._data)
     
     def __contains__(self, obj):
         return obj in self._data
+    
+    def __bool__(self):
+        return bool(self._data)
+    
+    def __and__(self, obj):
+        querysets = []
+        querysets.extend(self._data)
+        querysets.extend(obj._data)
+        return self.copy(querysets)
+    
+    # def __or__(self, obj):
+    #     pass
 
     @classmethod
     def copy(cls, data: Union[Generator, Iterator]):

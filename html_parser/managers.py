@@ -1,26 +1,26 @@
 import secrets
 from functools import cached_property
-from typing import Union
+from typing import Pattern, Union
+from html_parser.utils import filter_chunks_by_name
 
 from zineb.html_parser.html_tags import BaseTag, Tag
 from zineb.html_parser.queryset import QuerySet
 from zineb.html_parser.utils import (HTML_TAGS, SELF_CLOSING_TAGS,
-                                     filter_by_name_or_attrs)
-
-from html_parser.utils import filter_by_name
-
+                                     filter_by_name, filter_by_name_or_attrs)
+from zineb.html_parser.utils import TagsIterable
 
 class Manager:
     def __init__(self, extractor):
+        from zineb.html_parser.extractors import Extractor
+        if not isinstance(extractor, Extractor):
+            raise TypeError('Extractor should be an instance of Extractor')
         self._extractor_instance = extractor
-
-    # def __getattr__(self, value):
-    #     # Allows something like x.manager.div
-    #     # which will return the first
-    #     # matching item in the collection
-    #     if value in HTML_TAGS:
-    #         return self.find(value)
-    #     return value
+        
+        # TODO: Test doing all iterations by chunks as
+        # opposed to doing one by one values in order
+        # to improve global performance especially on
+        # large files which can generate 1000s of tags
+        self._internal_values = TagsIterable(extractor)
 
     def __repr__(self):
         name = f"{self._extractor_instance.__class__.__name__}{self.__class__.__name__}"
@@ -33,6 +33,10 @@ class Manager:
             return list(items)[0]
         except:
             return None
+        
+    @cached_property
+    def count(self):
+        return len(self._extractor_instance)
 
     # @cached_property
     # def links(self):
@@ -59,6 +63,16 @@ class Manager:
         """Filter tags by name or by attributes"""
         result = filter_by_name_or_attrs(self._extractor_instance, name, attrs)
         return QuerySet.copy(result)
+    
+    def regex(self, name: Pattern):
+        """Filter tags by using a regex pattern"""
+        results = []
+        for chunk in self._internal_values:
+            for item in chunk:
+                matched = name.match(item.name)
+                if matched:
+                    results.append(item)
+        return QuerySet.copy(results)
     
     # def download_images(self, func: Callable):
     #     """Download all the images on the page using

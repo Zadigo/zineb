@@ -13,7 +13,6 @@ from zineb.html_parser.queryset import QuerySet
 from zineb.html_parser.utils import break_when
 from zineb.utils.iteration import keep_while
 
-
 class Algorithm(HTMLParser):
     """Subclasses html.HTMlParser in order to
     process the html tags. This should not be
@@ -105,6 +104,7 @@ class Extractor:
     
     def __iter__(self):
         return iter(self.container)
+        # return self._iter_chunks()
         
     def __len__(self):
         return len(self.container)
@@ -172,10 +172,14 @@ class Extractor:
         # because it is getting called multiple times
         # and can probably slow down as more tags
         # are being added to the container
-        for i in range(0, len(self.container) - 1):
-            tag = self.container[i]
-            if not tag.closed:
-                tag._children.append(instance)
+        # for i in range(0, len(self.container) - 1):
+        #     tag = self.container[i]
+        #     if not tag.closed:
+        #         tag._children.append(instance)
+        for chunk in self._iter_chunks():
+            for item in chunk:
+                if not item.closed:
+                    item._children.append(instance)
 
     def resolve(self, html: str):
         """Entrypoint for transforming each html 
@@ -199,15 +203,15 @@ class Extractor:
         # print(tag, unclosed_tags)
 
         klass = Tag(tag, attrs, extractor=self)
-        self.container.append(klass)
-        self._current_tag = klass
-
-        klass._parents = unclosed_tags
-
+        
         # Add the newly created tag to
         # the children list of the
         # all the previous opened tags
         self.recursively_add_tag(klass)
+        self.container.append(klass)
+        self._current_tag = klass
+
+        klass._parents = unclosed_tags
         
         # The sibling is the previous
         # closed tag from the list
@@ -216,13 +220,8 @@ class Extractor:
         #     if previous_tag.name == 'tag' and previous_tag.closed:
         #         print('previous', previous_tag)
 
-        # TODO: Create a unique class that
-        # does this specific task
-        # coordinates = kwargs.get('position')
-        # klass._coordinates = coordinates
-        # klass.index = kwargs.get('index')
-        # self._coordinates.append(coordinates)
-        self._add_coordinates(klass, kwargs)
+        if self.track_line_numbers:
+            self._add_coordinates(klass, kwargs)
         
         # print(tag, kwargs)
         # print(tag, klass)
@@ -230,8 +229,8 @@ class Extractor:
     def end_tag(self, tag):
         # TODO: Try to optimize iteration
         # on this section
-        def filter_function(x):
-            return x.name == tag and not x.closed
+        def filter_function(item):
+            return item.name == tag and not item.closed
         tag_to_close = break_when(filter_function, self.container)
         tag_to_close.closed = True
         # print('/', tag, tag_to_close)
@@ -260,11 +259,8 @@ class Extractor:
 
         # print('>', data_instance, kwargs.get('position'))
         
-        # coordinates = kwargs.get('position')
-        # data_instance._coordinates = coordinates
-        # data_instance.index = kwargs.get('index')
-        # self._coordinates.append(coordinates)
-        self._add_coordinates(data_instance, kwargs)
+        if self.track_line_numbers:
+            self._add_coordinates(data_instance, kwargs)
 
         try:
             # Certain tags do not have an internal_data
@@ -291,24 +287,20 @@ class Extractor:
 
         self.recursively_add_tag(klass)
 
-        coordinates = kwargs.get('position')
-        klass._coordinates = coordinates
-        klass.index = kwargs.get('index')
-        self._coordinates.append(coordinates)
+        if self.track_line_numbers:
+            self._add_coordinates(klass, kwargs)
         
     def parse_comment(self, data: str, **kwargs):
         klass = Comment(data)
-        self.container.append(klass)
-        self._current_tag = klass
-        klass.closed = True
         
         self.recursively_add_tag(klass)
         
-        # coordinates = kwargs.get('position')
-        # klass._coordinates = coordinates
-        # klass.index = kwargs.get('index')
-        # self._coordinates.append(coordinates)
-        self._add_coordinates(klass, kwargs)
+        self.container.append(klass)
+        self._current_tag = klass
+        klass.closed = True
+
+        if self.track_line_numbers:
+            self._add_coordinates(klass, kwargs)
 
 
 class HTMLPageParser(Extractor):

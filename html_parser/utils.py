@@ -1,5 +1,8 @@
 from typing import Callable, Iterator, Union, Generator
 
+from importlib_metadata import itertools
+
+
 HTML_TAGS = {
     'html', 'body', 'main', 'p', 'a', 'br', 'table', 'td', 'tr',
     'th', 'b', 'i', 'script', 'span', 'abbr', 'address', 'area',
@@ -11,7 +14,8 @@ HTML_TAGS = {
     'mark', 'meta', 'meter', 'nav', 'noscript', 'object', 'ol', 'optgroup',
     'option', 'select', 'param', 'picture', 'pre', 'progress', 'q', 'ruby',
     'section', 'small', 'source', 'span', 'style', 'sub', 'svg', 'template',
-    'title', 'tfoot', 'u', 'var', 'video', 'time', 'img', 'iframe'
+    'title', 'tfoot', 'u', 'var', 'video', 'time', 'img', 'iframe', 'strong',
+    'textarea'
 }
 
 
@@ -38,7 +42,11 @@ def filter_by_name(items, name):
     for item in items:
         if item.name == name:
             yield item
-
+    # for items in chunks:
+    #     for item in items:
+    #         if item.name == name:
+    #             yield item
+            
 
 def filter_by_attrs(items, attrs):
     """Filter by attributes"""
@@ -61,10 +69,34 @@ def filter_by_attrs(items, attrs):
         for item in items:
             yield item
 
+
 def filter_by_name_or_attrs(data, name, attrs):
     """Filter by name and attributes"""
     tags_by_name = filter_by_name(data, name)
     return filter_by_attrs(tags_by_name, attrs)
+
+
+def filter_chunks_by_name(items, name):
+    """Filter chunks by name"""
+    for chunk in items:
+        for item in chunk:
+            if item.name == name:
+                yield item
+                
+
+def filter_chunks_by_attrs(items, attrs):
+    """Filter by attributes"""
+    if attrs:
+        for attr, value in attrs.items():
+            for chunk in items:
+                for item in chunk:
+                    result = item.get_attr(attr)
+                    if result == value:
+                        yield item
+    else:
+        for chunk in items:
+            for item in chunk:
+                yield item
 
 
 def break_when(func: Callable, items: Union[Iterator, Generator]):
@@ -77,3 +109,34 @@ def break_when(func: Callable, items: Union[Iterator, Generator]):
         if func(item):
             break
     return item
+
+
+def map_function(func, items):
+    """A function that yields true or false
+    in respect to a function. Takes chunks
+    of values"""
+    for chunk in items:
+        for item in chunk:
+            result = func(item)
+            if not isinstance(result, bool):
+                raise ValueError('Result should be a boolean')
+            yield result
+
+
+class BaseIterable:
+    def __init__(self, items, chunk_size=100):
+        self.items = items
+        self.chunk_size = chunk_size
+        
+
+class TagsIterable(BaseIterable):
+    """A iterator that yields tags by chunks for
+    optimization purposes"""
+            
+    def __iter__(self):
+        iterator = iter(self.items)
+        while True:
+            chunk = tuple(itertools.islice(iterator, self.chunk_size))
+            if not chunk:
+                break
+            yield chunk

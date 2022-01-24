@@ -3,7 +3,8 @@ from functools import cached_property
 from typing import Callable, List, Tuple, Union
 
 from zineb.html_parser.queryset import QuerySet
-from zineb.html_parser.utils import break_when, filter_by_name, filter_by_names
+from zineb.html_parser.utils import (break_when, filter_by_name,
+                                     filter_by_name_or_attrs, filter_by_names)
 from zineb.utils.characters import deep_clean
 from zineb.utils.iteration import drop_while
 
@@ -234,7 +235,7 @@ class BaseTag(TagMixin, QueryMixin):
 
     def __getitem__(self, key):
         if not isinstance(key, str):
-            raise ValueError('Value should be a string. Got:')
+            raise ValueError(f'Value should be a string. Got: {key}')
         return self.attrs.get(key, None)
     
     def __setitem__(self, key, value):
@@ -363,7 +364,7 @@ class NewLine(StringMixin):
     @property
     def is_empty_element(self):
         return True
-                    
+                        
 
 class ElementData(StringMixin):
     """Represents a data element within

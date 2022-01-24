@@ -1,7 +1,9 @@
 import os
-from functools import lru_cache
 import re
+from functools import lru_cache
 from typing import Callable, Iterable, Union
+
+from importlib_metadata import itertools
 
 from zineb import exceptions
 from zineb.settings import settings
@@ -123,3 +125,12 @@ def regex_iterator(text: str, regexes: Union[tuple, list]):
 
 # print(create_batch(list(range(0, 20))))
 
+def iterate_by_chunk(items, chunk_size=100):
+    """Create chunks in order to improve
+    iteration performance e.g. [(..., ...), ...]"""
+    iterator = iter(items)
+    while True:
+        chunk = tuple(itertools.islice(iterator, chunk_size))
+        if not chunk:
+            break
+        yield chunk
