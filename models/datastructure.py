@@ -340,12 +340,6 @@ class DataStructure(metaclass=Base):
         """
         Add a value to the model based on a specific
         conditions determined by a When-function.
-
-        Parameters
-        ----------
-
-            - value (Any): the value to test
-            - case (Callable): When-function
         """
         if not isinstance(case, When):
             raise TypeError('Case should be a When class.')
@@ -359,13 +353,6 @@ class DataStructure(metaclass=Base):
         """
         Adds a value to your Model object using an expression. Using this
         method requires that you pass and BeautifulSoup object to your model.
-
-        Parameters
-        ----------
-
-            - name (str): the name of field on which to add a given value
-            - tag (str): a tag to get on the HTML document
-            - attrs (dict, Optional): attributes related to the element's tag on the page. Defaults to {}
         """
         obj = self._get_field_by_name(name)
         if self.parser is None:
@@ -384,24 +371,13 @@ class DataStructure(metaclass=Base):
         Add a single row at once on your model
         using either a dictionnary or keyword
         arguments
-
-        Example
-        -------
-
-            add_values(name=Kendall, age=22)
         """
         self._fields.has_fields(list(attrs.keys()), raise_exception=True)
         self._cached_result.update_multiple(**attrs)
 
     def add_value(self, name: str, value: Any):
         """
-        Adds a value to your Model object.
-
-        Parameters
-        ----------
-
-            - name (str): the name of field on which to add a given value
-            - value (Any): the value to add
+        Adds a value to the Model object
         """
         # FIXME: Due the way the mixins are ordered
         # on the ExtractYear, ExtractDay... classes,
