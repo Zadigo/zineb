@@ -57,7 +57,7 @@ You can read more about this in the [settings section of this file](#Settings).
 
 Creating a spider is extremely easy and requires a set of starting urls that can be used to scrap one or many HTML pages.
 
-```
+```python
 class Celebrities(Zineb):
     start_urls = ['http://example.com']
 
@@ -71,7 +71,7 @@ You are not required to use all these parameters at once. They're just for convi
 
 In which case, you can also write the start method as so if you only need one of these.
 
-```
+```python
 def start(self, response, **kwargs):
   # Do something here
 ```
@@ -82,7 +82,7 @@ Other objects can be passes through the function such as the models that you hav
 
 Meta options allows you to customize certain very specific behaviours [not found in the `settings.py` file] related to the spider.
 
-```
+```python
  class Celerities(Zineb):
     start_urls = ['http://example.com']
   
@@ -100,11 +100,11 @@ This option writer as `verbose_name` will specific a different name to your spid
 
 ## Running commands
 
-#### Start
+### Start
 
 Triggers the execution of all the spiders present in the given the project.
 
-#### Shell
+### Shell
 
 Start a iPython shell on which you can test various elements on the HTML page.
 
@@ -123,7 +123,7 @@ In that regards, the shell becomes a interesting place where you can test variou
 
 We can get a simple url :
 
-```
+```python
 IPython 7.19.0
 
 In [1]: response.find("a")
@@ -132,7 +132,7 @@ Out[1]: <a href="https://www.iana.org/domains/example">More information...</a>
 
 We can find all urls on the page:
 
-```
+```python
 IPython 7.19.0
 
 In [2]: extractor = links()
@@ -146,7 +146,7 @@ Out [5]: [Link(url=https://www.iana.org/domains/example, valid=True)]
 
 Or simply get the page title:
 
-```
+```python
 IPython 7.19.0
 
 In [6]: response.page_title
@@ -161,7 +161,7 @@ Like said previously, the majority of your interactions with the HTML page will 
 
 This class will implement some very basic general functionnalities that you can use through the course of your project. To illustrate this, let's create a basic Zineb HTTP response from a request:
 
-```
+```python
 from zineb.http.requests import HTTPRequest
 
 request = HTTPRequest("http://example.com")
@@ -171,27 +171,24 @@ Requests, when created a not sent [or resolved] automatically if the `_send` fun
 
 Once the `_send` method is called, by using the `html_page` attribute or calling any BeautifulSoup function on the class, you can do all the classic querying on the page e.g. find, find_all...
 
-```
+```python
 request._send()
 
 request.html_response
-
-    -> Zineb HTMLResponse object
+# -> Zineb HTMLResponse object
 
 request.html_response.html_page
-
-    -> BeautifulSoup object
+# -> BeautifulSoup object
 
 request.find("a")
-
-    -> BeautifulSoup Tag
+# -> BeautifulSoup Tag
 ```
 
 If you do not know about BeautifulSoup please read [the documentation here](https://www.crummy.com/software/BeautifulSoup/bs4/doc/).
 
-For instance, suppose you have a spider and want to get the first link present on the http://example.com page. That's what you would so:
+For instance, suppose you have a spider and want to get the first link present on http://example.com. That's what you would so:
 
-```
+```python
 from zineb.app import Zineb
 
 class MySpider(Zineb):
@@ -215,33 +212,30 @@ Zineb HTTPRequest objects are better explained in the following section.
 
 ### Getting all the links
 
-```
+```python
 request.html_response.links
-
-    -> [Link(url=http://example.com valid=True)]
+# -> [Link(url=http://example.com valid=True)]
 ```
 
 ### Getting all the images
 
-```
+```python
 request.html_response.images
-
-    -> [Image(url=https://example.com/1.jpg")]
+# -> [Image(url=https://example.com/1.jpg")]
 ```
 
 ### Getting all the tables
 
-```
+```python
 request.html_response.tables
-
-    -> [Table(url=https://example.com/1")]
+# -> [Table(url=https://example.com/1")]
 ```
 
 ### Getting all the text
 
 Finally you can retrieve all the text of the web page at once.
 
-```
+```python
 request.html_response.text
 
     -> '\n\n\nExample Domain\n\n\n\n\n\n\n\nExample Domain\nThis domain is for use in   illustrative examples in documents. You may use this\n    domain in literature without prior coordination or asking for permission.\nMore information...\n\n\n\n'
@@ -253,14 +247,14 @@ There might be situations where you might have a set of HTML files in your proje
 
 __NOTE:__ Ensure that the directory to use is within your project.
 
-```
+```python
 class Spider(FileCrawler):
     start_files = ["media/folder/myfile.html"]
 ```
 
 You might have thousands of files and certainly might not want to reference each file one by one. You can then also use a utility function `collect_files`.
 
-```
+```python
 from zineb.utils.iterator import collect_files
 
 class Spider(FileCrawler):
@@ -277,7 +271,7 @@ Models are a simple way to structure your scrapped data before saving them to a 
 
 In order to create a model, subclass the Model object from `zineb.models.Model` and then add fields to it. For example:
 
-```
+```python
 from zineb.models.datastructure import Model
 from zineb.models import fields
 
@@ -295,7 +289,7 @@ On its own, a model does nothing. In order to make it work, you have to add valu
 
 The first method consists of adding values through the `add_value` method. This method does not rely on the BeautifulSoup HTML page object which means that values can be added freely.
 
-```
+```python
 player.add_value('name', 'Kendall Jenner')
 ```
 
@@ -303,7 +297,7 @@ player.add_value('name', 'Kendall Jenner')
 
 Addind expression based values requires a BeautifulSoup HTML page object. You can add one value at a time.
 
-````
+````python
 player.add_using_expression(''name', 'a', attrs={'class': 'title'})
 ````
 
@@ -313,7 +307,7 @@ If you want to add a value to the model based on certain conditions, use `add_ca
 
 For instance, suppose you are scrapping a fashion website and for certain prices, let's say 25 you want to replace them by 25.5.
 
-```
+```python
 from zineb.models.expressions import When
 
 my_model.add_case(25, When('price__eq=25', 25.5))
@@ -325,7 +319,7 @@ my_model.add_case(25, When('price__eq=25', 25.5))
 
 If you wish to operate a calculation on a field before passing to your model, you can use expression classes in combination with the `add_calculated_value`.
 
-```
+```python
 from zineb.models.expressions import Add
 
 my_model.add_calculatd_value('price', Add(25, 5))
@@ -335,7 +329,7 @@ my_model.add_calculatd_value('price', Add(25, 5))
 
 In cases where you want to add a value to your model based on the last inserted value, this function serves exactly this purpose. Suppose you are retrieving date of births on a website and want to automatically derive the person's age based on that model field:
 
-```
+```python
 class MyModel(Model):
     date_of_birth = fields.DateField("%d-%M-%Y")
     age = fields.AgeField("%Y-%M-%d")
@@ -343,14 +337,14 @@ class MyModel(Model):
 
 Without the `add_related_value` this is what you would do:
 
-```
+```python
 model.add_value("date_of_birth", value)
 model.add_value("age", value)
 ```
 
 However, with the `add_related_value` you can automatically insert the age value in the model based on the returned value from the date of birth:
 
-```
+```python
 model.add_related_value("date_of_birth", "age", value)
 ```
 
@@ -367,12 +361,12 @@ By adding a Meta to your model, you can pass custom behaviours.
 
 If a model only purpose is to implement additional fields to a child model, use the `template_model` option to indicate this state.
 
-```
+```python
 class TemplateModel(Model):
     name = fields.CharField()
 
     class Meta:
-	template_model = True
+        template_model = True
 
 
 class MainModel(TemplateModel):
@@ -387,20 +381,20 @@ Order your data in a specific way based on certain fields before saving your mod
 
 Fields are a very simple way to passing HTML data to your model in a very structured way. Zineb comes with number of preset fields that you can use out of the box:
 
-- CharField
-- TextField
-- NameField
-- EmailField
-- UrlField
-- ImageField
-- IntegerField
-- DecimalField
-- DateField
-- AgeField
-- FunctionField
-- CommaSeparatedField
-- ListField
-- BooleanField
+* CharField
+* TextField
+* NameField
+* EmailField
+* UrlField
+* ImageField
+* IntegerField
+* DecimalField
+* DateField
+* AgeField
+* FunctionField
+* CommaSeparatedField
+* ListField
+* BooleanField
 
 ### How fields work
 
@@ -436,7 +430,7 @@ The name field allows you to implement capitalized text in your model. The `titl
 
 The email field represents emails. The default validator, `validators.validate_email`, is automatically called on the resolve function fo the class in order to ensure that that the value is indeed an email.
 
-- `limit_to_domains`: Check if email corresponds to the list of specified domains
+* `limit_to_domains`: Check if email corresponds to the list of specified domains
 
 `EmailField(limit_to_domains=[], max_length=None, null=None, default=None, validators=[])`
 
@@ -448,11 +442,11 @@ The url field is specific for urls. Just like the email field, the default valid
 
 The image field holds the url of an image exactly like the UrlField with the sole difference that you can download the image directly when the field is evaluated.
 
-- `download`: Download the image to your media folder while the scrapping is performed
-- `as_thumnail`: Download image as a thumbnail
-- `download_to`: Download image to a specific path
+* `download`: Download the image to your media folder while the scrapping is performed
+* `as_thumnail`: Download image as a thumbnail
+* `download_to`: Download image to a specific path
 
-```
+```python
 class MyModel(Model):
     avatar = ImageField(download=True, download_to="/this/path")
 ```
@@ -461,27 +455,27 @@ class MyModel(Model):
 
 This field allows you to pass an integer into your model.
 
-- `default`: Default value if None
-- `max_value`: Implements a maximum value constraint
-- `min_value`: Implements a minimum value constraint
+* `default`: Default value if None
+* `max_value`: Implements a maximum value constraint
+* `min_value`: Implements a minimum value constraint
 
 ### DecimalField
 
 This field allows you to pass a float value into your model.
 
-- `default`: Default value if None
-- `max_value`: Implements a maximum value constraint
-- `min_value`: Implements a minimum value constraint
+* `default`: Default value if None
+* `max_value`: Implements a maximum value constraint
+* `min_value`: Implements a minimum value constraint
 
 ### DateField
 
 The date field allows you to pass dates to your model. In order to use this field, you have to pass a date format so that the field can know how to resolve the value.
 
-- `date_format`: Indicates how to parse the incoming data value
-- `default`: Default value if None
-- `tz_info`: Timezone information
+* `date_format`: Indicates how to parse the incoming data value
+* `default`: Default value if None
+* `tz_info`: Timezone information
 
-```
+```python
 class MyModel(Model):
     date = DateField("%d-%m-%Y")
 ```
@@ -490,15 +484,15 @@ class MyModel(Model):
 
 The age field works likes the DateField but instead of returning the date, it will return the difference between the date and the current date which corresponds to the age.
 
-- `date_format`: Indicates how to parse the incoming data value
-- `default`: Default value if None
-- `tz_info`: Timezone information
+* `date_format`: Indicates how to parse the incoming data value
+* `default`: Default value if None
+* `tz_info`: Timezone information
 
 ### FunctionField
 
 The function field is a special field that you can use when you have a set of functions to run on the value before returning the final result. For example, let's say you have this value `Kendall J. Jenner` and you want to run a specific function that takes out the middle letter on every incoming values:
 
-```
+```python
 def strip_middle_letter(value):
     # Do something here
     return value
@@ -527,7 +521,7 @@ __N.B.__ Note that the value of a CommaSeperatedField is implemented as is in th
 
 Parse an element within a given value using a regex expression before storing it in your model.
 
-```
+```python
 RegexField(r'(\d+)(?<=\€)')
 ```
 
@@ -539,7 +533,7 @@ Adds a boolean based value to your model. Uses classic boolean represenations su
 
 You an also create a custom field by suclassing `zineb.models.fields.Field`. When doing so, your custom field has to provide a `resolve` function in order to determine how the value should be parsed.
 
-```
+```python
 class MyCustomField(Field):
     def resolve(self, value):
         initial_result = super().resolve(value)
@@ -553,10 +547,10 @@ __NOTE:__ If you want to use the cleaning functionalities from the super class i
 
 Validators make sure that the value that was passed respects the constraints that were implemented as a keyword arguments on the field class. There are five basic validations that could possibly run if you specify a constraint for them:
 
-- Maximum length (`max_length`)
-- Nullity (`null`)
-- Defaultness (`default`)
-- Validity (`validators`)
+* Maximum length (`max_length`)
+* Nullity (`null`)
+* Defaultness (`default`)
+* Validity (`validators`)
 
 ### Maximum or Minimum length
 
@@ -572,13 +566,13 @@ The defaultness provides a default value for null or none existing ones.
 
 For instance, suppose you want only values that do not exceed a certain length:
 
-```
+```python
 name = CharField(max_length=50)
 ```
 
 Or suppose you want a default value for fields that are empty or blank:
 
-```
+```python
 name = CharField(default='Kylie Jenner')
 ```
 
@@ -586,7 +580,7 @@ Remember that validators will validate the value itself for example by making su
 
 Suppose you want only values that would be `Kendall Jenner`. Then you could create a custom validator that would do the following:
 
-```
+```python
 def check_name(value):
     if value == "Kylie Jenner":
         return None
@@ -597,7 +591,7 @@ name = CharField(validators=[check_name])
 
 You can also create validators that match a specific regex pattern using the `zineb.models.validators.regex_compiler` decorator:
 
-```
+```python
 from zineb.models.datastructure import Model
 from zineb.models.fields import CharField
 from zineb.models.validators import regex_compiler
@@ -618,19 +612,19 @@ __NOTE:__ It is important to understand that the result of the regex compiler is
 
 In order to get the complete structured data, you need to call `resolve_values` which will return a `pandas.DataFrame` object:
 
-```
+```python
 player.add_value("name", "Kendall Jenner")
 player.resolve_values()
 
--> pandas.DataFrame
+# -> pandas.DataFrame
 ```
 
 Practically though, you'll be using the `save` method which also calls the `resolve_values` under the hood:
 
-```
+```python
 player.save(commit=True, filename=None, **kwargs)
 
--> pandas.DataFrame or new file
+# -> pandas.DataFrame or new file
 ```
 
 By calling the save method, you'll be able to store the data directly to a JSON or CSV file.
@@ -643,24 +637,24 @@ Expressions a built-in functions that can modify the incoming value in some kind
 
 Run a calculation such as addition, substraction, division or multiplication on the value.
 
-```
+```python
 from zineb.models.expressions import Add
 
 player.add_calculated_field('height', Add(175, 5))
 
--> {'height': [180]}
+# -> {'height': [180]}
 ```
 
 ### ExtractYear, ExtractDate, ExtractDay
 
 From a date string, extract the year, the date or the day.
 
-```
+```python
 from zineb.models.expressions import ExtractYear
 
 player.add_value('competition_year', ExtractYear('11-1-2021'))
 
--> {'competition_year': [2021]}
+# -> {'competition_year': [2021]}
 ```
 
 # Extractors
@@ -669,7 +663,7 @@ Extractors are utilities that facilitates extracting certain specific pieces of 
 
 Some extractors can be used in various manners. First, with a context processor:
 
-```
+```python
 extractor = LinkExtractor()
 with extractor:
     # Do something here
@@ -677,20 +671,20 @@ with extractor:
 
 Second, in an interation process:
 
-```
+```python
 for link in extractor:
     # Do something here
 ```
 
 Finally, with `next`:
 
-```
+```python
 next(extractor)
 ```
 
 You can also check if an extractor has a specific value and even concatenate some of them together:
 
-```
+```python
 # Contains
 if x in extractor:
     # Do something here
@@ -706,27 +700,25 @@ concatenated_extractors = extractor1 + extractor2
 * `base_url` - reconcile a domain to a path
 * `only_valid_links` - only keep links (Link) that are marked as valid
 
-```
+```python
 extractor = LinkExtractor()
 extractor.finalize(response.html_response)
 
-    -> [Link(url=http://example.com, valid=True)]
+# -> [Link(url=http://example.com, valid=True)]
 ```
 
 There might be times where the extracted links are relative paths. This can cause an issue for running additional requests. In which case, use the `base_url` parameter:
 
-```
+```python
 extractor = LinkExtractor(base_url=http://example.com)
 extractor.finalize(response.html_response)
 
 # Instead of getting this result which would also
 # be marked as a none valid link
-
-    -> [Link(url=/relative/path, valid=False)]
+# -> [Link(url=/relative/path, valid=False)]
 
 # You will get the following with the full url link
-
-    -> [Link(url=http://example.com/relative/path, valid=True)]
+# -> [Link(url=http://example.com/relative/path, valid=True)]
 ```
 
 NOTE: By definition, a relative path is not a valid link hence the valid set to False.
@@ -794,19 +786,19 @@ Signals are a very simple yet efficient way for you to run functions during the 
 
 Internally signals are sent on the following events:
 
-- When the registry is populated
-- Before the spider starts
-- After the spider has started
-- Before an HTTP request is sent
-- Before and HTTP request is sent
-- Before the model downloads anything
-- After the model has downloaded something
+* When the registry is populated
+* Before the spider starts
+* After the spider has started
+* Before an HTTP request is sent
+* Before and HTTP request is sent
+* Before the model downloads anything
+* After the model has downloaded something
 
 ## Creating a custom signal
 
 To create custom signal, you need to mark a method as being a receiver for any incoming signals. For example, if you want to create a signal to intercept one of the events above, you should do:
 
-```
+```python
 from zineb.signals import receiver
 
 @receiver(tag="Signal Name")
@@ -824,15 +816,15 @@ You custom signals do not have to return anything.
 
 Most of times, when you retrieve links from a page, they are returned as relative paths. The ``urljoin`` method reconciles the url of the visited page with that path.
 
-```
-<a href="/kendall-jenner">Kendall Jenner</a>
+```python
+# <a href="/kendall-jenner">Kendall Jenner</a>
 
 # Now we want to reconcile the relative path from this link to
 # the main url that we are visiting e.g. https://example.com
 
 request.urljoin("/kendall-jenner")
 
--> https://example.com/kendall-jenner
+# -> https://example.com/kendall-jenner
 ```
 
 ## File collection
@@ -851,7 +843,7 @@ Represents the current path for your project. This setting is not be changed.
 
 In order for your spider to be executed, every created spider should be registered here. The name of the class should serve as the name of the spider to be used.
 
-```
+```python
 SPIDERS = [
     "MySpider"
 ]
@@ -861,7 +853,7 @@ SPIDERS = [
 
 You can restrict your project to use only to a specific set of domains by ensuring that no request is sent if it matches one of the domains within this list.
 
-```
+```python
 DOMAINS = [
     "example.com"
 ]
@@ -875,7 +867,7 @@ Enforce that every link in your project is a secured HTTPS link. This setting is
 
 Middlewares are functions/classes that are executed when a signal is sent from any part of the project. Middlewares implement extra functionnalities without affecting the core parts of the project. They can then be disabled safely if you do not need them.
 
-```
+```python
 MIDDLEWARES = [
     "zineb.middlewares.handlers.Handler",
     "myproject.middlewares.MyMiddleware"
@@ -915,7 +907,7 @@ The default initial headers are:
 
 Use a set of proxies for each request. When a request in sent, a random proxy is selected and implemented with the request.
 
-```
+```python
 PROXIES = [
     ("http", "127.0.0.1"),
     ("https", "127.0.0.1")
@@ -934,4 +926,4 @@ Specificies the amount of times the the request is sent before eventually failin
 
 Indicates which status codes should trigger a retry. By default, the following codes: 500, 502, 503, 504, 522, 524, 408 and 429 will trigger it.
 
-###### TIME_ZONE
+**TIME_ZONE**
