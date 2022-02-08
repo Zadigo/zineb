@@ -1,9 +1,8 @@
+import itertools
 import os
 import re
 from functools import lru_cache
 from typing import Callable, Iterable, Union
-
-from importlib_metadata import itertools
 
 from zineb import exceptions
 from zineb.settings import settings

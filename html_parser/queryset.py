@@ -1,5 +1,4 @@
 from typing import Generator, Iterator, List, Union
-from html_parser.utils import map_function
 
 from zineb.html_parser.utils import filter_by_name, filter_by_name_or_attrs
 from zineb.utils.iteration import drop_while
