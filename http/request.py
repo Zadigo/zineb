@@ -100,16 +100,6 @@ class BaseRequest:
         """
         Check the url respects certain specifities from the project's
         settings and other elements
-
-        Parameters
-        ----------
-
-                url (str): a valid url
-
-        Returns
-        -------
-
-                str: a safe url string
         """
         # Check if we're trying to send a request
         # to an email address

@@ -5,41 +5,44 @@ import requests
 from bs4 import BeautifulSoup
 from requests.models import Response
 from zineb.http.headers import ResponseHeaders
+from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse
 from zineb.tags import Link
-from zineb.tests.http_requests import (BAD_URLS, create_test_request,
-                                       create_test_requests)
-
-_request = create_test_request()
+from zineb.tests.http_clients.items import BAD_URLS, create_simple_request
 
 
-# class TestBaseRequest(unittest.TestCase):
-#     def test_general_tests(self):
-#         self.assertTrue(_request.can_be_sent)
+class TeestBaseRequest(unittest.TestCase):
+    def test_global_http_api(self):
+        request = create_simple_request(send=True)
 
-#         self.assertEqual(_request.url, 'http://example.com')
-#         self.assertIsNotNone(_request.url)
+        self.assertTrue(request.can_be_sent)
+        
+        self.assertEqual(request.url, 'http://example.com')
+        self.assertIsNotNone(request.url)
+        
+        self.assertListEqual(request.errors, [])
+        self.assertTrue(request.resolved)
+        
+        self.assertIsNotNone(request.html_response)
+        self.assertIsInstance(request._http_response, Response)
+        
+    def test_url_prechecking(self):
+        request = HTTPRequest('http://example.com')
+        result = request._precheck_url('http://example.com')
+        self.assertEqual(result, 'http://example.com')
+    
+    def test_failed_url_prechecking(self):
+        for url in BAD_URLS:
+            request = HTTPRequest(url)
+            result = request._precheck_url(url)
+            with self.subTest(url=url):
+                self.assertFalse(result)
 
-#         self.assertListEqual(_request.errors, [])
-#         self.assertTrue(_request.resolved)
-#         self.assertIsNotNone(_request.html_response)
-#         self.assertIsInstance(_request._http_response, Response)
+    def test_domain_restriction(self):
+        pass
 
-#     def test_url_prechecking(self):
-#         self.assertEqual(_request._precheck_url('http://example.com'), 'http://example.com')
-
-#     @unittest.expectedFailure
-#     def test_failed_url_prechecking(self):
-#         fail_url = 'https://'
-#         _request._precheck_url(fail_url)
-#         with self.assertRaises(requests.exceptions.InvalidURL) as e:
-#             print(f'Expected fail on precheck with url {fail_url}')
-
-#     def test_domain_restriction(self):
-#         pass
-
-#     def test_secured_requests(self):
-#         pass
+    def test_secured_requests(self):
+        pass
 
 #     def test_link_following(self):
 #         response = _request.follow(_request.html_response.links[0])
@@ -77,11 +80,5 @@ _request = create_test_request()
 #     def test_url_join(self):
 #         self.assertEqual(_request.html_response.urljoin('kendall'), 'http://example.com/kendall')
 
-
-class TestBadHTTPRequests(unittest.TestCase):
-    def setUp(self):
-        results = create_test_requests(BAD_URLS)
-
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()
