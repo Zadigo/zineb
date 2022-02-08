@@ -1,23 +1,17 @@
 import os
 import warnings
-# import time
 from collections import OrderedDict
 from io import StringIO
-from typing import Iterator, Type, Union
+from typing import Union
 
 from bs4 import BeautifulSoup
-from zineb.utils.iteration import drop_while
 
-# from xml.etree import ElementTree
 from zineb import global_logger, signals
-# from zineb.http.pipelines import CallBack
 from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
 from zineb.settings import settings as global_settings
 from zineb.utils.formatting import LazyFormat
-from zineb.utils.queues import RequestQueue
-
-# from pydispatch import dispatcher
+from zineb.utils.iteration import RequestQueue, drop_while
 
 
 class SpiderOptions:
