@@ -1,11 +1,26 @@
 import re
 from typing import Any, Callable, Tuple, Union
 
+from utils.formatting import LazyFormat
 from w3lib.url import is_url
 from zineb.exceptions import ValidationError
 from zineb.utils.conversion import convert_if_number
 
+
+class RegexValidator:
+    def __init__(self, value):
+        self.initial_value = value
+        
+    def __call__(self, pattern: str):
+        compiled_pattern = re.compile(pattern)
+        result = compiled_pattern.search(self.initial_value)
+        if not result or result is None:
+            raise ValidationError("Regex could not match pattern")
+        return result.group()
+
+
 def regex_compiler(pattern: str):
+    """Regex decorator for model validators"""
     def compiler(func: Callable[[Tuple], Any]):
         def wrapper(value: Any, **kwargs):
             compiled_pattern = re.compile(pattern)
@@ -52,13 +67,21 @@ def validate_length(value, max_length):
     return value
 
 
-@regex_compiler(r'(?<=\.)(\w+)\Z')
-def validate_extension(clean_value, extensions: list = []):
-    base_extensions = []
-    base_extensions = base_extensions + extensions
-    if clean_value not in base_extensions:
-        raise ValidationError('Value is not a valid extension')
-    return clean_value
+# @regex_compiler(r'(?<=\.)(\w+)\Z')
+# def validate_extension(clean_value, extensions: list=[]):
+#     if clean_value not in extensions:
+#         raise ValidationError('Value is not a valid extension')
+#     return clean_value
+
+
+def validate_extension(extensions: list = []):
+    def validator(clean_value):
+        regex_validator = RegexValidator(clean_value)
+        result = regex_validator(r'(?<=\.)(\w{3,4})\Z')
+        if result not in extensions:
+            raise ValidationError(LazyFormat("'.{extension}' is not valid extension", extension=result))
+        return clean_value
+    return validator
 
 
 def max_length_validator(a, b) -> bool:

@@ -131,10 +131,12 @@ def transform_to_bytes(content: str):
 
 def detect_object_in_string(value: Any):
     """
-    Detects if a list, a tuple or a dict is embeded in a 
+    Detects if a list or a dict is embeded in a 
     string and returns the true representation 
     of that element
     """
+    if isinstance(value, (list, dict)):
+        return value
     return ast.literal_eval(value)
 
 

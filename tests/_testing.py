@@ -36,32 +36,19 @@
 # s.update('name', 'Kylie')
 # print(s.save(extension='csv'))
 
-
-# from zineb.app import Zineb
-
-# class TestSpider(Zineb):
-#     start_urls = ['http://example.com']
-
-# t = TestSpider()
+from zineb.models.datastructure import Model
+from zineb.models.fields import DateField, IntegerField, AgeField, CharField, Value
+from zineb.models.functions import ExtractMonth, Substract, When
 
 
-# class A(type):
-#     def __new__(cls, name, bases, attrs):
-#         return super().__new__(cls, name, bases, attrs)
+class TestModel(Model):
+    age = CharField()
     
-# class B(metaclass=A):
-#     def __init__(self):
-#         e = E(self)
-        
-#     def __repr__(self):
-#         return self.b
-
-# class C(B):
-#     pass
-
-# class E:
-#     def __init__(self, x):
-#         print(x)
-
-# a = C()
-# print(a)
+m = TestModel()
+# m.add_calculated_value('age', 15, Substract(3))
+# m.add_case(15, When('age__gt=10', 15, 10))
+# m.add_value('age', 15)
+# m.add_value('age', Value('Kendall Jenner'))
+# m.update_model('age__gt=15')
+m.query(age__contains=14, name__contains='Kendall')
+print(m)

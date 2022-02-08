@@ -270,11 +270,6 @@ class DataStructure(metaclass=Base):
         """
         Gets the cached field object that was registered
         on the model via the FieldDescriptor
-
-        Parameters
-        ----------
-
-            - field_name (str): the field name to get
         """
         return self._meta.get_field(field_name)
 
@@ -406,7 +401,7 @@ class DataStructure(metaclass=Base):
         ----------
 
             - name (str): the name of field on which to add a given value
-            - value (Any): the value to add to the model
+            - value (Any): the value to add
         """
         # FIXME: Due the way the mixins are ordered
         # on the ExtractYear, ExtractDay... classes,
@@ -418,7 +413,8 @@ class DataStructure(metaclass=Base):
         if isinstance(value, instances):
             value.model = self
             value.field_name = name
-            return self._cached_result.update(name, value.resolve())
+            value.resolve()
+            return self._cached_result.update(name, value._cached_data)
 
         obj = self._get_field_by_name(name)
         obj.resolve(value)
@@ -434,6 +430,15 @@ class DataStructure(metaclass=Base):
             resolved_value = str(obj._cached_result)
         
         self._cached_result.update(name, resolved_value)
+        
+    def update_model(self, func):
+        """Run an update function directly on the underlying
+        data container of the model e.g. SmartDict"""
+        
+    def query(self, **expressions):
+        """Method to check that the underlying model
+        contains a certain set of elements"""
+        return self._cached_result.run_query('')
 
     def resolve_fields(self):
         return self._cached_result.as_list()
@@ -457,8 +462,6 @@ class Model(DataStructure):
             custom_model = MyModel()
             custom_model.add_value('name', 'p')
             custom_model.save()
-
-            -> pandas.DataFrame
     """
     _cached_dataframe = None
 

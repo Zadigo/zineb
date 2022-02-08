@@ -10,7 +10,7 @@ from zineb.tests.models.items import (BareModel, CalculatedModel, DateModel,
                                       SimpleModel)
 
 
-class TestSimpleModel(unittest.TestCase):
+class TestModelBaseFunctionnalities(unittest.TestCase):
     def setUp(self):
         self.model = SimpleModel()
 
@@ -164,7 +164,7 @@ class TestWithDateFunctions(unittest.TestCase):
     def setUp(self):
         self.model = DateModel()
 
-    @unittest.expectedFailure
+    # @unittest.expectedFailure
     def test_with_extract_year(self):
         # We should not be able to use ExtractYear etc.
         # with a field that is not a DateField since we'll
