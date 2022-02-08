@@ -1,6 +1,6 @@
 import unittest
 
-from zineb.utils.queues import RequestQueue
+from zineb.utils.iteration import RequestQueue
 
 
 class TestRequestQueue(unittest.TestCase):

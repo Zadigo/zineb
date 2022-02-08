@@ -1,17 +1,13 @@
-from zineb.utils.iteration import keep_while
-from zineb.settings import lazy_settings
-from zineb.http.request import HTTPRequest
-from typing import OrderedDict
-from collections import defaultdict
 import os
-from typing import BinaryIO
 import re
+from collections import defaultdict
 from functools import lru_cache
 from io import BufferedReader
-from typing import Callable, Iterable, Union
+from typing import BinaryIO, Callable, Iterable, OrderedDict, Union
 
 from zineb import exceptions
-# from zineb.settings import settings
+from zineb.http.request import HTTPRequest
+from zineb.settings import lazy_settings
 from zineb.utils.formatting import LazyFormat
 
 
