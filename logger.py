@@ -1,6 +1,10 @@
 import logging
 from zineb.settings import settings as global_settings
 
+# TODO: When testing Zineb from a global perspective
+# via the test_project, the global settings is not
+# yet set making that the log happens both at the
+# project's root and at the zineb project
 
 class Logger:
     def __init__(self, name: str=None, debug_level=logging.DEBUG, 

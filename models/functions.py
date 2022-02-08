@@ -302,7 +302,3 @@ class ExtractMonth(DateExtractorMixin, ExpressionMixin):
 
 class ExtractDay(DateExtractorMixin, ExpressionMixin):
     lookup_name = 'day'
-
-
-m = Mean('1', '3')
-print(m.resolve())
