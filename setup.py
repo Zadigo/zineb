@@ -9,7 +9,7 @@ ROOT = path.abspath(path.dirname(__file__))
 
 def read_files(filename):
     try:
-        with open(path.join(ROOT, filename), 'rb', encoding='utf-8') as f:
+        with open(path.join(ROOT, filename), 'rb') as f:
             data = f.read()
             return data.strip()
     except:
@@ -60,7 +60,7 @@ install_requires = [
 setuptools.setup(
     name='zineb-scrapper',
     # packages: [],
-    version='6.0.0',
+    version='6.0.1',
     # version=read_files('version.txt'),
     author='John Pendenque',
     author_email='pendenquejohn@gmail.com',
