@@ -9,7 +9,7 @@ from typing import Any, Callable, Union
 
 from zineb.exceptions import ModelNotImplementedError
 from zineb.models.fields import Value
-from zineb.utils.conversion import convert_if_number, string_to_number
+from zineb.utils.conversion import string_to_number
 from zineb.utils.formatting import LazyFormat
 
 
