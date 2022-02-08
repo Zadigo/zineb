@@ -1,6 +1,8 @@
 import os
+from typing import BinaryIO
 import re
 from functools import lru_cache
+from io import BufferedReader
 from typing import Callable, Iterable, Union
 
 from zineb import exceptions
@@ -141,4 +143,3 @@ def regex_iterator(text: str, regexes: Union[tuple, list]):
 
 
 # print(create_batch(list(range(0, 20))))
-
