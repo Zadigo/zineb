@@ -3,6 +3,10 @@ import os
 from zineb.settings import settings
 from zineb.exceptions import ProjectNotConfiguredError
 
+# TODO: When testing Zineb from a global perspective
+# via the test_project, the global settings is not
+# yet set making that the log happens both at the
+# project's root and at the zineb project
 
 class Logger:
     def __init__(self, name: str=None, **kwargs):

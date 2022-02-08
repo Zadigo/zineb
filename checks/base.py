@@ -1,11 +1,13 @@
-from datetime import timezone
 import re
+from datetime import timezone
 
-from zineb.checks.core import checks_registry, register
+from zineb.checks.core import register
+from zineb.settings import settings
 
 W001 = Warning(
     "You do not have zineb.middlewares in your settings"
 )
+
 
 W002 = Warning(
     "You do not have zineb.middleware in our settings"
@@ -17,12 +19,14 @@ W003 = Warning(
     # id='security.W003'
 )
 
+
 W004 = Warning(
     'Timezone is not implemented in your project'
 )
 
 
 E001 = ('Proxy should be a tuple or a list type containing the scheme and the IP/url address e.g. (http, 127.0.0.1)')
+
 
 E002 = ('Could not recognize the scheme in proxy: {proxy}. Should be one of http or https')
 
@@ -38,15 +42,17 @@ E005 = ('DEFAULT_REQUEST_HEADERS should be a dictionnary')
 
 E006 = ('IP address in PROXIES is not valid. Got {proxy}.')
 
-E007 = ('MEDIA_FOLDER should either be None or a string representing a relative or absolute path.')
+
+E007 = ('MEDIA_FOLDER should either be None or a string representing a relative or absolute path')
+
 
 E008 = ('TIME_ZONE should be a string. Got {timezone}')
 
 
-@checks_registry.register(tag='middlewares')
-def check_middlewares(project_settings):
+@register(tag='middlewares')
+def check_middlewares():
     errors = []
-    middlewares = project_settings.get('MIDDLEWARES', None)
+    middlewares = settings.get('MIDDLEWARES', None)
     if middlewares is None:
         return [W001]
 
@@ -59,18 +65,18 @@ def check_middlewares(project_settings):
     return errors
 
 
-@checks_registry.register(tag='headers')
-def check_default_request_headers(project_settings):
-    default_request_headers = project_settings.get('DEFAULT_REQUEST_HEADERS', False)
+@register(tag='headers')
+def check_default_request_headers():
+    default_request_headers = settings.get('DEFAULT_REQUEST_HEADERS', False)
     if not isinstance(default_request_headers, dict):
         return [E005]
     return [] if not default_request_headers else []
 
 
-@checks_registry.register(tag='proxies')
-def check_proxies_valid(project_settings):
+@register(tag='proxies')
+def check_proxies_valid():
     errors = []
-    proxies = project_settings.get('PROXIES')
+    proxies = settings.get('PROXIES')
     if proxies is None:
         return [E001]
 
@@ -113,16 +119,16 @@ def check_proxies_valid(project_settings):
     return errors
 
 
-@checks_registry.register(tag='media_folder')
-def check_media_folder(project_settings):
-    media_folder = project_settings.MEDIA_FOLDER
+@register(tag='media_folder')
+def check_media_folder():
+    media_folder = settings.MEDIA_FOLDER
     if media_folder is not None and not isinstance(media_folder, str):
         return [E007]
     return []
     
 
 @register(tag='timezone')
-def check_test_timzone(settings):
+def check_test_timzone():
     if settings.TIME_ZONE is None:
         return []
 

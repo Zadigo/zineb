@@ -97,6 +97,7 @@ class Shell:
 
         self._start_consoles()
 
+
 class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('--url', type=str, help='Opens a shell with a given url request')

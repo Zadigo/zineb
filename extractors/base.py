@@ -4,7 +4,7 @@ import re
 from collections import OrderedDict
 from functools import cached_property
 from itertools import chain
-from typing import Dict, Generator, List, NoReturn, Tuple, Union
+from typing import List, NoReturn, Union
 
 from bs4 import BeautifulSoup
 from bs4.element import ResultSet, Tag
@@ -14,9 +14,8 @@ from zineb.extractors._mixins import MultipleRowsMixin
 from zineb.settings import settings as global_settings
 from zineb.utils.characters import deep_clean
 from zineb.utils.decoders import decode_email
-from zineb.utils.iteration import drop_while, keep_while
+from zineb.utils.iteration import keep_while
 from zineb.utils.paths import is_path
-from zineb.utils.urls import replace_urls_suffix
 
 
 class Extractor:

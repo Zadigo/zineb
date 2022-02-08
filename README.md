@@ -361,9 +361,23 @@ This will insert date of birth based on the DateField and then insert another on
 By adding a Meta to your model, you can pass custom behaviours.
 
 * Ordering
-* Constraints
+* Template model
 
-### Constraints
+### Template model
+
+If a model only purpose is to implement additional fields to a child model, use the `template_model` option to indicate this state.
+
+```
+class TemplateModel(Model):
+    name = fields.CharField()
+
+    class Meta:
+	template_model = True
+
+
+class MainModel(TemplateModel):
+    surname = fields.CharField()
+```
 
 ### Ordering
 

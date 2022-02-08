@@ -1,6 +1,7 @@
 import unittest
-# from zineb.models.datastructure import DataContainer
-from zineb.utils._datastructures import SmartDict
+
+from zineb.utils.containers import SmartDict
+
 
 class TestDataContainer(unittest.TestCase):
     def setUp(self):
@@ -37,7 +38,6 @@ class TestDataContainer(unittest.TestCase):
         # string
         self.assertIsInstance(result, str)
 
-
     def test_can_get_csv_type_values(self):
         self.container.update('name', 'Kendall')
         self.assertIsInstance(self.container.as_csv(), list)
@@ -46,6 +46,7 @@ class TestDataContainer(unittest.TestCase):
         # Expected [['name', 'age'], ['Kendall', 24]]
         self.assertEqual(result[1], ['Kendall', None])
         self.assertListEqual(result, [['name', 'age'], ['Kendall', None]])
+
 
 if __name__ == '__main__':
     unittest.main()

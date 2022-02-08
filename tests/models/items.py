@@ -49,7 +49,7 @@ class CalculatedModel(Model):
 
 
 class ExampleModel(Model):
-    url = fields.UrlField()
+    url = fields.URLField()
 
 
 class ExampleModel2(Model):

@@ -1,4 +1,5 @@
-from html.parser import HTMLParser
+# from html.parser import HTMLParser
+import random
 from typing import Any
 
 from zineb.utils.encoders import convert_to_unicode
@@ -7,6 +8,8 @@ from zineb.utils.iteration import drop_while
 ESCAPE_CHARACTERS = ('\n', '\t', '\r')
 
 HTML5_WHITESPACE = ' \t\n\r\x0c'
+
+RANDOM_STRING_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 
 
 def replace_escape_chars(value: str, replace_by: Any=u'', encoding: str=None):
@@ -45,6 +48,14 @@ def deep_clean(value: str):
     value = replace_escape_chars(strip_white_space(value), replace_by=' ')
     cleaned_words = drop_while(lambda x: x == '', value.split(' '))
     return ' '.join(cleaned_words)
+
+
+def create_random_string(length: int=5, lowercased: bool=False):
+    """Return a random string"""
+    result = ''.join(random.choice(RANDOM_STRING_CHARS) for _ in range(length))
+    if lowercased:
+        return result.lower()
+    return lowercased
 
 
 # class CustomStripper(HTMLParser):

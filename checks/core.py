@@ -6,8 +6,7 @@ from typing import Callable
 
 from zineb.exceptions import ImproperlyConfiguredError, ProjectExistsError
 from zineb.settings import settings as global_settings
-from zineb.utils.iteration import drop_while
-from zineb.utils.module_loader import module_directory
+
 
 DEFAULT_CHECKS_MODULES = (
     'base',
@@ -16,14 +15,14 @@ DEFAULT_CHECKS_MODULES = (
 
 
 class GlobalMixins:
-    _default_settings = None
+    # _default_settings = None
     _errors = []
     _MODULES = OrderedDict()
 
 
 class ApplicationChecks(GlobalMixins):
     def __init__(self):
-        self._default_settings = global_settings
+        # self._default_settings = global_settings
         self._checks = deque()
     
     def run(self):
@@ -41,8 +40,9 @@ class ApplicationChecks(GlobalMixins):
 
         self.check_settings_base_integrity()
             
-        for check in self._checks:
-            new_errors = check(self._default_settings)
+        for func in self._checks:
+            # new_errors = func(self._default_settings)
+            new_errors = func()
             if new_errors:
                 self._errors.extend(new_errors)
 
@@ -55,11 +55,12 @@ class ApplicationChecks(GlobalMixins):
     def check_settings_base_integrity(self):
         """
         Verifies that all the base variables (PROJECT_PATH, PROXIES...)
-        are correctly implemented. For example the PROXIES setting
-        requires a tuple or list
+        are correctly implemented
+        
+        For example the PROXIES setting requires a tuple or list
         """
         required_values = ['PROJECT_PATH', 'SPIDERS']
-        keys = self._default_settings.keys()
+        keys = global_settings.keys()
         for value in required_values:
             if value not in keys:
                 raise ValueError(f"The following settings '{value}' are required in your settings file.")
@@ -68,23 +69,28 @@ class ApplicationChecks(GlobalMixins):
                                   'USER_AGENTS', 'PROXIES', 'RETRY_HTTP_CODES', 
                                   'DEFAULT_DATE_FORMATS']
         for item in requires_list_or_tuple:
-            value = getattr(self._default_settings, item)
+            value = getattr(global_settings, item)
             if not isinstance(value, (list, tuple)):
                 raise ValueError(f"{item} in settings.py should contain a list or a tuple ex. {item} = []")
 
         # If Zineb is called from a project configuration
-        # we should automatically assume that is a path
-        PROJECT_PATH = getattr(self._default_settings, 'PROJECT_PATH', None)
+        # we should automatically assume that it is a path
+        PROJECT_PATH = getattr(global_settings, 'PROJECT_PATH', None)
         if PROJECT_PATH is None:
             raise ValueError(("PROJECT_PATH is empty. If you are using "
             "Zineb outside of a project, call .configure(**kwargs)"))
         
         # Also make sure that the path is one that really
-        # exists in case the use changes this variable
+        # exists in case the user changes this variable
         # to a 'string' path [...] thus breaking the
         # whole thing
         if not os.path.exists(PROJECT_PATH):
             raise ProjectExistsError()
+
+        # Also make sure that this is
+        # a directory
+        if not os.path.isdir(PROJECT_PATH):
+            raise IsADirectoryError("PROJECT_PATH should be the project's directory")
 
     def register(self, tag: str = None):
         """Register a check on this class by using 
