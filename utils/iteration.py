@@ -133,3 +133,31 @@ def iterate_by_chunk(items, chunk_size=100):
         if not chunk:
             break
         yield chunk
+
+
+# class FileReader:
+#     """Reads a file and returns chunks of said
+#     file. Note that this cuts the file's content
+#     abitrarily hence not a solution for HTML
+#     files depending on what needs to be
+#     accomplished"""
+#     def __init__(self, path, chunk_size=1024):
+#         self.chunk_size = chunk_size
+#         self.path = path
+#         self.content = self.read_file()
+
+#     def __iter__(self):
+#         return self.content
+
+#     def read_file(self):
+#         with open(self.path, mode='rb') as f:
+#             while True:
+#                 data = f.read(self.chunk_size)
+#                 if not data:
+#                     break
+#                 yield data
+
+# w = FileReader('tests/html/links.html')
+# for i, content in enumerate(w):
+#     if i == 1:
+#         print(content)
