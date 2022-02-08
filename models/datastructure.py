@@ -484,12 +484,6 @@ class Model(DataStructure):
         dataframe in order to run additional actions on it
         otherwise, the default behaviour will be to output
         to a file within your project.
-
-        Parameters
-        ----------
-
-            commit (bool, optional): save to json file. Defaults to True.
-            filename (str, optional): the file name to use. Defaults to None
         """
         # TODO:
         # signal.send(dispatcher.Any, self, tag='Pre.Save')
