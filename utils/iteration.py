@@ -2,12 +2,9 @@ import os
 import re
 from collections import defaultdict
 from functools import lru_cache
-from io import BufferedReader
-from typing import BinaryIO, Callable, Iterable, OrderedDict, Union
+from typing import Callable, Iterable, OrderedDict, Union
 
 from zineb import exceptions
-from zineb.http.request import HTTPRequest
-from zineb.settings import lazy_settings
 from zineb.utils.formatting import LazyFormat
 
 
@@ -154,6 +151,10 @@ class RequestQueue:
     history = defaultdict(dict)
 
     def __init__(self, *urls, **request_params):
+        from zineb.http.request import HTTPRequest
+        from zineb.settings import lazy_settings
+        self._zineb_settings = lazy_settings
+        
         self.url_strings = list(urls)
 
         for i, url in enumerate(self.url_strings):
@@ -161,9 +162,9 @@ class RequestQueue:
                 url, counter=i, **request_params)
 
         self.retry_policies = {
-            'retry': lazy_settings.get('RETRY', False),
-            'retry_times': lazy_settings.get('RETRY_TIMES', 2),
-            'retry_http_codes': lazy_settings.get('RETRY_HTTP_CODES', [])
+            'retry': self._zineb_settings.get('RETRY', False),
+            'retry_times': self._zineb_settings.get('RETRY_TIMES', 2),
+            'retry_http_codes': self._zineb_settings.get('RETRY_HTTP_CODES', [])
         }
 
     def __repr__(self):
@@ -220,9 +221,9 @@ class RequestQueue:
     def _retry(self):
         successful_retries = set()
         for url, instance in self.failed_requests:
-            if lazy_settings.RETRY:
-                for i in range(lazy_settings.RETRIES):
-                    if instance.request.status_code in lazy_settings.RETRY_CODES:
+            if self._zineb_settings.RETRY:
+                for i in range(self._zineb_settings.RETRIES):
+                    if instance.request.status_code in self._zineb_settings.RETRY_CODES:
                         instance._send()
                         if instance.request.status_code == 200:
                             successful_retries.add(instance)

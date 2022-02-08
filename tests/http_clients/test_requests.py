@@ -7,7 +7,8 @@ from requests.models import Response
 from zineb.http.headers import ResponseHeaders
 from zineb.http.responses import HTMLResponse
 from zineb.tags import Link
-from zineb.tests.http_requests import create_test_request, create_test_requests, BAD_URLS
+from zineb.tests.http_requests import (BAD_URLS, create_test_request,
+                                       create_test_requests)
 
 _request = create_test_request()
 

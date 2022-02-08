@@ -5,14 +5,13 @@ from urllib import parse
 
 import requests
 from bs4 import BeautifulSoup
-from requests.models import Response
 from requests.sessions import Request, Session
 from w3lib.url import (is_url, safe_download_url, safe_url_string, urljoin,
                        urlparse)
-from zineb import global_logger, signals
-from zineb.exceptions import RequestAborted, ResponseFailedError
+from zineb.exceptions import ResponseFailedError
 from zineb.http.responses import HTMLResponse
 from zineb.http.user_agent import UserAgent
+from zineb.logger import Logger
 from zineb.settings import settings as global_settings
 from zineb.tags import ImageTag, Link
 from zineb.utils.conversion import transform_to_bytes
@@ -24,17 +23,6 @@ USER_AGENT = UserAgent()
 class BaseRequest:
     """
     Base HTTP request for all requests
-
-    Parameters
-    ----------
-
-        url (str) url to which the request should be sent
-        method (str, Optional) Request method. Defaults to GET
-
-    Raises
-    ------
-
-        MissingSchema: the url is missing a schema
     """
     only_secured_requests = False
     only_domains = []
@@ -48,7 +36,7 @@ class BaseRequest:
     http_methods = ['GET', 'POST']
 
     def __init__(self, url: Union[Link, str, ImageTag], method='GET', **kwargs):
-        self.local_logger = global_logger.new(name=self.__class__.__name__, to_file=True)
+        self.local_logger = Logger(self.__class__.__name__)
 
         if method not in self.http_methods:
             raise ValueError("The provided method is not valid. Should be "
@@ -133,7 +121,7 @@ class BaseRequest:
             # TODO: When using https:// this returns True
             # when this is not even a real URL
             message = (f"The url that was provided is not valid. Got: {url}.")
-            global_logger.error(message, stack_info=True)
+            self.local_logger.error(message, stack_info=True)
             raise requests.exceptions.InvalidURL(message)
 
         parsed_url = urlparse(url)
@@ -154,12 +142,12 @@ class BaseRequest:
             # ]
             # if not all(logic):
             if 'https' not in parsed_url.scheme:
-                global_logger.critical(f"{url} is not secured. No HTTPS scheme is present.")
+                self.local_logger.critical(f"{url} is not secured. No HTTPS scheme is present.")
                 self.can_be_sent = False
 
         if self.only_domains:
             if parsed_url.netloc not in self.only_domains:
-                global_logger.critical((f"{url} is part of the restricted domains "
+                self.local_logger.critical((f"{url} is part of the restricted domains "
                 "settings list and will not be sent. Adjust your settings if you "
                 "want to prevent this security check on his domain."))
                 self.can_be_sent = False
@@ -185,12 +173,12 @@ class BaseRequest:
             return None
 
         # TODO:
-        signals.send(sender=self, signal='pre_request', url=self.url)
+        # signals.send(sender=self, signal='pre_request', url=self.url)
 
         try:
             response = self.session.send(self.prepared_request)
         except requests.exceptions.HTTPError as e:
-            global_logger.error(f"An error occured while processing "
+            self.local_logger.error(f"An error occured while processing "
             "request for {self.prepared_request}", stack_info=True)
             self.errors.append([e.args])
         except Exception as e:
@@ -268,7 +256,7 @@ class HTTPRequest(BaseRequest):
         http_response = super()._send()
         if http_response is not None:
             if http_response.ok:
-                global_logger.info(f'Sent request for {self.url}')
+                self.local_logger.info(f'Sent request for {self.url}')
                 self._http_response = http_response
                 self.html_response = HTMLResponse(
                     http_response,
