@@ -5,3 +5,4 @@ from zineb.models import fields
 
 class SimpleModel(Model):
     url = fields.UrlField()
+    

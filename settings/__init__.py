@@ -2,7 +2,6 @@ import importlib
 import os
 from typing import OrderedDict
 
-# from pydispatch import dispatcher
 from zineb.settings import base as initial_project_settings
 from zineb.utils.functionnal import LazyObject
 from zineb.utils.iteration import keep_while

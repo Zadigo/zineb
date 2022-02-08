@@ -1,9 +1,15 @@
 import datetime
 from typing import Any, Union
 
-from zineb.exceptions import ModelNotImplementedError
 from zineb.settings import lazy_settings
 from zineb.utils.conversion import string_to_number
+
+import math
+from typing import Any, Callable, Union
+
+from zineb.exceptions import ModelNotImplementedError
+from zineb.models.fields import Value
+from zineb.utils.conversion import convert_if_number, string_to_number
 from zineb.utils.formatting import LazyFormat
 
 
@@ -102,6 +108,34 @@ class Divide(Math):
         source_field = super().resolve()
         self._cached_data = source_field._cached_result / self.by
 
+        
+# class Mean(StatisticsMixin):
+#     """
+#     Returns the mean value from a list of
+#     numerical values
+#     """
+    
+#     def resolve(self):
+#         values = super().resolve()
+#         self._cached_data = sum(values) / len(values)        
+#         return self._cached_data
+    
+    
+# class StDev(StatisticsMixin):
+#     """Returns the standard deviation of
+#     a list of numerical values"""
+    
+#     @staticmethod
+#     def calculate_variance(values, mean):
+#         a = map(lambda x: math.pow(x - mean, 2), values)
+#         return sum(a) / len(values)
+    
+#     def resolve(self):
+#         values = super().resolve()
+#         mean = sum(values) / len(values)
+#         variance = self.calculate_variance(values, mean)
+#         return math.sqrt(variance)
+        
 
 class When:
     """Returns a parsed value if a condition is

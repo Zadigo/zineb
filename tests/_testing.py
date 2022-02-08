@@ -36,7 +36,6 @@
 # s.update('name', 'Kylie')
 # print(s.save(extension='csv'))
 
-
 from zineb.models.datastructure import Model
 from zineb.models.fields import DateField, IntegerField, AgeField, CharField, Value
 from zineb.models.functions import ExtractMonth, Substract, When

@@ -1,22 +1,17 @@
 import os
 import warnings
-# import time
 from collections import OrderedDict
 from io import StringIO
-from typing import Iterator, Type, Union
+from typing import Union
 
 from bs4 import BeautifulSoup
-from zineb.utils.iteration import drop_while
 
-# from xml.etree import ElementTree
 from zineb import global_logger, signals
-# from zineb.http.pipelines import CallBack
 from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
 from zineb.settings import settings as global_settings
 from zineb.utils.formatting import LazyFormat
-
-# from pydispatch import dispatcher
+from zineb.utils.iteration import RequestQueue, drop_while
 
 
 class SpiderOptions:
@@ -91,22 +86,20 @@ class BaseSpider(type):
                         
             meta.update(default_options)
             meta.python_path = f"spiders.{name}"
+            
         attrs['_meta'] = meta
         
+        new_class = create_new(cls, name, bases, attrs)
+        
+        start_urls = []
         if 'start_urls' in attrs:            
-            new_class = create_new(cls, name, bases, attrs)
-
             start_urls = getattr(new_class, 'start_urls')
             if not start_urls:
                 warnings.warn("No start urls were provided for the spider", Warning, stacklevel=0)
-
-            prepared_requests = attrs.get('_prepared_requests', [])
-            for index, link in enumerate(start_urls):
-                request = HTTPRequest(link, counter=index)
-                prepared_requests.append(request)
-            setattr(new_class, '_prepared_requests', prepared_requests)
-            return new_class
-        return create_new(cls, name, bases, attrs)
+            
+        instance = RequestQueue(*start_urls)
+        setattr(new_class, '_prepared_requests', instance)
+        return new_class
 
 
 class Spider(metaclass=BaseSpider):
@@ -125,32 +118,19 @@ class Spider(metaclass=BaseSpider):
 
             def start(self, response, **kwargs):
                 ...
-
-    Parameters
-    ----------
-
-        configuration (dict, optional): A set of additional default values. Defaults to None
     """
-    _prepared_requests = []
+    # _prepared_requests = []
     start_urls = []
 
     def __init__(self, **kwargs):
         global_logger.info(f'Starting {self.__class__.__name__}')
-        global_logger.info(f"{self.__class__.__name__} contains {self.__len__()} request(s)")
-        # Tell all middlewares and signals registered
-        # to receive Any that the Spider is ready
-        # and fully loaded
+        global_logger.info(f"{self.__class__.__name__} contains {len(self._prepared_requests)} request(s)")
+
         # TODO:
         # signal.send(dispatcher.Any, self, tag='Pre.Start')
-
+            
         self._cached_aggregated_results = None
         self._cached_aggregated_results = self._resolve_requests(debug=kwargs.get('debug', False))
-
-    def __len__(self):
-        return len(self._prepared_requests)
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}(requests={self.__len__()})"
 
     # def _resolve_return_containers(self, containers):
     #     from zineb.models.pipeline import ModelsPipeline
@@ -166,14 +146,8 @@ class Spider(metaclass=BaseSpider):
 
     def _resolve_requests(self, debug=False):
         """
-        Call `_send` each requests and pass the response in
+        Calls `_send` each requests and passes the response to
         the start method of the same class
-
-        Parameters
-        ----------
-
-            debug (Bool): determines whether to send the 
-            requests or not. Defaults to False.
         """
         if self._prepared_requests:
             if not debug:
@@ -181,8 +155,8 @@ class Spider(metaclass=BaseSpider):
                 if limit_requests_to == 0:
                     limit_requests_to = len(self._prepared_requests)
 
-                for i in range(0, limit_requests_to):
-                    request = self._prepared_requests[i]
+                for i, items in enumerate(self._prepared_requests):
+                    url, request = items
                     request._send()
 
                     soup_object = request.html_response.html_page
@@ -237,6 +211,10 @@ class Zineb(Spider):
     subclass in order to implement a spider
     for a scrapping project
     """
+    
+    def __repr__(self):
+        return f"{self.__class__.__name__}(requests={len(self._prepared_requests)})"
+
 
 
 class SitemapCrawler(Spider):

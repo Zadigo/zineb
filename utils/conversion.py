@@ -1,6 +1,8 @@
-from typing import Any, Union
 import ast
+from typing import Any, Union
+
 from zineb.utils.formatting import LazyFormat
+
 
 def string_to_number(value: str, strict: bool=False):
     """
@@ -144,11 +146,12 @@ def convert_to_dataframe(data: Union[list, dict], columns: list=[]):
 
 
 def convert_if_number(value: str):
+    from zineb.models.fields import Value
+    
+    if isinstance(value, Value):
+        value = str(value)
+        
     try:
         return int(value)
     except:
         return float(value)
-    else:
-        raise ValueError(
-            LazyFormat('Cannot convert {value} to number.', value=value)
-        )
