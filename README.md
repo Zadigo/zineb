@@ -12,7 +12,7 @@ Most of your interactions with the HTML page will be done through the ``HTMLResp
 
 When the spider starts crawling the page, each response and request in past through the start function:
 
-```
+```python
 def start(self, response, **kwargs):
      request = kwargs.get('request')
      images = response.images
@@ -269,7 +269,7 @@ Models are a simple way to structure your scrapped data before saving them to a 
 
 ## Creating a custom Model
 
-In order to create a model, subclass the Model object from `zineb.models.Model` and then add fields to it. For example:
+In order to create a model, subclass the Model object from `zineb.models.Model` and then add fields to it.
 
 ```python
 from zineb.models.datastructure import Model
@@ -283,7 +283,11 @@ class Player(Model):
 
 ### Using the custom model
 
-On its own, a model does nothing. In order to make it work, you have to add values to it and then resolve the fields.
+On its own, a model does nothing. In order to make it work, you have to pass values to it which will then trigger the field value resoltion function on each value passed unto the model.
+
+#### How the field resolution works
+
+When scrapping the internet, the raw data from the HTML page will be passed to functions on the model as seen below. HTML data is generally not very well formatted or contains tags, white space [...] Before the data is resolved to its true representation by the field, it is encapsulated in the `Value` class which deep cleans the value, takes out the extra white spaces and removes the HTML tags.
 
 #### Adding a free custom value
 
@@ -400,13 +404,11 @@ Fields are a very simple way to passing HTML data to your model in a very struct
 
 Each fields comes with a  `resolve` function when called stores the resulting value within itself.
 
-By default, the resolve function will do the following things.
+By default, the resolve function will do the following things:
 
-First, it will run all cleaning functions on the original value for example by stripping tags like "<" or ">" which normalizes the value before additional processing.
-
-Second, a `deep_clean` method is run on the result by taking out out any useless spaces, removing escape characters and finally reconstructing the value to ensure that any none-detected white space be eliminated.
-
-Finally, all the registered validators (default and custom) are called on the final value.
+1. It will try to obtain the true representation of the value that was passed
+2. It will try to get the default value of the field if the original value is None or empty
+3. Finally, it will run all global and custom user validators on the value
 
 ### CharField
 
@@ -469,11 +471,9 @@ This field allows you to pass a float value into your model.
 
 ### DateField
 
-The date field allows you to pass dates to your model. In order to use this field, you have to pass a date format so that the field can know how to resolve the value.
+The date field allows you to pass dates to your model. This field uses a preset of custom date formats to identify the structure of date incoming value. For instance `%d-%m-%Y` will be able to resolve `1-1-2021`.
 
-* `date_format`: Indicates how to parse the incoming data value
-* `default`: Default value if None
-* `tz_info`: Timezone information
+* `date_format`: Additional format that can be used to parse the incoming value
 
 ```python
 class MyModel(Model):
@@ -482,28 +482,7 @@ class MyModel(Model):
 
 ### AgeField
 
-The age field works likes the DateField but instead of returning the date, it will return the difference between the date and the current date which corresponds to the age.
-
-* `date_format`: Indicates how to parse the incoming data value
-* `default`: Default value if None
-* `tz_info`: Timezone information
-
-### FunctionField
-
-The function field is a special field that you can use when you have a set of functions to run on the value before returning the final result. For example, let's say you have this value `Kendall J. Jenner` and you want to run a specific function that takes out the middle letter on every incoming values:
-
-```python
-def strip_middle_letter(value):
-    # Do something here
-    return value
-
-class MyModel(Model):
-    name = FunctionField(strip_middle_letter, output_field=CharField())
-```
-
-Every time the resolve function will be called on this field, the methods provided will be passed on the value sequentially. Each method should return the new value.
-
-An output field is not compulsory but if not provided, each value will be returned as a character.
+The age field works likes the DateField but instead of returning the date, it will return the difference between the date and the current date which corresponds to an age.
 
 ### ListField
 
@@ -531,21 +510,24 @@ Adds a boolean based value to your model. Uses classic boolean represenations su
 
 ### Creating your own field
 
-You an also create a custom field by suclassing `zineb.models.fields.Field`. When doing so, your custom field has to provide a `resolve` function in order to determine how the value should be parsed.
+You an also create a custom field by suclassing `zineb.models.fields.Field`. When doing so, your custom field has to provide a `resolve` function in order to determine how the value should be parsed and a `_to_python_object` function in order to know under which python type the data should be represented (str, int...).
 
 ```python
 class MyCustomField(Field):
+    _dtype = str
+
+    def _to_python_object(self, clean_value):
+        # Code here
+
     def resolve(self, value):
         initial_result = super().resolve(value)
 
         # Rest of your code here
 ```
 
-__NOTE:__ If you want to use the cleaning functionalities from the super class in your own resolve function, make sure to call super beforehand as indicated above.
-
 ## Validators [initial validators]
 
-Validators make sure that the value that was passed respects the constraints that were implemented as a keyword arguments on the field class. There are five basic validations that could possibly run if you specify a constraint for them:
+Validators make sure that the value that was passed respects the constraints that were implemented as a keyword arguments on the field class. There are five basic validations that could possibly run if they are specified.
 
 * Maximum length (`max_length`)
 * Nullity (`null`)
@@ -606,32 +588,32 @@ class Player(Model):
     age = IntegerField(validators=[custom_validator])
 ```
 
-__NOTE:__ It is important to understand that the result of the regex compiler is reinjected into your custom validator on which you can then do various other checks.
+__NOTE:__ The result of the regex compiler is reinjected into your custom validator on which you can then do your custom checks.
 
 #### Field resolution
 
-In order to get the complete structured data, you need to call `resolve_values` which will return a `pandas.DataFrame` object:
+In order to get the complete structured data, you need to call `resolve_values` which will return a a list of of dictionnaries.
 
 ```python
 player.add_value("name", "Kendall Jenner")
 player.resolve_values()
 
-# -> pandas.DataFrame
+# -> List
 ```
 
-Practically though, you'll be using the `save` method which also calls the `resolve_values` under the hood:
+Practically though, you'll be using the `save` method which then all `resolve_values` under the hood:
 
 ```python
 player.save(commit=True, filename=None, **kwargs)
 
-# -> pandas.DataFrame or new file
+# -> List or new file
 ```
 
-By calling the save method, you'll be able to store the data directly to a JSON or CSV file.
+By calling the save method, you will also be able to store the data directly to a JSON or CSV file.
 
-## Expressions
+## Functions
 
-Expressions a built-in functions that can modify the incoming value in some kind of way before storing to your model.
+Expressions a built-in functions that can modify the incoming value in some kind of manner before storing in unto your model.
 
 ### Math
 
@@ -640,14 +622,14 @@ Run a calculation such as addition, substraction, division or multiplication on 
 ```python
 from zineb.models.expressions import Add
 
-player.add_calculated_field('height', Add(175, 5))
+player.add_calculated_field('height', 175, Add(5))
 
 # -> {'height': [180]}
 ```
 
 ### ExtractYear, ExtractDate, ExtractDay
 
-From a date string, extract the year, the date or the day.
+From a string that contains a date, extract the year, the date or the day.
 
 ```python
 from zineb.models.expressions import ExtractYear
@@ -656,105 +638,6 @@ player.add_value('competition_year', ExtractYear('11-1-2021'))
 
 # -> {'competition_year': [2021]}
 ```
-
-# Extractors
-
-Extractors are utilities that facilitates extracting certain specific pieces of data from a web page such as links, images [...] quickly.
-
-Some extractors can be used in various manners. First, with a context processor:
-
-```python
-extractor = LinkExtractor()
-with extractor:
-    # Do something here
-```
-
-Second, in an interation process:
-
-```python
-for link in extractor:
-    # Do something here
-```
-
-Finally, with `next`:
-
-```python
-next(extractor)
-```
-
-You can also check if an extractor has a specific value and even concatenate some of them together:
-
-```python
-# Contains
-if x in extractor:
-    # Do something here
-
-# Addition
-concatenated_extractors = extractor1 + extractor2
-```
-
-## LinkExtractor
-
-* `url_must_contain` - only keep urls that contain a specific string
-* `unique` - return a unique set of urls (no duplicates)
-* `base_url` - reconcile a domain to a path
-* `only_valid_links` - only keep links (Link) that are marked as valid
-
-```python
-extractor = LinkExtractor()
-extractor.finalize(response.html_response)
-
-# -> [Link(url=http://example.com, valid=True)]
-```
-
-There might be times where the extracted links are relative paths. This can cause an issue for running additional requests. In which case, use the `base_url` parameter:
-
-```python
-extractor = LinkExtractor(base_url=http://example.com)
-extractor.finalize(response.html_response)
-
-# Instead of getting this result which would also
-# be marked as a none valid link
-# -> [Link(url=/relative/path, valid=False)]
-
-# You will get the following with the full url link
-# -> [Link(url=http://example.com/relative/path, valid=True)]
-```
-
-NOTE: By definition, a relative path is not a valid link hence the valid set to False.
-
-## MultiLinkExtractor
-
-A `MultiLinkExtractor` works exactly like the `LinkExtractor` with the only difference being that it also identifies and collects emails that are contained within the HTML page.
-
-## TableExtractor
-
-Extract all the rows from the first table that is matched on the HTML page.
-
-* `class_name` - intercept a table with a specific class name
-* `has_headers` - specify if the table has headers in order to ignore it in the final data
-* `filter_empty_rows` - ignore any rows that do not have a values
-* `processors` - a set of functions to run on the data once it is all extracted
-
-## ImageExtractor
-
-Extract all the images on the HTML page.
-
-You can filter down the images that you get by using a specific set of parameters:
-
-* `unique` - return only a unique et set of urls
-* `as_type` - only return images having a specific extension
-* `url_must_contain` - only return images which contains a specific string
-* `match_height` - only return images that match as specific height
-* `match_width` - only return images that match a specific width
-
-## TextExtractor
-
-Extract all the text on an HTML page.
-
-First, the text is retrieved as a raw value then tokenized and vectorized using `nltk.tokenize.PunktSentenceTokenizer` and `nltk.tokenize.WordPunctTokenizer`.
-
-To know more about NLKT, [please read the following documentation](https://www.nltk.org/).
 
 # Zineb special wrappers
 

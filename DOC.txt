@@ -83,3 +83,130 @@ class Spider(Zineb):
         model.add_value("name", "Kendall Jenner")
         model.save()
 ```
+
+
+
+
+
+
+### FunctionField
+
+The function field is a special field that you can use when you have a set of functions to run on the value before returning the final result. For example, let's say you have this value `Kendall J. Jenner` and you want to run a specific function that takes out the middle letter on every incoming values:
+
+```python
+def strip_middle_letter(value):
+    # Do something here
+    return value
+
+class MyModel(Model):
+    name = FunctionField(strip_middle_letter, output_field=CharField())
+```
+
+Every time the resolve function will be called on this field, the methods provided will be passed on the value sequentially. Each method should return the new value.
+
+An output field is not compulsory but if not provided, each value will be returned as a character.
+
+
+
+
+
+
+
+# Extractors
+
+Extractors are utilities that facilitates extracting certain specific pieces of data from a web page such as links, images [...] quickly.
+
+Some extractors can be used in various manners. First, with a context processor:
+
+```python
+extractor = LinkExtractor()
+with extractor:
+    # Do something here
+```
+
+Second, in an interation process:
+
+```python
+for link in extractor:
+    # Do something here
+```
+
+Finally, with `next`:
+
+```python
+next(extractor)
+```
+
+You can also check if an extractor has a specific value and even concatenate some of them together:
+
+```python
+# Contains
+if x in extractor:
+    # Do something here
+
+# Addition
+concatenated_extractors = extractor1 + extractor2
+```
+
+## LinkExtractor
+
+* `url_must_contain` - only keep urls that contain a specific string
+* `unique` - return a unique set of urls (no duplicates)
+* `base_url` - reconcile a domain to a path
+* `only_valid_links` - only keep links (Link) that are marked as valid
+
+```python
+extractor = LinkExtractor()
+extractor.finalize(response.html_response)
+
+# -> [Link(url=http://example.com, valid=True)]
+```
+
+There might be times where the extracted links are relative paths. This can cause an issue for running additional requests. In which case, use the `base_url` parameter:
+
+```python
+extractor = LinkExtractor(base_url=http://example.com)
+extractor.finalize(response.html_response)
+
+# Instead of getting this result which would also
+# be marked as a none valid link
+# -> [Link(url=/relative/path, valid=False)]
+
+# You will get the following with the full url link
+# -> [Link(url=http://example.com/relative/path, valid=True)]
+```
+
+NOTE: By definition, a relative path is not a valid link hence the valid set to False.
+
+## MultiLinkExtractor
+
+A `MultiLinkExtractor` works exactly like the `LinkExtractor` with the only difference being that it also identifies and collects emails that are contained within the HTML page.
+
+## TableExtractor
+
+Extract all the rows from the first table that is matched on the HTML page.
+
+* `class_name` - intercept a table with a specific class name
+* `has_headers` - specify if the table has headers in order to ignore it in the final data
+* `filter_empty_rows` - ignore any rows that do not have a values
+* `processors` - a set of functions to run on the data once it is all extracted
+
+## ImageExtractor
+
+Extract all the images on the HTML page.
+
+You can filter down the images that you get by using a specific set of parameters:
+
+* `unique` - return only a unique et set of urls
+* `as_type` - only return images having a specific extension
+* `url_must_contain` - only return images which contains a specific string
+* `match_height` - only return images that match as specific height
+* `match_width` - only return images that match a specific width
+
+## TextExtractor
+
+Extract all the text on an HTML page.
+
+First, the text is retrieved as a raw value then tokenized and vectorized using `nltk.tokenize.PunktSentenceTokenizer` and `nltk.tokenize.WordPunctTokenizer`.
+
+To know more about NLKT, [please read the following documentation](https://www.nltk.org/).

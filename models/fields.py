@@ -115,30 +115,6 @@ class Value:
     #         return ListField()
     #     return CharField()
     
-    
-# class CleanValue:
-#     """Represents an internal fully resolved
-#     value. This is a convenience class for methods
-#     that rely on the is_empty attribute"""
-#     def __init__(self, value):
-#         self.value = value
-        
-#     def __str__(self):
-#         return self.value
-    
-#     def __repr__(self):
-#         return f"{self.__class__.__name__}({self.value})"
-        
-#     def __eq__(self, value):
-#         return value == self.result
-    
-#     @property
-#     def is_empty(self):
-#         return (
-#             self.result == None or
-#             self.result == ''
-#         )
-
 
 class Field:
     """Base class for all fields """
