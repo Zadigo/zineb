@@ -2,8 +2,9 @@ import code
 
 from zineb.extractors import base as base_extractors
 from zineb.http.request import HTTPRequest
+from zineb.logger import global_logger
 from zineb.management.base import BaseCommand
-from zineb import global_logger
+
 
 def start_ipython_shell():
     try:
@@ -83,9 +84,10 @@ class Shell:
             "did not return a valid success code. Try pinging the url for validity.")
 
     def start_file_shell(self, filepath, use_settings=None):
-        from zineb.settings import settings as global_settings
-        from bs4 import BeautifulSoup
         import os
+
+        from bs4 import BeautifulSoup
+        from zineb.settings import settings as global_settings
 
         with open(os.path.join(global_settings.PROJECT_PATH, filepath), mode='r') as f:
             soup = BeautifulSoup(f, 'html.parser')

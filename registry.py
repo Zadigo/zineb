@@ -2,9 +2,10 @@ import os
 import warnings
 from collections import OrderedDict
 from functools import lru_cache
-from zineb.middleware import Middleware
-from zineb import global_logger
+
 from zineb.exceptions import SpiderExistsError
+from zineb.logger import global_logger
+from zineb.middleware import Middleware
 
 
 class SpiderConfig:
@@ -71,7 +72,7 @@ class Registry:
         # register was populated (in other
         # words with .populate() was called)
         self.is_ready = False
-        self.local_logger = global_logger.new(name=self.__class__.__name__, to_file=True)
+        self.local_logger = global_logger.new(name=self.__class__.__name__)
         self.spiders = OrderedDict(**spiders)
 
     def __str__(self):
@@ -156,8 +157,8 @@ class Registry:
             for spider_config in spiders:
                 try:
                     spider_config.run()
-                except Exception as e:
-                    self.local_logger.critical((f"Could not start {spider_config}. "
+                except Exception:
+                    self.local_logger.logger.critical((f"Could not start {spider_config}. "
                     "Did you use the correct class name?"), stack_info=True)
                     raise
                 else:

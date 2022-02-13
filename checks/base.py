@@ -124,6 +124,7 @@ def check_media_folder():
     media_folder = settings.MEDIA_FOLDER
     if media_folder is not None and not isinstance(media_folder, str):
         return [E007]
+    return []
     
 
 @register(tag='timezone')

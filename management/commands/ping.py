@@ -1,7 +1,7 @@
 import platform
 import subprocess
 
-from zineb import global_logger
+from zineb.logger import global_logger
 from zineb.management.base import BaseCommand
 
 

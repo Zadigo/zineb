@@ -2,8 +2,7 @@ import re
 from typing import Callable
 from urllib.parse import urlparse
 
-from zineb import global_logger
-
+from zineb.logger import global_logger
 
 URL_REGEX = r'^(file|https?)\:\/{2}(?:.*)$'
 

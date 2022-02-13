@@ -33,9 +33,9 @@ ENSURE_HTTPS = False
 # It is however possible to log to a file by
 # specifying the LOG_TO_FILE parameter
 
-LOG_TO_FILE = True
+LOG_TO_FILE = False
 
-LOG_FILE = 'zineb.log'
+LOG_FILE_NAME = 'zineb.log'
 
 LOG_FORMAT = '%(asctime)s [%(name)s] %(levelname)s: %(message)s'
 

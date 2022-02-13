@@ -1,12 +1,11 @@
 import copy
 import os
 import secrets
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 from functools import cached_property
 from typing import Any, Callable, List, Union
 
 from bs4 import BeautifulSoup
-# from pydispatch import dispatcher
 from zineb.exceptions import FieldError, ModelExistsError
 from zineb.http.responses import HTMLResponse
 from zineb.models.fields import Empty, Field
@@ -62,9 +61,9 @@ class FieldMixin:
     def field_names(self):
         return list(self.cached_fields.keys())
 
-    @cached_property
-    def fields_map(self):
-        pass
+    # @cached_property
+    # def fields_map(self):
+    #     pass
     
     @cached_property
     def true_fields(self):
@@ -276,11 +275,6 @@ class DataStructure(metaclass=Base):
         """
         Gets the cached field object that was registered
         on the model via the FieldDescriptor
-
-        Parameters
-        ----------
-
-            - field_name (str): the field name to get
         """
         return self._meta.get_field(field_name)
 
@@ -323,6 +317,9 @@ class DataStructure(metaclass=Base):
                 'an instance of Calculate')
 
             setattr(func, 'model', self)
+            # TODO: Do not trust the user and check
+            # if the field actually exists on the
+            # model before passing to the func
             setattr(func, 'field_name', name)
 
         if len(funcs) == 1:
@@ -336,7 +333,7 @@ class DataStructure(metaclass=Base):
                 else:
                     # When there a multiple functions, the
                     # _cached_data of the current function
-                    # should be the _caclulat_result of the
+                    # should be the _caclulate_result of the
                     # previous one. This technique allows
                     # us to run multiple expressions on
                     # one single value
@@ -351,12 +348,6 @@ class DataStructure(metaclass=Base):
         """
         Add a value to the model based on a specific
         conditions determined by a When-function.
-
-        Parameters
-        ----------
-
-            - value (Any): the value to test
-            - case (Callable): When-function
         """
         if not isinstance(case, When):
             raise TypeError('Case should be a When class.')
@@ -370,13 +361,6 @@ class DataStructure(metaclass=Base):
         """
         Adds a value to your Model object using an expression. Using this
         method requires that you pass and BeautifulSoup object to your model.
-
-        Parameters
-        ----------
-
-            - name (str): the name of field on which to add a given value
-            - tag (str): a tag to get on the HTML document
-            - attrs (dict, Optional): attributes related to the element's tag on the page. Defaults to {}
         """
         obj = self._get_field_by_name(name)
         if self.parser is None:
@@ -395,24 +379,13 @@ class DataStructure(metaclass=Base):
         Add a single row at once on your model
         using either a dictionnary or keyword
         arguments
-
-        Example
-        -------
-
-            add_values(name=Kendall, age=22)
         """
         self._fields.has_fields(list(attrs.keys()), raise_exception=True)
         self._cached_result.update_multiple(**attrs)
 
     def add_value(self, name: str, value: Any):
         """
-        Adds a value to your Model object.
-
-        Parameters
-        ----------
-
-            - name (str): the name of field on which to add a given value
-            - value (Any): the value to add to the model
+        Adds a value to the Model object
         """
         # FIXME: Due the way the mixins are ordered
         # on the ExtractYear, ExtractDay... classes,
@@ -424,7 +397,8 @@ class DataStructure(metaclass=Base):
         if isinstance(value, instances):
             value.model = self
             value.field_name = name
-            return self._cached_result.update(name, value.resolve())
+            value.resolve()
+            return self._cached_result.update(name, value._cached_data)
 
         obj = self._get_field_by_name(name)
         obj.resolve(value)
@@ -440,6 +414,15 @@ class DataStructure(metaclass=Base):
             resolved_value = str(obj._cached_result)
         
         self._cached_result.update(name, resolved_value)
+        
+    # def update_model(self, func):
+    #     """Run an update function directly on the underlying
+    #     data container of the model e.g. SmartDict"""
+        
+    # def query(self, **expressions):
+    #     """Method to check that the underlying model
+    #     contains a certain set of elements"""
+    #     return self._cached_result.run_query('')
 
     def resolve_fields(self):
         return self._cached_result.as_list()
@@ -463,8 +446,6 @@ class Model(DataStructure):
             custom_model = MyModel()
             custom_model.add_value('name', 'p')
             custom_model.save()
-
-            -> pandas.DataFrame
     """
     _cached_dataframe = None
 
@@ -511,14 +492,8 @@ class Model(DataStructure):
         dataframe in order to run additional actions on it
         otherwise, the default behaviour will be to output
         to a file within your project.
-
-        Parameters
-        ----------
-
-            commit (bool, optional): save to json file. Defaults to True.
-            filename (str, optional): the file name to use. Defaults to None
         """
-        # TODO:
+        # TODO: Before save signal
         # signal.send(dispatcher.Any, self, tag='Pre.Save')
         dataframe = self.resolve_fields()
 
@@ -529,7 +504,7 @@ class Model(DataStructure):
             if filename is None:
                 filename = f'{secrets.token_hex(nbytes=5)}'
                 
-            # TODO:
+            # TODO: Post save signal
             # signal.send(dispatcher.Any, self, tag='Post.Save')
 
             if settings.MEDIA_FOLDER is not None:

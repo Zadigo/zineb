@@ -50,7 +50,7 @@ class ApplicationChecks(GlobalMixins):
             warnings.warn(error, stacklevel=1)
             
         if self._errors:
-            raise ImproperlyConfiguredError()
+            raise ImproperlyConfiguredError(self._errors)
 
     def check_settings_base_integrity(self):
         """

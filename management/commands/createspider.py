@@ -1,8 +1,7 @@
 import os
 
-from zineb import global_logger
-from zineb.management.base import RequiresProjectError
-from zineb.management.base import BaseCommand
+from zineb.logger import global_logger
+from zineb.management.base import BaseCommand, RequiresProjectError
 
 
 class Command(BaseCommand):
