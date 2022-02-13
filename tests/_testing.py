@@ -41,9 +41,7 @@ from zineb.models import fields
 
 class MyModel(Model):
     name = fields.CharField()
-    
-    class Meta:
-        ordering = ['name']
-        
+            
 
-t = MyModel()
+m = MyModel()
+m.add_value('name', 'Kendall   <a>Jenner</a>')

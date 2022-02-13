@@ -41,36 +41,70 @@ class Empty:
 
 class Value:
     """
-    A simple field that can be used to represent a value
-    extracted from the internet and that will be properly
-    cleaned and resolved for implementing directly
-    into the model
+    Interface that represents in Python the
+    raw value that comes from the internet. The
+    value is stripped from whitespace, the tags
+    a removed 
     """
     result = None
 
-    def __init__(self, value: Any, output_field: Callable=None):
+    # def __init__(self, value: Any, output_field: Callable=None):
+    def __init__(self, value: Any):
         self.result = value
-        self.output_field = output_field
+        self.field_name = None
+        # self.output_field = output_field
 
     def __str__(self):
         return self.result
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.result})"
+    
+    def __eq__(self, value):
+        return value == self.result
 
     def __setattr__(self, name, value):
+        # This sequence will take a raw value and
+        # deep_clean it to be cached on the
+        # instance
         if name == 'result':
+            if value is None:
+                return super().__setattr__(name, value)
+            
+            if isinstance(value, beautiful_soup_tag):
+                try:
+                    value = value.text
+                except:
+                    message = LazyFormat("Could not get attribute text from '{value}'.", value=value)
+                    raise AttributeError(message)
+
+            if not isinstance(value, (str, int, float, list, dict)):
+                message = LazyFormat('{value} should be a string, '
+                                     'an integer or a float.', value=value)
+                raise ValueError(message)
+            
             value = deep_clean(value)
+            
+            if '>' in value or '<' in value:
+                value = html.remove_tags(value)
+                
         return super().__setattr__(name, value)
+
+    @property
+    def is_empty(self):
+        return (
+            self.result == None or
+            self.result == ''
+        )
     
-    def resolve_to_field(self):
-        if self.result.isnumeric() or self.result.isdigit():
-            return IntegerField()
-        elif isinstance(self.result, dict):
-            return JsonField()
-        elif isinstance(self.result, list):
-            return ListField()
-        return CharField()
+    # def resolve_to_field(self):
+    #     if self.result.isnumeric() or self.result.isdigit():
+    #         return IntegerField()
+    #     elif isinstance(self.result, dict):
+    #         return JsonField()
+    #     elif isinstance(self.result, list):
+    #         return ListField()
+    #     return CharField()
 
 
 class Field:
@@ -112,7 +146,8 @@ class Field:
 
     def _bind(self, field_name, model=None):
         """Bind the field's name registered 
-        on the model to this field instance"""
+        on the model to this instance and the
+        model instance itself"""
         self._meta_attributes.update(field_name=field_name)
         current_model = self._meta_attributes.get('model', None)
         
@@ -120,6 +155,7 @@ class Field:
             self._meta_attributes['model'] = model
 
     def _true_value_or_default(self, value):
+        # ENHANCE:
         if value is None and self.default is not None:
             return self.default
         elif value == 'Empty' and self.default is not None:
@@ -165,19 +201,6 @@ class Field:
             return validator_return_value
         return value
 
-    def _check_emptiness(self, value):
-        """
-        Deals with true empty values e.g. '' that
-        are factually None but get passed
-        around as containing data
-        
-        The Empty class is the pythonic representation
-        for these kinds of strings
-        """
-        if value == '':
-            return Empty()
-        return value
-
     def _simple_resolve(self, clean_value):
         """
         A value resolution method that only runs validations.
@@ -189,15 +212,13 @@ class Field:
         NOTE: This should ONLY be used internally and
         not on incoming data from the web since it does
         not apply any kind of formatting (spaces, escape
-        characters or HTML tags)
+        characters or HTML tags) but only validations
         """        
-        if clean_value == 'Empty' or clean_value is None:
-            # Although a value could be empty or None, we still
-            # allow he user to be able to validate he data
-            self._cached_result = self._run_validation(clean_value)
+        if clean_value.is_empty:
+            result = clean_value
         else:
             result = self._to_python_object(clean_value)
-            self._cached_result = self._run_validation(result)
+        self._cached_result = self._run_validation(result)
             
     # def _function_resolve(self, func):
     #     """A method to resolve specific functions such
@@ -220,54 +241,8 @@ class Field:
         and/or call super().resolve() to benefit from the cleaning
         and normalizing logic
         """
-        # TODO: Instead of dealing with the internet
-        # value directly, interface it with Value
-        # which will deep_clean it. This process
-        # will separate the cleaning process from
-        # the resolution
-        if isinstance(value, Value):
-            # FIXME: Is it necessary to bind the
-            # field name to Value which is not
-            # a field on the database?
-            self._bind(value.field_name)
-            return self._simple_resolve(str(value))
-            
-        # This is a security check so that we only take
-        # values that have a known Python type get a pass.
-        # Technically, we should only get strings from 
-        # the internet but exceptions can occur with 
-        # true numbers, list or dict
-        if not isinstance(value, (str, int, float, list, dict)):
-            raise ValueError(LazyFormat('{value} should be a string, '
-            'an integer or a float.', value=value))
-        
-        if isinstance(value, beautiful_soup_tag):
-            try:
-                value = value.text
-            except:
-                raise AttributeError(LazyFormat("Could not get attribute text from '{value}'.", value=value))
-        
-        if value is None:
-            self._simple_resolve(value)
-        else:
-            # To make things easier especially for
-            # the cleaning process below, we'll 
-            # just be dealing with a string and then
-            # retransform it to its true 
-            # representation later on
-            true_value = str(value)
-            
-            value_or_empty = self._check_emptiness(true_value)
-            
-            if '>' in value_or_empty or '<' in value_or_empty:
-                value_or_empty = html.remove_tags(value_or_empty)
-                
-            if not value_or_empty == 'Empty':        
-                clean_value = deep_clean(value_or_empty)
-                self._simple_resolve(clean_value)
-            else:
-                self._simple_resolve(value_or_empty)
-            
+        self._simple_resolve(value)
+                    
 
 class CharField(Field):
     name = 'char'

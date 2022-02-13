@@ -8,7 +8,7 @@ from typing import Any, Callable, List, Union
 from bs4 import BeautifulSoup
 from zineb.exceptions import FieldError, ModelExistsError
 from zineb.http.responses import HTMLResponse
-from zineb.models.fields import Empty, Field
+from zineb.models.fields import Value, Field
 from zineb.models.functions import (Add, Divide, ExtractDay, ExtractMonth,
                                     ExtractYear, Math, Multiply, Substract,
                                     When)
@@ -318,6 +318,11 @@ class DataStructure(metaclass=Base):
         cached_values = self._cached_result.get_container(field_name)
         cached_values.append(value)
         self._cached_result.update(field_name, cached_values)
+        
+    def _bind_to_value(self, field_name: str, data: Union[str, int, float, list, Any]):
+        instance = Value(data)
+        instance.field_name = field_name
+        return instance
 
     def add_calculated_value(self, name: str, value: Any, *funcs):
         funcs = list(funcs)
@@ -417,8 +422,10 @@ class DataStructure(metaclass=Base):
             value.field_name = name
             value.resolve()
             return self._cached_result.update(name, value._cached_data)
+        
 
         obj = self._get_field_by_name(name)
+        value = self._bind_to_value(obj._meta_attributes['field_name'], value)
         obj.resolve(value)
         resolved_value = obj._cached_result
 
