@@ -629,11 +629,11 @@ player.save(commit=True, filename=None, **kwargs)
 
 By calling the save method, you'll be able to store the data directly to a JSON or CSV file.
 
-## Expressions
+## Functions
 
 Expressions a built-in functions that can modify the incoming value in some kind of way before storing to your model.
 
-### Math
+### Math [Add, Substract, Multiply, Divide]
 
 Run a calculation such as addition, substraction, division or multiplication on the value.
 
@@ -655,6 +655,93 @@ from zineb.models.expressions import ExtractYear
 player.add_value('competition_year', ExtractYear('11-1-2021'))
 
 # -> {'competition_year': [2021]}
+```
+
+## Transactions
+
+Transactions are a very simple but effective way to keep track of a model's state at a given time.
+
+The first step is to open an initial transaction that will then be used as an interface to model.
+
+```python
+from zineb.models.transactions import transaction
+
+class MySpider(Spider):
+    def start(self, **kwargs):
+        t = transaction(self)
+        t.model.add_value('name', 'Kendall Jenner')
+```
+
+### Savepoint
+
+To save the model to the current state once a transaction was done through the model is to use savepoints. By calling `savepoint` the current state of the model is saved.
+
+```python
+class MySpider(Spider):
+    def start(self, **kwargs):
+        t = transaction(self)
+        t.model.add_value('name', 'Kendall Jenner')
+        name = t.savepoint()
+```
+
+The method returns a savepoint name that can be used afterwards to rollback to a very specific state in time.
+
+### Rollback
+
+If at any point you need to return to the previous state of the model, rollback does just that.
+
+```python
+class MySpider(Spider):
+    def start(self, **kwargs):
+        t = transaction(self)
+        t.model.add_value('name', 'Kendall Jenner')
+        name = t.savepoint()
+
+        t.model.add_value('name', 'Kylie Jenner')
+        t.rollback('some_savepoint_name')
+```
+
+### Rollback on error
+
+If an error occurs during a transaction, instead of breaking the whole code, `rollback_on_error` will get the model state using the very last savepoint.
+
+```python
+class MySpider(Spider):
+    def start(self, **kwargs):
+        t = transaction(self)
+        t.model.add_value('name', 'Kendall Jenner')
+        name = t.savepoint()
+
+        try:
+            t.model.add_value('name', 'Kylie Jenner')
+        except:
+            t.rollback_on_error()
+
+```
+
+### Delete
+
+A savepoint can be also deleted.
+
+```python
+class MySpider(Spider):
+    def start(self, **kwargs):
+        t = transaction(self)
+        t.model.add_value('name', 'Kendall Jenner')
+        name = t.delete('some_savepoint_name')
+```
+
+### Atomic
+
+The above technique can be used in the same way by using the `atomic` decorator. Any wrapped method within your spider will automatically therefore open a transaction.
+
+```python
+from zineb.models.transactions import atomic
+
+class MySpider(Spider):
+    @atomic(MyModel)
+    def start(self, transaction, **kwargs):
+        transaction.model.add_value('name', 'Kendall Jenenr')
 ```
 
 # Extractors
