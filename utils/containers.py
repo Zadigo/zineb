@@ -9,12 +9,11 @@ from zineb.models.fields import Empty
 from zineb.settings import lazy_settings
 from zineb.utils.formatting import LazyFormat, remap_to_dict
 
-
-class Query:
-    """Represents a subset of data extracted
-    from the SmartDict"""
-    def __init__(self, data):
-        pass
+# class Query:
+#     """Represents a subset of data extracted
+#     from the SmartDict"""
+#     def __init__(self, data):
+#         pass
 
 
 class SmartDict:
@@ -55,6 +54,9 @@ class SmartDict:
 
     @classmethod
     def new_instance(cls, *names):
+        # TODO: This section seems
+        # repetitive by adding the
+        # fields twice on the instance
         instance = cls(*names)
         for name in names:
             instance.values[name]
@@ -206,6 +208,6 @@ class SmartDict:
             data = json.loads(json.dumps(self.as_list()))
             return json.dumps(data, sort_keys=True)
 
-    def run_query(self, expressions):
-        return Query([])
+    # def run_query(self, expressions):
+    #     return Query([])
     

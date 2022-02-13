@@ -1,12 +1,11 @@
 import copy
 import os
 import secrets
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 from functools import cached_property
 from typing import Any, Callable, List, Union
 
 from bs4 import BeautifulSoup
-# from pydispatch import dispatcher
 from zineb.exceptions import FieldError, ModelExistsError
 from zineb.http.responses import HTMLResponse
 from zineb.models.fields import Empty, Field
@@ -62,9 +61,9 @@ class FieldMixin:
     def field_names(self):
         return list(self.cached_fields.keys())
 
-    @cached_property
-    def fields_map(self):
-        pass
+    # @cached_property
+    # def fields_map(self):
+    #     pass
     
     @cached_property
     def true_fields(self):
@@ -312,6 +311,9 @@ class DataStructure(metaclass=Base):
                 'an instance of Calculate')
 
             setattr(func, 'model', self)
+            # TODO: Do not trust the user and check
+            # if the field actually exists on the
+            # model before passing to the func
             setattr(func, 'field_name', name)
 
         if len(funcs) == 1:
@@ -325,7 +327,7 @@ class DataStructure(metaclass=Base):
                 else:
                     # When there a multiple functions, the
                     # _cached_data of the current function
-                    # should be the _caclulat_result of the
+                    # should be the _caclulate_result of the
                     # previous one. This technique allows
                     # us to run multiple expressions on
                     # one single value
@@ -407,14 +409,14 @@ class DataStructure(metaclass=Base):
         
         self._cached_result.update(name, resolved_value)
         
-    def update_model(self, func):
-        """Run an update function directly on the underlying
-        data container of the model e.g. SmartDict"""
+    # def update_model(self, func):
+    #     """Run an update function directly on the underlying
+    #     data container of the model e.g. SmartDict"""
         
-    def query(self, **expressions):
-        """Method to check that the underlying model
-        contains a certain set of elements"""
-        return self._cached_result.run_query('')
+    # def query(self, **expressions):
+    #     """Method to check that the underlying model
+    #     contains a certain set of elements"""
+    #     return self._cached_result.run_query('')
 
     def resolve_fields(self):
         return self._cached_result.as_list()
@@ -485,7 +487,7 @@ class Model(DataStructure):
         otherwise, the default behaviour will be to output
         to a file within your project.
         """
-        # TODO:
+        # TODO: Before save signal
         # signal.send(dispatcher.Any, self, tag='Pre.Save')
         dataframe = self.resolve_fields()
 
@@ -496,13 +498,12 @@ class Model(DataStructure):
             if filename is None:
                 filename = f'{secrets.token_hex(nbytes=5)}'
                 
-            # TODO:
+            # TODO: Post save signal
             # signal.send(dispatcher.Any, self, tag='Post.Save')
 
             if settings.MEDIA_FOLDER is not None:
                 filename = os.path.join(settings.MEDIA_FOLDER, filename)
                 
-            # return self._cached_dataframe.to_json(filename, orient='records')
             self._cached_result.save(commit=commit, filename=filename, **kwargs)
             return dataframe
         return self._cached_dataframe.copy()    

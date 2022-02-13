@@ -48,8 +48,9 @@ class Value:
     """
     result = None
 
-    def __init__(self, value: Any):
+    def __init__(self, value: Any, output_field: Callable=None):
         self.result = value
+        self.output_field = output_field
 
     def __str__(self):
         return self.result
@@ -61,6 +62,15 @@ class Value:
         if name == 'result':
             value = deep_clean(value)
         return super().__setattr__(name, value)
+    
+    def resolve_to_field(self):
+        if self.result.isnumeric() or self.result.isdigit():
+            return IntegerField()
+        elif isinstance(self.result, dict):
+            return JsonField()
+        elif isinstance(self.result, list):
+            return ListField()
+        return CharField()
 
 
 class Field:
@@ -123,8 +133,7 @@ class Field:
         python representation of a given value
         
         NOTE: Subclasses should implement their own
-        way of returning the Python representation
-        of a given value
+        way of returning said representation
         """
         return value
 
@@ -211,7 +220,15 @@ class Field:
         and/or call super().resolve() to benefit from the cleaning
         and normalizing logic
         """
+        # TODO: Instead of dealing with the internet
+        # value directly, interface it with Value
+        # which will deep_clean it. This process
+        # will separate the cleaning process from
+        # the resolution
         if isinstance(value, Value):
+            # FIXME: Is it necessary to bind the
+            # field name to Value which is not
+            # a field on the database?
             self._bind(value.field_name)
             return self._simple_resolve(str(value))
             
@@ -234,7 +251,7 @@ class Field:
             self._simple_resolve(value)
         else:
             # To make things easier especially for
-            # the string cleaning process below, we'll 
+            # the cleaning process below, we'll 
             # just be dealing with a string and then
             # retransform it to its true 
             # representation later on
