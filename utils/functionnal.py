@@ -1,5 +1,6 @@
-import operator
 import copy
+import operator
+
 
 def create_proxy_function(func):
     def inner(self, *args, **kwargs):
@@ -23,8 +24,10 @@ class LazyObject:
     def __setattr__(self, name, value):
         if name == 'cached_object':
             self.__dict__['cached_object'] = value
+            
         if self.cached_object is None:
             self._init_object()
+        
         setattr(self.cached_object, name, value)
 
     def __delattr__(self, name):
@@ -53,4 +56,15 @@ class LazyObject:
         Use this class to implement the element that
         should stored in the cached_object attribute
         """
-        pass
+        
+        
+# class cached_property:
+#     def __init__(self, func):
+#         self.initial_func = func
+#         self.__doc__ = getattr(func, '__doc__')
+        
+#     def __get__(self, instance, cls=None):
+#         if instance is None:
+#             return self
+#         result = instance.__dict__['cache'] = self.initial_func(instance)
+#         return result

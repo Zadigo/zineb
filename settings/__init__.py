@@ -2,7 +2,6 @@ import importlib
 import os
 from typing import OrderedDict
 
-# from pydispatch import dispatcher
 from zineb.settings import base as initial_project_settings
 from zineb.utils.functionnal import LazyObject
 from zineb.utils.iteration import keep_while
@@ -85,14 +84,14 @@ class Settings:
         # it breaks the whole program since the
         # logger cannot work properly if to_file
         # is set to true
-        LOG_FILE = getattr(self, 'LOG_FILE')
-        if LOG_FILE is None:
+        LOG_FILE_NAME = getattr(self, 'LOG_FILE_NAME')
+        if LOG_FILE_NAME is None:
             project_path = (
                 getattr(self, 'PROJECT_PATH') or 
                 getattr(self, 'GLOBAL_ZINEB_PATH')
             )
-            log_file_path = os.path.join(project_path, 'zineb.log')
-            setattr(self, 'LOG_FILE', log_file_path)
+            log_file_path = os.path.join(project_path, LOG_FILE_NAME)
+            setattr(self, 'LOG_FILE_NAME', log_file_path)
 
     def __call__(self, **kwargs):
         self.__init__()

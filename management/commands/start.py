@@ -1,7 +1,7 @@
 from importlib import import_module
 
-from zineb import global_logger
 from zineb.checks.core import checks_registry
+from zineb.logger import global_logger
 from zineb.management.base import ProjectCommand
 from zineb.registry import registry
 

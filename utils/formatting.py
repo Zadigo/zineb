@@ -13,6 +13,7 @@ class LazyFormat:
         >> str(message)
         >> Kendall Jenner
     """
+    
     __slots__ = ('_cached_result', '_string_to_format', '_args', '_kwargs')
 
     def __init__(self, string_to_format: str, *args, **kwargs):

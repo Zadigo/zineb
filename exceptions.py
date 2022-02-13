@@ -1,3 +1,5 @@
+from itertools import chain 
+
 class ValidationError(Exception):
     def __init__(self, message):
         super().__init__(message)
@@ -41,8 +43,12 @@ class ModelExistsError(Exception):
 
 
 class ImproperlyConfiguredError(Exception):
-    def __init__(self):
-        super().__init__('Your project is not properly configured.')
+    def __init__(self, *args):
+        message = 'Your project is not properly configured.'
+        if args:
+            additional_errors = ' / '.join(chain(*args))
+            message = message + ' Identified the following errors: ' + additional_errors
+        super().__init__(message)
 
 
 class SpiderExistsError(Exception):
