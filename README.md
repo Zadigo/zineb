@@ -480,6 +480,8 @@ class MyModel(Model):
     date = DateField("%d-%m-%Y")
 ```
 
+Generally speaking, most date formats are covered so you wouldn't need to implement a generally used format.
+
 ### AgeField
 
 The age field works likes the DateField but instead of returning the date, it will return the difference between the date and the current date which corresponds to an age.
