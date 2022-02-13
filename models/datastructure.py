@@ -319,7 +319,7 @@ class DataStructure(metaclass=Base):
         cached_values.append(value)
         self._cached_result.update(field_name, cached_values)
         
-    def _bind_to_value(self, field_name: str, data: Union[str, int, float, list, Any]):
+    def _bind_to_value_field(self, field_name: str, data: Union[str, int, float, list, Any]):
         instance = Value(data)
         instance.field_name = field_name
         return instance
@@ -346,7 +346,7 @@ class DataStructure(metaclass=Base):
             setattr(func, 'field_name', name)
 
         if len(funcs) == 1:
-            func._cached_data = value
+            func._cached_data = Value(value)
             func.resolve()
             self.add_value(func.field_name, func._cached_data)
         else:
@@ -375,6 +375,9 @@ class DataStructure(metaclass=Base):
         if not isinstance(case, When):
             raise TypeError('Case should be a When class.')
 
+        # We let the user test against the
+        # raw value directly. This opens more
+        # options for him
         case._cached_data = value
         case.model = self
         field_name, value = case.resolve()
@@ -403,6 +406,10 @@ class DataStructure(metaclass=Base):
         using either a dictionnary or keyword
         arguments
         """
+        # FIXME: The user can just add values without any
+        # formatting whatsoever? This should be fixed in
+        # order that the values that are added be deep_cleaned
+        # formatted correctly for consistency
         self._fields.has_fields(list(attrs.keys()), raise_exception=True)
         self._cached_result.update_multiple(**attrs)
 
@@ -423,9 +430,13 @@ class DataStructure(metaclass=Base):
             value.resolve()
             return self._cached_result.update(name, value._cached_data)
         
-
         obj = self._get_field_by_name(name)
-        value = self._bind_to_value(obj._meta_attributes['field_name'], value)
+        if not isinstance(value, Value):
+            # We know that the Value field deep_cleans
+            # and formats the raw value. Makes no sense
+            # to redo all of this if we already have a
+            # Value instance
+            value = self._bind_to_value_field(obj._meta_attributes['field_name'], value)
         obj.resolve(value)
         resolved_value = obj._cached_result
 

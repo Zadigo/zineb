@@ -12,7 +12,6 @@ from zineb.models.fields import Value
 from zineb.utils.conversion import string_to_number
 from zineb.utils.formatting import LazyFormat
 
-
 class FunctionsMixin:
     _cached_data = None
     field_name = None
@@ -61,6 +60,9 @@ class Math(FunctionsMixin):
         return f"{class_name}(< {result} >)"
 
     def resolve(self):
+        """Gets the source field, resolves the
+        value and returns the field with the
+        resolved data"""
         source_field = self.get_field_object()
 
         if self._cached_data is None:
@@ -248,7 +250,8 @@ class DateExtractorMixin:
     lookup_name = None
 
     def __init__(self, value: Any, date_format: str=None):
-        self.value = value
+        
+        self.value = Value(value)
         self._datetime_object = None
         
         self.date_parser = datetime.datetime.strptime
@@ -260,7 +263,7 @@ class DateExtractorMixin:
     def _to_python_object(self, value):
         for date_format in self.date_formats:
             try:
-                d = self.date_parser(value, date_format)
+                d = self.date_parser(str(value), date_format)
             except:
                 d = None
             else:

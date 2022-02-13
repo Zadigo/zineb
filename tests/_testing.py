@@ -36,12 +36,18 @@
 # s.update('name', 'Kylie')
 # print(s.save(extension='csv'))
 
-from zineb.models.datastructure import Model
 from zineb.models import fields
+from zineb.models.datastructure import Model
+from zineb.models.functions import When, Add
+
 
 class MyModel(Model):
-    name = fields.CharField()
+    name = fields.IntegerField()
             
 
 m = MyModel()
-m.add_value('name', 'Kendall   <a>Jenner</a>')
+# m.add_value('name', ExtractDay('25-1-2021'))
+# m.add_value('name', 'Kendall   <a>Jenner</a>')
+# m.add_case('Kendal', When('name__eq=Kendal', 'Kendall'))
+m.add_calculated_value('name', 15, Add(1))
+print(m)

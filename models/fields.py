@@ -55,7 +55,10 @@ class Value:
         # self.output_field = output_field
 
     def __str__(self):
-        return self.result
+        # Treat all values that are returned
+        # as a string even though the pure
+        # representation is an int, float...
+        return str(self.result)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.result})"
@@ -83,10 +86,12 @@ class Value:
                                      'an integer or a float.', value=value)
                 raise ValueError(message)
             
-            value = deep_clean(value)
             
-            if '>' in value or '<' in value:
-                value = html.remove_tags(value)
+            if isinstance(value, str):
+                value = deep_clean(value)
+
+                if '>' in value or '<' in value:
+                    value = html.remove_tags(value)
                 
         return super().__setattr__(name, value)
 
@@ -97,6 +102,10 @@ class Value:
             self.result == ''
         )
     
+    @property
+    def is_value_instance(self):
+        return True
+    
     # def resolve_to_field(self):
     #     if self.result.isnumeric() or self.result.isdigit():
     #         return IntegerField()
@@ -105,6 +114,30 @@ class Value:
     #     elif isinstance(self.result, list):
     #         return ListField()
     #     return CharField()
+    
+    
+# class CleanValue:
+#     """Represents an internal fully resolved
+#     value. This is a convenience class for methods
+#     that rely on the is_empty attribute"""
+#     def __init__(self, value):
+#         self.value = value
+        
+#     def __str__(self):
+#         return self.value
+    
+#     def __repr__(self):
+#         return f"{self.__class__.__name__}({self.value})"
+        
+#     def __eq__(self, value):
+#         return value == self.result
+    
+#     @property
+#     def is_empty(self):
+#         return (
+#             self.result == None or
+#             self.result == ''
+#         )
 
 
 class Field:
@@ -214,8 +247,8 @@ class Field:
         not apply any kind of formatting (spaces, escape
         characters or HTML tags) but only validations
         """        
-        if clean_value.is_empty:
-            result = clean_value
+        if getattr(clean_value, 'is_empty', False):
+            result = clean_value or None
         else:
             result = self._to_python_object(clean_value)
         self._cached_result = self._run_validation(result)
@@ -349,7 +382,7 @@ class IntegerField(Field):
 
     def _to_python_object(self, value):
         try:
-            return self._dtype(value)
+            return self._dtype(str(value))
         except:
             if not isinstance(value, (int, float)):
                 attrs = {
