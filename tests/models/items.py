@@ -1,6 +1,6 @@
-from zineb.models.constraints import UniqueConstraint
-from zineb.models.datastructure import Model
 from zineb.models import fields
+from zineb.models.constraints import CheckConstraint
+from zineb.models.datastructure import Model
 
 
 def simple_validator(value):
@@ -62,7 +62,7 @@ class ConstrainedModel(Model):
     
     class Meta:
         constraints = [
-            UniqueConstraint('unique_names', 'name')
+            CheckConstraint('my_contraint', 'name')
         ]
-c = ConstrainedModel()
-print(c._meta)
+# c = ConstrainedModel()
+# print(c._meta.cached_options)

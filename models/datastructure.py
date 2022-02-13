@@ -134,6 +134,11 @@ class ModelOptions(FieldMixin):
         if self.has_option('constraints'):
             constraints = self.get_option_by_name('constraints')
             for constraint in constraints:
+                # TODO: This is a none instantiated
+                # class of the model. This should
+                # be the model instance in order
+                # to access the functionnalities
+                constraint.model = self._model
                 self.registered_constraints[constraint.name] = constraint
         
     def __call__(self, options):
@@ -278,8 +283,12 @@ class DataStructure(metaclass=Base):
         
         # When the model is initialized, we bind it
         # to the constraint if there are any
-        for _, constraint in self._meta.registered_constraints.items():
-            constraint.model = self
+        # for _, constraint in self._meta.registered_constraints.items():
+        #     constraint.model = self
+        
+        # Here we assign the model-self to 
+        # the options which as initially None
+        self._meta.model = self
 
     @property
     def _get_internal_data(self):
@@ -289,11 +298,6 @@ class DataStructure(metaclass=Base):
         """
         Gets the cached field object that was registered
         on the model via the FieldDescriptor
-
-        Parameters
-        ----------
-
-            - field_name (str): the field name to get
         """
         return self._meta.get_field(field_name)
 
@@ -319,6 +323,13 @@ class DataStructure(metaclass=Base):
         cached_values = self._cached_result.get_container(field_name)
         cached_values.append(value)
         self._cached_result.update(field_name, cached_values)
+        
+    def _trigger_constraints(self, value):
+        """Runs before the model tries to a add a value
+        to the underlying container by running each
+        constraints created on the model"""
+        for constraint in self._meta.get_option_by_name('contraints'):
+            constraint.check(value)
     
     def add_calculated_value(self, name: str, value: Any, *funcs):
         funcs = list(funcs)
@@ -452,6 +463,8 @@ class DataStructure(metaclass=Base):
             # user might get something unexpected
             resolved_value = str(obj._cached_result)
         
+        # ENHANCE: The way constraints trigger
+        # self._trigger_constraints(resolved_value)
         self._cached_result.update(name, resolved_value)
 
     def resolve_fields(self):

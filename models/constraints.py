@@ -3,13 +3,13 @@ from typing import Any
 from zineb.exceptions import ModelConstraintError
 
 
-class UniqueConstraint:
+class CheckConstraint:
     def __init__(self, name: str, *fields):
         self.fields = list(fields)
         self.name = name
         self.model = None
         
-    def check_constraint(self, value: Any):
+    def check(self, value: Any):
         from zineb.models.datastructure import Model
         
         if self.model is None:
