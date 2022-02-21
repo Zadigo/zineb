@@ -92,6 +92,9 @@ class Settings:
             )
             log_file_path = os.path.join(project_path, LOG_FILE_NAME)
             setattr(self, 'LOG_FILE_NAME', log_file_path)
+            
+        # TODO: Send a signal when the Settings
+        # class has been modified
 
     def __call__(self, **kwargs):
         self.__init__()
