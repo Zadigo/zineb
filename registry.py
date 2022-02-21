@@ -111,7 +111,7 @@ class Registry:
         try:
             return self.spiders[spider_name]
         except KeyError:
-            self.local_logger.error((f"The spider with the name '{spider_name}' does not "
+            self.local_logger.logger.error((f"The spider with the name '{spider_name}' does not "
             f"exist in the registry. Available spiders are {', '.join(self.spiders.keys())}. "
             f"If you forgot to register {spider_name}, check your settings file."), stack_info=True)
             raise SpiderExistsError(spider_name)

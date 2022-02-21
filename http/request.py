@@ -111,7 +111,7 @@ class BaseRequest:
             # TODO: When using https:// this returns True
             # when this is not even a real URL
             message = (f"The url that was provided is not valid. Got: {url}.")
-            self.local_logger.error(message, stack_info=True)
+            self.local_logger.logger.error(message, stack_info=True)
             raise requests.exceptions.InvalidURL(message)
 
         parsed_url = urlparse(url)
@@ -132,12 +132,12 @@ class BaseRequest:
             # ]
             # if not all(logic):
             if 'https' not in parsed_url.scheme:
-                self.local_logger.critical(f"{url} is not secured. No HTTPS scheme is present.")
+                self.local_logger.logger.critical(f"{url} is not secured. No HTTPS scheme is present.")
                 self.can_be_sent = False
 
         if self.only_domains:
             if parsed_url.netloc not in self.only_domains:
-                self.local_logger.critical((f"{url} is part of the restricted domains "
+                self.local_logger.logger.critical((f"{url} is part of the restricted domains "
                 "settings list and will not be sent. Adjust your settings if you "
                 "want to prevent this security check on his domain."))
                 self.can_be_sent = False
@@ -156,7 +156,7 @@ class BaseRequest:
         response = None
 
         if not self.can_be_sent:
-            self.local_logger.info(("A request was not sent for the following "
+            self.local_logger.logger.info(("A request was not sent for the following "
             f"url {self.url} because self.can_be_sent is marked as False. Ensure that "
             "the url is not part of a restricted DOMAIN or that ENSURE_HTTPS does not"
             "force only secured requests."))
@@ -168,7 +168,7 @@ class BaseRequest:
         try:
             response = self.session.send(self.prepared_request)
         except requests.exceptions.HTTPError as e:
-            self.local_logger.error(f"An error occured while processing "
+            self.local_logger.logger.error(f"An error occured while processing "
             "request for {self.prepared_request}", stack_info=True)
             self.errors.append([e.args])
         except Exception as e:
@@ -246,7 +246,7 @@ class HTTPRequest(BaseRequest):
         http_response = super()._send()
         if http_response is not None:
             if http_response.ok:
-                self.local_logger.info(f'Sent request for {self.url}')
+                self.local_logger.logger.info(f'Sent request for {self.url}')
                 self._http_response = http_response
                 self.html_response = HTMLResponse(
                     http_response,
@@ -255,9 +255,9 @@ class HTTPRequest(BaseRequest):
                 )
                 self.session.close()
             else:
-                self.local_logger.error('Response failed.')
+                self.local_logger.logger.error('Response failed.')
         else:
-            self.local_logger.error(f'An error occured on this request: {self.url} with status code {http_response.status_code}')
+            self.local_logger.logger.error(f'An error occured on this request: {self.url} with status code {http_response.status_code}')
 
     @classmethod
     def follow(cls, url: Union[str, Link]):

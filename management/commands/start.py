@@ -27,7 +27,7 @@ class Command(ProjectCommand):
                 settings._project_meta['spiders_path']
             )
         except Exception as e:
-            global_logger.error(e.args, stack_info=True)
+            global_logger.logger.error(e.args, stack_info=True)
             raise
         except:
             raise ImportError(("The command was executed outside "

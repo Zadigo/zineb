@@ -6,7 +6,6 @@ from typing import Union
 
 from bs4 import BeautifulSoup
 
-from zineb import global_logger
 from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
 # from xml.etree import ElementTree
@@ -125,8 +124,8 @@ class Spider(metaclass=BaseSpider):
     start_urls = []
 
     def __init__(self, **kwargs):
-        global_logger.info(f'Starting {self.__class__.__name__}')
-        global_logger.info(f"{self.__class__.__name__} contains {len(self._prepared_requests)} request(s)")
+        global_logger.logger.info(f'Starting {self.__class__.__name__}')
+        global_logger.logger.info(f"{self.__class__.__name__} contains {len(self._prepared_requests)} request(s)")
 
         # TODO:
         # signal.send(dispatcher.Any, self, tag='Pre.Start')
