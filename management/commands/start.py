@@ -1,57 +1,24 @@
-import os
 from importlib import import_module
 
-from zineb import global_logger
 from zineb.checks.core import checks_registry
-from zineb.management.base import BaseCommand
+from zineb.logger import global_logger
+from zineb.management.base import ProjectCommand
 from zineb.registry import registry
 
 
-class Command(BaseCommand):
+class Command(ProjectCommand):
     def add_arguments(self, parser):
-        parser.add_argument('--name', '-n', required=False, type=str)
+        parser.add_argument('--name', help='A name of a specific spider to start', type=str)
+        parser.add_argument('--settings', help='A settings module to use e.g. myproject.settings', action='store_true')
 
     def execute(self, namespace):
-        # project = os.environ.get('ZINEB_SPIDER_PROJECT')
-        # project_name, _ = project.rsplit('.', maxsplit=1)
-        # # Rettriger the settings files in order to counteract
-        # # the first initial __init__ of the class with sets
-        # # values such as PROJECT_PATH to None because the
-        # # environ ZINEB_PROJECT_SPIDER is not set (for
-        # # whatever reasons)
-        # # HACK: In order to load the correct settings
-        # # as per what the user has entered, we
-        # # have to reinstantiate the class which
-        # # will force an update --; the problem is
-        # # the settings file is loaded before the command
-        # # (since it is placed in the __init__) and in that
-        # # situation, only the global settings are loaded.
-        # # By forcing and reinstantiation, the command has
-        # # the time to place the project's settings in the
-        # # Windows environment and therefore load the settings
-        # # file of the project
-        # from zineb.settings import settings
-        # attrs = {
-        #     'project_name': project_name, 
-        #     'python_path': project,
-        #     'spiders_path': f'{project_name}.spiders'
-        # }
-        # settings(_project_meta=attrs)
-
-        # # Update the settings with a REGISTRY
-        # # that contains the fully loaded spiders
-        # # which is the class itself
-        # setattr(settings, 'REGISTRY', None)
-
-        # # If the user did not explicitly set the path
-        # # to a MEDIA_FOLDER, we will be doing it
-        # # autmatically here
-        # media_folder = getattr(settings, 'MEDIA_FOLDER')
-        # if media_folder is None:
-        #     project_path = os.path.join(getattr(settings, 'PROJECT_PATH'))
-        #     setattr(settings, 'MEDIA_FOLDER', os.path.join(project_path, 'media'))
-        project_name, settings = self.preconfigure_project()
+        project_name, settings = self.preconfigure_project()        
         checks_registry.run()
+
+        # The first call of the logger does not
+        # use the user settings. To correct that
+        # we need to re-instantiate it.
+        # global_logger(name='Zineb', to_file=True)
 
         try:
             # Load the spiders module 
@@ -63,8 +30,8 @@ class Command(BaseCommand):
             global_logger.error(e.args, stack_info=True)
             raise
         except:
-            raise ImportError((f"The command was executed outside "
-            f"of a project and thus cannot load the 'spiders' module. "
+            raise ImportError(("The command was executed outside "
+            "of a project and thus cannot load the 'spiders' module. "
             f"Got {project_name}."))
         else:
             registry.populate(spiders_module)

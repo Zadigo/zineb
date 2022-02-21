@@ -1,7 +1,3 @@
-"""
-Default Zineb settings
-"""
-
 import os
 import logging
 
@@ -37,9 +33,9 @@ ENSURE_HTTPS = False
 # It is however possible to log to a file by
 # specifying the LOG_TO_FILE parameter
 
-LOG_TO_FILE = True
+LOG_TO_FILE = False
 
-LOG_FILE = None
+LOG_FILE_NAME = 'zineb.log'
 
 LOG_FORMAT = '%(asctime)s [%(name)s] %(levelname)s: %(message)s'
 
@@ -51,8 +47,6 @@ LOG_LEVEL = logging.DEBUG
 
 MIDDLEWARES = [
     # 'zineb.middlewares.referer.Referer',
-    # 'zineb.middlewares.handlers.Handler',
-    # 'zineb.middlewares.automation.Automation',
     # 'zineb.middlewares.history.History',
     # 'zineb.middlewares.statistics.GeneralStatistics'
     # 'zineb.middlewares.wireframe.WireFrame',
@@ -84,9 +78,9 @@ DEFAULT_REQUEST_HEADERS = {
 # HISTORY = False
 
 
-# Set a list of proxies to use within the project.
-# The proxies will be used randomly so make sure they
-# are fully/regularly functionnal.
+# Set a list of proxies to use
+# structured as (http, 1.1.1.1) 
+# or (http, http://1.1.1.1)
 
 PROXIES = []
 
@@ -121,6 +115,42 @@ MEDIA_FOLDER = None
 # that is downloaded from the internet or files
 # that were created with the model
 
-STORAGE = 'zineb.storages.core.LocalStorage'
+# STORAGE = 'zineb.storages.core.LocalStorage'
 
-STORAGES = []
+# STORAGES = []
+
+
+# Default date formats used for resolving
+# DateField and AgeField values
+
+DEFAULT_DATE_FORMATS = (
+    '%Y-%m-%d',
+    '%Y.%m.%d',
+    '%Y/%m/%d',
+    '%y-%m-%d',
+    '%y.%m.%d',
+    '%y/%m/%d',
+    '%d-%m-%Y',
+    '%d/%m/%Y',
+    '%d.%m.%Y',
+    '%d-%m-%y',
+    '%d/%m/%y',
+    '%d.%m.%y',
+    '%Y %b %d',
+    '%Y %b, %d',
+    '%y %b %d',
+    '%y %b, %d',
+    '%d %b %Y',
+    '%d %b, %Y',
+    '%d %b %y',
+    '%d %b, %y',
+    '%b %d, %Y',
+    '%b %d, %y'
+)
+
+
+# The default timezone to use for the
+# application available choices can be
+# found at https://en.wikipedia.org/wiki/List_of_tz_zones_by_name
+
+TIME_ZONE = 'America/Chicago'

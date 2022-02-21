@@ -1,39 +1,28 @@
-import json
-import random
+import re
 from collections import OrderedDict
 from typing import Union
 from urllib import parse
 
 import requests
 from bs4 import BeautifulSoup
-from pydispatch import dispatcher
-from requests.models import Response
 from requests.sessions import Request, Session
 from w3lib.url import (is_url, safe_download_url, safe_url_string, urljoin,
                        urlparse)
-from zineb import global_logger
-from zineb.http.responses import HTMLResponse, JsonResponse
+from zineb.exceptions import ResponseFailedError
+from zineb.http.responses import HTMLResponse
 from zineb.http.user_agent import UserAgent
+from zineb.logger import Logger
 from zineb.settings import settings as global_settings
-from zineb.signals import signal
 from zineb.tags import ImageTag, Link
-from zineb.utils.general import transform_to_bytes
+from zineb.utils.conversion import transform_to_bytes
 
+EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9-_.]+@\w+\.\w+$')
+
+USER_AGENT = UserAgent()
 
 class BaseRequest:
     """
     Base HTTP request for all requests
-
-    Parameters
-    ----------
-
-        url (str) url to which the request should be sent
-        method (str, Optional) Request method. Defaults to GET
-
-    Raises
-    ------
-
-        MissingSchema: the url is missing a schema
     """
     only_secured_requests = False
     only_domains = []
@@ -41,12 +30,14 @@ class BaseRequest:
     # if all the prechecks on the url turn out to
     # be positive -; this is a non blocking procedure
     # leaving the front end spider to deal with
-    # .. Also, assume that all created requests
+    # .. Also, assumes that all created requests
     # can be sent as is
     can_be_sent = True
     http_methods = ['GET', 'POST']
 
     def __init__(self, url: Union[Link, str, ImageTag], method='GET', **kwargs):
+        self.local_logger = Logger(self.__class__.__name__)
+
         if method not in self.http_methods:
             raise ValueError("The provided method is not valid. Should be "
             f"one of {''.join(self.http_methods)}.")
@@ -58,24 +49,11 @@ class BaseRequest:
 
         session = Session()
 
-        proxies = global_settings.PROXIES
-        if proxies:
-            http_proxies = list(filter(lambda x: 'http' in x, proxies))
-            https_proxies = list(filter(lambda x: 'https' in x, proxies))
-            proxy_map = {'http': None}
-            if http_proxies:
-                proxy_map.update({'http': random.choice(http_proxies)})
-
-            if https_proxies:
-                proxy_map.update({'https': random.choice(https_proxies)})
+        proxy_list = dict(set(global_settings.PROXIES))
+        session.proxies.update(proxy_list)
 
         self.only_domains = global_settings.DOMAINS
         self.only_secured_requests = global_settings.get('ENSURE_HTTPS', False)
-        self.retries = {
-            'retry': global_settings.get('RETRY', False),
-            'retry_times': global_settings.get('RETRY_TIMES', 2),
-            'retry_http_codes': global_settings.get('RETRY_HTTP_CODES', [])
-        }
 
         self._url_meta = None
         self.url = self._precheck_url(url)
@@ -112,13 +90,8 @@ class BaseRequest:
         return f"{self.__class__.__name__}(url={self.url}, resolved={self.resolved})"
 
     def _set_headers(self, request: Request, **extra_headers):
-        user_agent = UserAgent()
-        # This is a specific technique that allows
-        # to call the HTTPRequest class without
-        # having to pass or use the full project
-        # settings
         headers = global_settings.get('DEFAULT_REQUEST_HEADERS', {})
-        headers.update({'User-Agent': user_agent.get_random_agent()})
+        headers.update({'User-Agent': USER_AGENT.get_random_agent()})
         extra_headers.update(headers)
         request.headers = headers
         return request
@@ -127,40 +100,46 @@ class BaseRequest:
         """
         Check the url respects certain specifities from the project's
         settings and other elements
-
-        Parameters
-        ----------
-
-                url (str): a valid url
-
-        Returns
-        -------
-
-                str: a safe url string
         """
+        # Check if we're trying to send a request
+        # to an email address
+        if EMAIL_REGEX.match(url):
+            message = "You are trying to send a request to an email address."
+            raise requests.exceptions.InvalidSchema(message)
+
         if not is_url(url):
             # TODO: When using https:// this returns True
             # when this is not even a real URL
-            message = ("The url that was provided is not valid. "
-            f"Got: {type(url)} instead of a string.")
-
-            global_logger.error(message, stack_info=True)
+            message = (f"The url that was provided is not valid. Got: {url}.")
+            self.local_logger.error(message, stack_info=True)
             raise requests.exceptions.InvalidURL(message)
 
         parsed_url = urlparse(url)
         self._url_meta = parsed_url
 
+        # INFO: By default, all urls are marked as
+        # can be sent UNLESS they do not meet two
+        # criterium present in the settings files.
+        # The url is part of a restricted domain
+        # or the url is not secured (no https
+        # or ftps scheme)
+
         if self.only_secured_requests:
-            if (parsed_url.scheme != 'https' or 
-                    parsed_url.scheme != 'ftps'):
-                global_logger.critical(f"{url} is not secured. No HTTPS scheme is present.")
+            # TODO: Logic for FTPS
+            # logic = [
+            #     parsed_url.scheme != 'https',
+            #     parsed_url.scheme != 'ftps'
+            # ]
+            # if not all(logic):
+            if 'https' not in parsed_url.scheme:
+                self.local_logger.critical(f"{url} is not secured. No HTTPS scheme is present.")
                 self.can_be_sent = False
 
         if self.only_domains:
             if parsed_url.netloc not in self.only_domains:
-                global_logger.critical((f"{url} is part of the restricted domains "
-                "list and will not be able to be sent. Adjust your settings if you "
-                "want to prevent this security check."))
+                self.local_logger.critical((f"{url} is part of the restricted domains "
+                "settings list and will not be sent. Adjust your settings if you "
+                "want to prevent this security check on his domain."))
                 self.can_be_sent = False
             
         return safe_url_string(url)
@@ -175,70 +154,47 @@ class BaseRequest:
                 Union[Request, None] (obj): an HTTP request object
         """
         response = None
-        signal.send(dispatcher.Any, self, tag='Pre.Request')
+
+        if not self.can_be_sent:
+            self.local_logger.info(("A request was not sent for the following "
+            f"url {self.url} because self.can_be_sent is marked as False. Ensure that "
+            "the url is not part of a restricted DOMAIN or that ENSURE_HTTPS does not"
+            "force only secured requests."))
+            return None
+
+        # TODO:
+        # signals.send(sender=self, signal='pre_request', url=self.url)
 
         try:
             response = self.session.send(self.prepared_request)
         except requests.exceptions.HTTPError as e:
-            global_logger.error(f"An error occured while processing "
+            self.local_logger.error(f"An error occured while processing "
             "request for {self.prepared_request}", stack_info=True)
             self.errors.append([e.args])
         except Exception as e:
             self.errors.extend([e.args])
-        else:
-            retry_codes = global_settings.RETRY_HTTP_CODES
-            test_if_retry = [
-                response.status_code in retry_codes,
-                global_settings.RETRY
-            ]
-            if all(test_if_retry):
-                response = self._retry()
 
-        if self.errors:
-            return None
-
-            # retry = self.retries.get('retry', False)
-            # if retry:
-            #     retry_http_status_codes = self.retries.get('retry_http_status_codes', [])
-            #     if response.status_code in retry_http_status_codes:
-            #         # TODO: Might create an error
-            #         response = self._retry()
+        if self.errors or response is None:
+            raise ResponseFailedError()
 
         if response.status_code == 200:
             self.resolved = True
 
-        signal.send(
-            dispatcher.Any,
-            self, 
-            url=response.url, 
-            http_response=response,
-            tag='Post.Request'
-        )
+        # TODO:
+        # signal.send(
+        #     dispatcher.Any,
+        #     self, 
+        #     url=response.url, 
+        #     http_response=response,
+        #     tag='Post.Request'
+        # )
         # policy = response.headers.get('Referer-Policy', 'origin')
 
+        # TODO: Why set the root_url param ???
         parsed_url = urlparse(response.url)
         self.root_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
 
         return response
-
-    def _retry(self) -> Response:
-        retry_responses = []
-        retry_times = self.retries.get('retry_times')
-        for _ in range(0, retry_times + 2):
-            response = self.session.send(self.prepared_request)
-            retry_responses.extend([(response.status_code, response)])
-        sorted_responses = sorted(retry_responses)
-        
-        other_success_codes = []
-        def filter_codes(response):
-            code = response[0]
-            if code == 200:
-                return True
-            else:
-                if code in other_success_codes:
-                    return True
-            return False
-        return list(filter(filter_codes, sorted_responses))[-1]
 
     @classmethod
     def follow(cls, url: str):
@@ -290,14 +246,18 @@ class HTTPRequest(BaseRequest):
         http_response = super()._send()
         if http_response is not None:
             if http_response.ok:
-                global_logger.info(f'Sent request for {self.url}')
+                self.local_logger.info(f'Sent request for {self.url}')
                 self._http_response = http_response
                 self.html_response = HTMLResponse(
-                    http_response, url=self.url, headers=http_response.headers
+                    http_response,
+                    url=self.url,
+                    headers=http_response.headers
                 )
                 self.session.close()
+            else:
+                self.local_logger.error('Response failed.')
         else:
-            global_logger.error(f'An error occured on this request: {self.url}')
+            self.local_logger.error(f'An error occured on this request: {self.url} with status code {http_response.status_code}')
 
     @classmethod
     def follow(cls, url: Union[str, Link]):

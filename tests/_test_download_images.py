@@ -1,8 +1,9 @@
 from zineb.app import Zineb
 from zineb.extractors.base import ImageExtractor
-from zineb.utils.general import download_image
 from zineb.http.pipelines import ResponsesPipeline
-from zineb.utils.general import replace_urls_suffix
+from zineb.utils.images import download_image
+from zineb.utils.urls import replace_urls_suffix
+
 
 def fix_url(url:str):
     url = url.removeprefix('_thumbnail-150x240.jpg')
@@ -16,9 +17,11 @@ class HawtCeleb(Zineb):
 
     def start(self, response, **kwargs):
         request = kwargs.get('request')
+
         extractor = ImageExtractor(unique=True)
         extractor.resolve(response)
         images = extractor.filter_images('attachment-thumbnail')
+        
         url_images = replace_urls_suffix(images, '_thumbnail.jpg', '.jpg')
         responses = request.follow_all(url_images[:2])
         ResponsesPipeline(responses, [download_image], parameters={'download_to': 'tests/media'})

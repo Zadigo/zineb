@@ -1,10 +1,15 @@
 import os
 from collections import OrderedDict
-from functools import lru_cache
 from importlib import import_module
 from os.path import basename
-from typing import Type, Union
+from typing import Callable
 
+# NOTE: In order for certain commands to work when
+# testing ex. startproject myproject, in order for
+# the second command to work correctly, its better
+# to call a file with the vscode debugger and the
+# arguments that we want. Otherwise, for whatever
+# reason there is an error on the second command.
 
 def collect_commands():
     """
@@ -24,7 +29,7 @@ def collect_commands():
     return complete_paths
 
 
-def load_command_class(name: str) -> Type:
+def load_command_class(name: str) -> Callable:
     """
     Loads each commands in the `management/commands` directory
     and then returns the Command class instance of a specific
@@ -38,19 +43,17 @@ def load_command_class(name: str) -> Type:
     Returns
     -------
 
-        obj: the Command instance
+        Command (type): the Command instance
     """
-    modules = collect_commands()
-    for module in modules:
-        module_name = basename(module)
+    paths = collect_commands()
+    for path in paths:
+        module_name = basename(path)
         name, _ = module_name.split('.')
-        module = import_module(f'zineb.management.commands.{name}')
+        try:
+            module = import_module(f'zineb.management.commands.{name}')
+        except:
+            raise ImportError(f"Could not import module at {path} from the Zineb commands directory.")
         return module.Command()
-
-
-@lru_cache(maxsize=1)
-def available_commands():
-    pass
 
 
 class Utility:
@@ -79,7 +82,7 @@ class Utility:
             try:
                 module_obj = import_module(f'zineb.management.commands.{true_name}')
             except Exception as e:
-                raise ImportError(f"Could not import module at {path}.", e.args)
+                raise ImportError((f"Could not import module at {path}. {e.args[0]}"))
             self.commands_registry[true_name] = module_obj.Command()
 
     def _parse_incoming_commands(self, args: list):
@@ -90,7 +93,7 @@ class Utility:
         remaining_tokens = args[1:]
         return name, remaining_tokens
 
-    def call_command(self, name: Union[list, str]):
+    def call_command(self, name: list):
         """
         Call a specific command from the registry
 
@@ -108,11 +111,10 @@ class Utility:
         command_name = tokens.pop(0)
         command_instance = self.commands_registry.get(command_name, None)
         if command_instance is None:
-            raise Exception(f'Command {command_name} does not exist.')
+            raise ValueError(f'Command {command_name} does not exist.')
 
         parser = command_instance.create_parser()
         namespace = parser.parse_args()
-        command_called = namespace.command
         command_instance.execute(namespace)
         return command_instance
 
@@ -124,7 +126,7 @@ def execute_command_inline(argv):
     Parameters
     ----------
 
-        argv (List): a list where [command name, value]
+        argv (list): [file, command, ...]
     """
     utility = Utility()
     utility.call_command(argv)

@@ -1,0 +1,32 @@
+"""
+To start using Zineb:
+
+    1. Create a class that derives from `zineb.app.Zineb`:
+
+        class MySpider(Zineb):
+            start_urls = []
+
+            def start(self, response, **kwargs):
+                pass
+
+    2. Register your spider in the SPIDERS parameter
+       in your settings.py file
+
+    3. Create model in the models.py file to structure
+       the scraped data
+
+        class MyModel(Model):
+            name = fields.CharField()
+
+    3. Call `python manage.py start`
+
+You can configure the way your project works by modifying the 
+relevant sections of your settings.py file.
+
+For any other pieces of information on how to use Zineb
+efficiently, please read https://github.com/Zadigo/zineb
+"""
+
+from zineb.app import Zineb
+
+# Create your spiders here

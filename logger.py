@@ -1,10 +1,15 @@
 import logging
-from zineb.settings import settings as global_settings
+import os
+from zineb.settings import settings
+from zineb.exceptions import ProjectNotConfiguredError
 
+# TODO: When testing Zineb from a global perspective
+# via the test_project, the global settings is not
+# yet set making that the log happens both at the
+# project's root and at the zineb project
 
 class Logger:
-    def __init__(self, name=None, debug_level=logging.DEBUG, 
-                 to_file=True, **kwargs):
+    def __init__(self, name: str=None, **kwargs):
         if name is None:
             name = self.__class__.__name__
 
@@ -12,23 +17,32 @@ class Logger:
         handler = logging.StreamHandler()
 
         logger.addHandler(handler)
-        logger.setLevel(debug_level)
-        log_format = kwargs.get('log_format', '%(asctime)s - [%(name)s] %(message)s')
+        logger.setLevel(getattr(settings, 'LOG_LEVEL', logging.DEBUG))
+        log_format = getattr(settings, 'LOG_FORMAT', '%(asctime)s - [%(name)s] %(message)s')
         formatter = logging.Formatter(log_format, datefmt='%d-%m-%Y %H:%S')
         handler.setFormatter(formatter)
 
-        if to_file:
-            handler = logging.FileHandler(global_settings.LOG_FILE)
+        if getattr(settings, 'LOG_TO_FILE', False):
+            if settings.PROJECT_PATH is None:
+                raise ProjectNotConfiguredError('In order to log to a file,'
+                'a project needs to be configured.')
+            
+            # The full path of the log file is set when the
+            # settings parameter is first called
+            handler = logging.FileHandler(settings.LOG_FILE_NAME)
             logger.addHandler(handler)
 
         handler.setFormatter(formatter)
         self.logger = logger
 
-    def __getattr__(self, name):
-        return getattr(self.logger, name)
-
-    def __call__(self, name=None, debug_level=logging.DEBUG, 
-                 to_file=False, **kwargs):
-        self.__init__(name=name, debug_level=debug_level, 
-                      to_file=to_file, **kwargs)
+    def __call__(self, name=None, **kwargs):
+        self.__init__(name=name, **kwargs)
         return self.logger
+
+    @classmethod
+    def new(cls, name: str=None):
+        instance = cls(name=name)
+        return instance
+
+
+global_logger = Logger('Zineb')

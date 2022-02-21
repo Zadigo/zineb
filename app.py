@@ -1,61 +1,107 @@
 import os
 import warnings
-# import time
-from collections import OrderedDict, deque
+from collections import OrderedDict
 from io import StringIO
 from typing import Union
 
 from bs4 import BeautifulSoup
-from pydispatch import dispatcher
 
-# from xml.etree import ElementTree
 from zineb import global_logger
-# from zineb.http.pipelines import CallBack
 from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
+# from xml.etree import ElementTree
+from zineb.logger import global_logger
 from zineb.settings import settings as global_settings
-from zineb.signals import signal
+from zineb.utils.formatting import LazyFormat
+from zineb.utils.iteration import RequestQueue, drop_while
+
+
+class SpiderOptions:
+    allowed_options = ['domains', 'base_url', 'verbose_name', 'limit_requests_to']
+    
+    def __init__(self):
+        self.spider_name = None
+        self.python_path = None
+        defaults = {
+            'domains': [],
+            'base_url': None,
+            'verbose_name': None,
+            'limit_requests_to': 0
+        }
+        self.options = OrderedDict(defaults)
+        
+    def __repr__(self):
+        return f"{self.__class__.__name__}(spider={self.get_option_by_name('verbose_name')})"
+    
+    def __getitem__(self, name):
+        return self.options[name]
+            
+    def _check_options(self, options):
+        requires_list_or_tuple = ['domains', 'sorting']
+        
+        for key, value in options.items():
+            if key not in self.allowed_options:
+                raise ValueError(LazyFormat('Meta in spider {spider} received an illegal option: {option}', spider=self.spider_name, option=key))
+            
+            if key in requires_list_or_tuple:
+                if not isinstance(value, (list, tuple)):
+                    raise TypeError('Domains should be etc')
+                
+                for item in value:
+                    if not isinstance(item, str):
+                        raise TypeError('Domain should be a string')
+            else:
+                if not isinstance(value, (str, int)):
+                    raise TypeError('Value should be a string')
+            
+    def has_option(self, name):
+        return name in self.options
+    
+    def get_option_by_name(self, name):
+        return self.options[name]
+    
+    def update(self, options):
+        self._check_options(options)
+        self.options.update(options)
 
 
 class BaseSpider(type):
-    settings = global_settings
-
     def __new__(cls, name, bases, attrs):
         create_new = super().__new__
         if not bases:
             return create_new(cls, name, bases, attrs)
-
-        spider_options = OrderedDict()
+                
+        meta = SpiderOptions()
         if 'Meta' in attrs:
             _meta = attrs.pop('Meta')
-            options = _meta.__dict__
-
-            allowed_options = ['domains', 'base_url', 'verbose_name', 'sorting', 'limit_requests_to']
-            for key, option in options.items():
-                if not key.startswith('__'):
-                    if key in allowed_options:
-                        spider_options.setdefault(key, option)
-                    else:
-                        raise ValueError((f"Meta received an invalid option: '{key}'. "
-                        f"Authorized options are {', '.join(allowed_options)}"))
-        attrs.update({'_meta': spider_options})
-
+            _meta_dict = _meta.__dict__
+            
+            default_options = {}
+            cleaned_options = drop_while(lambda x: x[0].startswith('__'), _meta_dict.items())
+            cleaned_options = OrderedDict(list(cleaned_options))
+            default_options.update(cleaned_options)
+            
+            verbose_name = _meta_dict.get('verbose_name')
+            if verbose_name is None:
+                default_options['verbose_name'] = name
+            meta.spider_name = default_options['verbose_name']
+                        
+            meta.update(default_options)
+            meta.python_path = f"spiders.{name}"
+            
+        attrs['_meta'] = meta
+        
+        new_class = create_new(cls, name, bases, attrs)
+        
+        start_urls = []
         if 'start_urls' in attrs:            
-            new_class = create_new(cls, name, bases, attrs)
-
             start_urls = getattr(new_class, 'start_urls')
             if not start_urls:
-                warnings.warn("No start urls were provided for the project", Warning, stacklevel=0)
-
-            prepared_requests = attrs.get('_prepared_requests', [])
-            prepared_requests = []
-            for index, link in enumerate(start_urls):
-                request = HTTPRequest(link, counter=index, settings=cls.settings, _meta=new_class._meta)
-                request.only_secured_requests = cls.settings.get('ENSURE_HTTPS')
-                prepared_requests.append(request)
-            setattr(new_class, '_prepared_requests', prepared_requests)
-            return new_class
-        return create_new(cls, name, bases, attrs)
+                warnings.warn("No start urls were provided for the spider", Warning, stacklevel=0)
+            
+        instance = RequestQueue(*start_urls)
+        setattr(new_class, '_prepared_requests', instance)
+        return new_class
 
 
 class Spider(metaclass=BaseSpider):
@@ -74,32 +120,19 @@ class Spider(metaclass=BaseSpider):
 
             def start(self, response, **kwargs):
                 ...
-
-    Parameters
-    ----------
-
-        configuration (dict, optional): A set of additional default values. Defaults to None
     """
-    _prepared_requests = []
+    # _prepared_requests = []
     start_urls = []
 
     def __init__(self, **kwargs):
         global_logger.info(f'Starting {self.__class__.__name__}')
-        global_logger.info(f"{self.__class__.__name__} contains {self.__len__()} request(s)")
-        
-        # Tell all middlewares and signals registered
-        # to receive Any that the Spider is ready
-        # and fully loaded
-        signal.send(dispatcher.Any, self, tag='Pre.Start')
+        global_logger.info(f"{self.__class__.__name__} contains {len(self._prepared_requests)} request(s)")
 
+        # TODO:
+        # signal.send(dispatcher.Any, self, tag='Pre.Start')
+            
         self._cached_aggregated_results = None
         self._cached_aggregated_results = self._resolve_requests(debug=kwargs.get('debug', False))
-
-    def __len__(self):
-        return len(self._prepared_requests)
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}(requests={self.__len__()})"
 
     # def _resolve_return_containers(self, containers):
     #     from zineb.models.pipeline import ModelsPipeline
@@ -115,36 +148,35 @@ class Spider(metaclass=BaseSpider):
 
     def _resolve_requests(self, debug=False):
         """
-        Call `_send` each requests and pass the response in
+        Calls `_send` each requests and passes the response to
         the start method of the same class
-
-        Parameters
-        ----------
-
-            debug (Bool): determines whether to send the 
-            requests or not. Defaults to False.
         """
         if self._prepared_requests:
             if not debug:
-                # return_values_container = deque()
-                limit_requests_to = self._meta.get('limit_requests_to', len(self._prepared_requests))
-                # for request in self._prepared_requests:
-                for i in range(0, limit_requests_to):
-                    request = self._prepared_requests[i]
+                limit_requests_to = self._meta.get_option_by_name('limit_requests_to')
+                if limit_requests_to == 0:
+                    limit_requests_to = len(self._prepared_requests)
+
+                for i, items in enumerate(self._prepared_requests):
+                    url, request = items
                     request._send()
 
-                    # return_value = self.start(
+                    soup_object = request.html_response.html_page
                     self.start(
                         request.html_response,
                         request=request,
-                        soup=request.html_response.html_page
+                        soup=soup_object
                     )
+
                     # TODO: Work with return values from
                     # from the functions
+                    # return_values_container = deque() 
+                    # return_value = self.start()
                     # if return_value is not None:
                     #     return_values_container.append(return_value)
 
-                signal.send(dispatcher.Any, self, tag='Post.Initial.Requests', urls=self._prepared_requests)
+                # TODO:
+                # signal.send(dispatcher.Any, self, tag='Post.Initial.Requests', urls=self._prepared_requests)
                 # return self._resolve_return_containers(return_values_container)
             else:
                 global_logger.logger.warn(f'You are using {self.__class__.__name__} in DEBUG mode')
@@ -181,6 +213,10 @@ class Zineb(Spider):
     subclass in order to implement a spider
     for a scrapping project
     """
+    
+    def __repr__(self):
+        return f"{self.__class__.__name__}(requests={len(self._prepared_requests)})"
+
 
 
 class SitemapCrawler(Spider):
@@ -205,26 +241,39 @@ class FileCrawler:
     def __init__(self):
         self.buffers = []
 
-        if self.root_dir is not None:
-            start_files = map(lambda p: os.path.join(self.root_dir, p), self.start_files)
-            for start_file in start_files:
-                if not self._check_path(start_file):
-                    raise TypeError(f"{start_file} is not a valid file.")
-            self.start_files = start_files
+        start_files = list(self.start_files)
 
-        # Search for the files in the current
-        # actual directory.
-        for file in self.start_files:
+        # If the root_dir is not set, then
+        # default to the default
+        # 'media' folder
+        if self.root_dir is None:
+            self.root_dir = 'media'
+
+        def create_full_path(path):
+            result = os.path.join(global_settings.PROJECT_PATH, self.root_dir, path)
+
+            if not os.path.isfile(result):
+                raise ValueError(LazyFormat('Path does not point to a valid '
+                'HTML file. Got {path}', path=path))
+            return result
+
+        start_files = list(map(create_full_path, self.start_files))
+
+        # Open each files
+        for file in start_files:
             opened_file = open(file, mode='r', encoding='utf-8')
             buffer = StringIO(opened_file.read())
-            self.buffers.append(buffer)
+            self.buffers.append((file, buffer))
             opened_file.close()
 
-        for buffer in self.buffers:
-            self.start(BeautifulSoup(buffer, 'html.parser'))
+        for path, buffer in self.buffers:
+            filename = os.path.basename(path)
+            filename, _ = filename.split('.')
+            global_logger.logger.info(LazyFormat('Parsing file: {filename}', filename=filename))
+            self.start(BeautifulSoup(buffer, 'html.parser'), filename=filename, filepath=path)
 
     def __del__(self):
-        for buffer in self.buffers:
+        for _, buffer in self.buffers:
             buffer.close()
 
     @staticmethod
@@ -235,5 +284,5 @@ class FileCrawler:
         ]
         return all(checks)
 
-    def start(self, soup: BeautifulSoup):
+    def start(self, soup: BeautifulSoup, **kwargs):
         pass
