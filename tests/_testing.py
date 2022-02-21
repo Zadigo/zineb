@@ -36,19 +36,19 @@
 # s.update('name', 'Kylie')
 # print(s.save(extension='csv'))
 
-from zineb.models.datastructure import Model
-from zineb.models.fields import DateField, IntegerField, AgeField, CharField, Value
-from zineb.models.functions import ExtractMonth, Substract, When
+# from zineb.models.datastructure import Model
+# from zineb.models.fields import DateField, IntegerField, AgeField, CharField, Value
+# from zineb.models.functions import ExtractMonth, Substract, When
 
 
-class TestModel(Model):
-    age = CharField()
+# class TestModel(Model):
+#     age = CharField()
     
-m = TestModel()
-# m.add_calculated_value('age', 15, Substract(3))
-# m.add_case(15, When('age__gt=10', 15, 10))
-# m.add_value('age', 15)
-# m.add_value('age', Value('Kendall Jenner'))
-# m.update_model('age__gt=15')
-m.query(age__contains=14, name__contains='Kendall')
-print(m)
+# m = TestModel()
+# # m.add_calculated_value('age', 15, Substract(3))
+# # m.add_case(15, When('age__gt=10', 15, 10))
+# # m.add_value('age', 15)
+# # m.add_value('age', Value('Kendall Jenner'))
+# # m.update_model('age__gt=15')
+# m.query(age__contains=14, name__contains='Kendall')
+# print(m)
