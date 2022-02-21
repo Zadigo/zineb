@@ -143,8 +143,9 @@ class Registry:
         # middlewares = Middleware(settings=settings)
         # middlewares._load
 
-        # TODO:
-        # signal.send(dispatcher.Any, self, spiders=self)
+        # TODO: Send a signal when the spider
+        # registry has been populated
+
         self.is_ready = True
 
     def run_all_spiders(self):

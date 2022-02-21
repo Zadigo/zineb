@@ -58,10 +58,11 @@ class SpiderExistsError(Exception):
 
 
 class ResponseFailedError(Exception):
-    def __init__(self):
-        super().__init__("Zineb will not be able to generate a BeautifulSoup object from the response. "
-        "This is due to a response with a fail status code or being None.")
-
+    def __init__(self, *args):
+        # FIXME: Show additional errors that
+        # would come from the HTTPRequest
+        super().__init__("The request was not sent either"
+        " due to a response with a fail status code or being None.")
 
 class RequestAborted(Exception):
     pass

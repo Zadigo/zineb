@@ -487,8 +487,9 @@ class Model(DataStructure):
         otherwise, the default behaviour will be to output
         to a file within your project.
         """
-        # TODO: Before save signal
-        # signal.send(dispatcher.Any, self, tag='Pre.Save')
+        # TODO: Send a signal before the model
+        # is saved
+
         dataframe = self.resolve_fields()
 
         self.full_clean(dataframe=dataframe)
@@ -498,9 +499,9 @@ class Model(DataStructure):
             if filename is None:
                 filename = f'{secrets.token_hex(nbytes=5)}'
                 
-            # TODO: Post save signal
-            # signal.send(dispatcher.Any, self, tag='Post.Save')
-
+            # TODO: Send a signal after the model
+            # is saved
+    
             if settings.MEDIA_FOLDER is not None:
                 filename = os.path.join(settings.MEDIA_FOLDER, filename)
                 

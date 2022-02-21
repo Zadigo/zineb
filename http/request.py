@@ -91,9 +91,12 @@ class BaseRequest:
 
     def _set_headers(self, request: Request, **extra_headers):
         headers = global_settings.get('DEFAULT_REQUEST_HEADERS', {})
-        headers.update({'User-Agent': USER_AGENT.get_random_agent()})
+        
+        user_agent = USER_AGENT.get_random_agent()
+        headers.update({'User-Agent': user_agent})
+        
         extra_headers.update(headers)
-        request.headers = headers
+        request.headers = headers        
         return request
 
     def _precheck_url(self, url: str):
@@ -145,14 +148,6 @@ class BaseRequest:
         return safe_url_string(url)
 
     def _send(self):
-        """
-        Sends a new HTTP request to the web
-        
-        Returns
-        -------
-
-                Union[Request, None] (obj): an HTTP request object
-        """
         response = None
 
         if not self.can_be_sent:
@@ -162,9 +157,9 @@ class BaseRequest:
             "force only secured requests."))
             return None
 
-        # TODO:
-        # signals.send(sender=self, signal='pre_request', url=self.url)
-
+        # TODO: Send signal before the request
+        # is sent by the class
+        
         try:
             response = self.session.send(self.prepared_request)
         except requests.exceptions.HTTPError as e:
@@ -175,22 +170,14 @@ class BaseRequest:
             self.errors.extend([e.args])
 
         if self.errors or response is None:
-            raise ResponseFailedError()
+            raise ResponseFailedError(self.errors)
 
         if response.status_code == 200:
             self.resolved = True
 
-        # TODO:
-        # signal.send(
-        #     dispatcher.Any,
-        #     self, 
-        #     url=response.url, 
-        #     http_response=response,
-        #     tag='Post.Request'
-        # )
-        # policy = response.headers.get('Referer-Policy', 'origin')
+        # TODO: Send signal after the request
+        # was sent by the class
 
-        # TODO: Why set the root_url param ???
         parsed_url = urlparse(response.url)
         self.root_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
 

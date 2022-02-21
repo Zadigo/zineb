@@ -59,8 +59,8 @@ def download_image(response, download_to: str=None, as_thumbnail: bool=False):
         raise TypeError(f'The response argument requires an HTMLResponse or a Response object. Got: {response}')
 
     response_content = response.content
-    # TODO:
-    # signal.send(dispatcher.Any, response, tag='Pre.Download')
+    # TODO: Send a signal before an image
+    # is downloaded to the media folder
     
     buffer = BytesIO(response_content)
     image = Image.open(buffer)
@@ -83,8 +83,9 @@ def download_image(response, download_to: str=None, as_thumbnail: bool=False):
         return new_image.width, new_image.height
 
     image.save(download_to)
-    # TODO:
-    # signal.send(dispatcher.Any, response, tag='Post.Download', obj=image)
+    # TODO: Send a signal once an image was downloaded
+    # to the media folder
+
     return image.width, image.height, buffer
 
 

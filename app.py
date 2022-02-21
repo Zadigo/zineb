@@ -127,8 +127,8 @@ class Spider(metaclass=BaseSpider):
         global_logger.logger.info(f'Starting {self.__class__.__name__}')
         global_logger.logger.info(f"{self.__class__.__name__} contains {len(self._prepared_requests)} request(s)")
 
-        # TODO:
-        # signal.send(dispatcher.Any, self, tag='Pre.Start')
+        # TODO: Send signal when the spider is
+        # initialized
             
         self._cached_aggregated_results = None
         self._cached_aggregated_results = self._resolve_requests(debug=kwargs.get('debug', False))
@@ -174,8 +174,9 @@ class Spider(metaclass=BaseSpider):
                     # if return_value is not None:
                     #     return_values_container.append(return_value)
 
-                # TODO:
-                # signal.send(dispatcher.Any, self, tag='Post.Initial.Requests', urls=self._prepared_requests)
+                # TODO: Send a signal after the spider
+                # has resolved all the requests
+
                 # return self._resolve_return_containers(return_values_container)
             else:
                 global_logger.logger.warn(f'You are using {self.__class__.__name__} in DEBUG mode')
