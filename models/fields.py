@@ -76,7 +76,7 @@ class Value:
 class Field:
     """Base class for all fields """
 
-    name = None
+    internal_name = None
     _cached_result = None
     _default_validators = []
     _dtype = str
@@ -270,7 +270,7 @@ class Field:
             
 
 class CharField(Field):
-    name = 'char'
+    internal_name = 'char'
     
     def _to_python_object(self, value):
         if value is None:
@@ -280,15 +280,13 @@ class CharField(Field):
 
 
 class TextField(CharField):
-    name = 'text'
-
+    internal_name = 'text'
+    
     def __init__(self, max_length: int=500, **kwargs):
         super().__init__(max_length=max_length, **kwargs)
 
 
-class NameField(CharField):    
-    name = 'name'
-
+class NameField(CharField):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         
@@ -320,7 +318,6 @@ class EmailField(CharField):
 
 
 class URLField(CharField):
-    name = 'url'
     _default_validators = [model_validators.validate_url]
 
     def resolve(self, url):
@@ -332,8 +329,6 @@ class URLField(CharField):
 
 
 class ImageField(URLField):
-    name = 'image'
-
     def __init__(self, max_length: int=None, null: bool=True, validators: list=[], 
                  download: bool=False, as_thumnail: bool=False, download_to: str=None):
         valid_extensions = ['jpeg', 'jpg', 'png']
@@ -359,7 +354,7 @@ class ImageField(URLField):
 
 
 class IntegerField(Field):
-    name = 'integer'
+    internal_name = 'integer'
     _dtype = int
 
     def __init__(self, default: Any=None, min_value: int=None, 
@@ -388,7 +383,7 @@ class IntegerField(Field):
 
 
 class DecimalField(IntegerField):
-    name = 'decimal'
+    internal_name = 'real'
     _dtype = float
     
 
@@ -425,7 +420,7 @@ class DateFieldsMixin:
 
 
 class DateField(DateFieldsMixin, Field):
-    name = 'date'
+    internal_name = 'char'
     
     # def _function_resolve(self, func):
     #     super()._function_resolve(func)
@@ -433,7 +428,7 @@ class DateField(DateFieldsMixin, Field):
 
 
 class AgeField(DateFieldsMixin, Field):
-    name = 'age'
+    internal_name = 'integer'
     _dtype = int
 
     def __init__(self, date_format: str=None, default: Any = None):
@@ -517,7 +512,7 @@ class MappingFieldMixin:
     
 
 class ListField(MappingFieldMixin, Field):
-    name = 'list'
+    internal_name = 'list'
     _dtype = list
 
     def __init__(self, default: Any=None, validators: list=[]):
@@ -525,7 +520,7 @@ class ListField(MappingFieldMixin, Field):
 
 
 class JsonField(MappingFieldMixin, Field):
-    name = 'json'
+    internal_name = 'json'
     _dtype = dict
 
     def __init__(self, default: Any=None, validators: list=[]):
@@ -533,7 +528,7 @@ class JsonField(MappingFieldMixin, Field):
 
 
 class CommaSeperatedField(Field):
-    name = 'comma_separated'
+    internal_name = 'text'
 
     def __init__(self, max_length: int = None):
         super().__init__(max_length=max_length)
@@ -563,7 +558,7 @@ class CommaSeperatedField(Field):
 
 
 class RegexField(Field):
-    name = 'regex'
+    internal_name = 'text'
 
     def __init__(self, pattern: str, group: int = 0, output_field: Field=None, **kwargs):
         self.pattern = re.compile(pattern)
@@ -593,7 +588,7 @@ class RegexField(Field):
 
 
 class BooleanField(Field):
-    name = 'boolean'
+    internal_name = 'boolean'
     _dtype = bool
     
     REP_TRUE = ['True', 'true', '1', 
