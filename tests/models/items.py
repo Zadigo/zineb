@@ -1,5 +1,6 @@
 from zineb.models.datastructure import Model
 from zineb.models import fields
+from zineb.models.choices import Choices
 
 
 def simple_validator(value):
@@ -54,3 +55,8 @@ class ExampleModel(Model):
 
 class ExampleModel2(Model):
     value = fields.CharField()
+
+
+class ExampleChoices(Choices):
+    NAME = 'Name'
+    SURNAME = 'Surname'
