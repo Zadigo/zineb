@@ -137,14 +137,14 @@ class ModelOptions(FieldMixin):
     def __repr__(self):
         return f"{self.__class__.__name__}(model={self.model_name})"
 
-    def __getattr__(self, name):
-        if name in self.field_names:
-            try:
-                return self.forward_field_map[name]
-            except:
-                raise ValueError('Forward relationship does not exist')
-        raise AttributeError(LazyFormat('{klass} object has no attribute {attr}', 
-        klass=self.__class__.__name__, attr=name))
+    # def __getattr__(self, name):
+    #     if name in self.field_names:
+    #         try:
+    #             return self.forward_field_map[name]
+    #         except:
+    #             raise ValueError('Forward relationship does not exist')
+    #     raise AttributeError(LazyFormat('{klass} object has no attribute {attr}', 
+    #     klass=self.__class__.__name__, attr=name))
 
     @property
     def is_template_model(self):
