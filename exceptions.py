@@ -8,7 +8,7 @@ class ValidationError(Exception):
 class FieldError(Exception):
     def __init__(self, field_name, available_fields):
         msg = (f"The field '{field_name}' is not present on your model. "
-        f"Available fields are: {', '.join(available_fields)}")
+        f"Available fields are: {', '.join(available_fields)}.")
         super().__init__(msg)
 
 
