@@ -167,7 +167,9 @@ class Field:
             self._meta_attributes['model'] = model
 
     def _true_value_or_default(self, value):
-        # ENHANCE:
+        # ENHANCE: Check against Empty is not a valid or useful
+        # type check anymore since we can check emptyness
+        # directly on the Value instance
         if value is None and self.default is not None:
             return self.default
         elif value == 'Empty' and self.default is not None:
