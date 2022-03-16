@@ -38,7 +38,9 @@ def validate_numeric(clean_value):
         raise ValidationError('Value is not numeric')
     return clean_value
 
-
+# TODO: The email validation pattern is quite limited,
+# we are no looking for something complexe but just one
+# that catch common mistakes in email addresses
 @regex_compiler(r'^\w+\W?\w+@\w+\W\w+$')
 def validate_email(email) -> str:
     if '@' not in email:
