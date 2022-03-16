@@ -319,7 +319,7 @@ class DataStructure(metaclass=Base):
         cached_values.append(value)
         self._cached_result.update(field_name, cached_values)
         
-    def _bind_to_value_field(self, field_name: str, data: Union[str, int, float, list, Any]):
+    def _bind_to_value_field(self, field_name: str, data: Union[str, int, float, list, dict, Any]):
         instance = Value(data)
         instance.field_name = field_name
         return instance

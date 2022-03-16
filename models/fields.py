@@ -41,10 +41,9 @@ class Empty:
 
 class Value:
     """
-    Interface that represents in Python the
-    raw value that comes from the internet. The
-    value is stripped from whitespace, the tags
-    a removed 
+    Interface that represents the raw value 
+    that comes from the internet. It is stripped 
+    from whitespace and the html tags are removed 
     """
     result = None
 
@@ -83,10 +82,14 @@ class Value:
 
             if not isinstance(value, (str, int, float, list, dict)):
                 message = LazyFormat('{value} should be a string, '
-                                     'an integer or a float.', value=value)
+                                     'an integer, a list, a dict or a float.', value=value)
                 raise ValueError(message)
             
-            
+            # NOTE: Technically all the values that come
+            # from the internet a strings. However the user
+            # might want to pass his value which is not
+            # necessarily a string and we need to be
+            # able to accept it without throwing and error
             if isinstance(value, str):
                 value = deep_clean(value)
 
