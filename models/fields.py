@@ -233,13 +233,14 @@ class Field:
             return self._simple_resolve(str(value))
             
         # This is a security check so that we only take
-        # values that have a known Python type get a pass.
+        # values that have a known Python type.
         # Technically, we should only get strings from 
         # the internet but exceptions can occur with 
         # true numbers, list or dict
-        if not isinstance(value, (str, int, float, list, dict)):
-            raise ValueError(LazyFormat('{value} should be a string, '
-            'an integer or a float.', value=value))
+        if value is not None:
+            if not isinstance(value, (str, int, float, list, dict)):
+                raise ValueError(LazyFormat("'{value}' should be a string, "
+                "an integer, a list, a dict or a float.", value=value))
         
         if isinstance(value, beautiful_soup_tag):
             try:
