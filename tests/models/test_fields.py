@@ -360,7 +360,7 @@ class TestRegexField(unittest.TestCase):
 class TestValueField(TestCase):
     def test_resolution(self):
         values_to_test = [' Kendall ', '<Kendall', '<div>Kendall</', 
-                  '<div>Kendall</div>', '>>Kendall']
+                            '<div>Kendall</div>', '>>Kendall']
         
         for value in values_to_test:
             with self.subTest(value=value):
