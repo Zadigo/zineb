@@ -265,15 +265,17 @@ Read more on `collect_files` [here](#-File-collection).
 
 # Models
 
-Models are a simple way to structure your scrapped data before saving them to a file.
+Models are a simple way to structure your scrapped data before saving them to a file. They are an interface to a container called `SmartDict` that actually does contain all the data that was scrapped during the process.
+
+Models implement a set of functionnalities such as adding new values to the `SmartDict` but also play as an intermediary between the fields [which purpose is to normalize incoming data] and the container that actually does store the transformed data.
 
 ## Creating a custom Model
 
-In order to create a model, subclass the Model object from `zineb.models.Model` and then add fields to it. For example:
+In order to create a model, subclass the Model object from `zineb.models.Model` and then add fields to it:
 
 ```python
-from zineb.models.datastructure import Model
 from zineb.models import fields
+from zineb.models.datastructure import Model
 
 class Player(Model):
     name = fields.CharField()
@@ -281,74 +283,47 @@ class Player(Model):
     height = fields.IntegerField()
 ```
 
-### Using the custom model
+On its own however, a model does nothing. In order to make it work, you have to add values to it and then resolve the fields [or data]. There are multiple ways to add values to a model.
 
-On its own, a model does nothing. In order to make it work, you have to add values to it and then resolve the fields.
+Adding a new value to the model generally requires two main parameters: _the name of the field to use and the incoming data to be added._
 
-#### Adding a free custom value
+### Adding a free custom value
 
-The first method consists of adding values through the `add_value` method. This method does not rely on the BeautifulSoup HTML page object which means that values can be added freely.
+The first one consists using the `add_value` method.
 
 ```python
 player.add_value('name', 'Kendall Jenner')
 ```
 
-#### Adding a value based on an expression
+### Adding a value based on an expression
 
 Addind expression based values requires a BeautifulSoup HTML page object. You can add one value at a time.
 
 ````python
-player.add_using_expression(''name', 'a', attrs={'class': 'title'})
+player.add_using_expression('name', 'a', attrs={'class': 'title'})
 ````
 
-#### Add case based values
+### Add case based values
 
-If you want to add a value to the model based on certain conditions, use `add_case` in combination wih an expression class.
+When you want to add a value to the model based on certain conditions, use `add_case` in combination wih a function class.
 
-For instance, suppose you are scrapping a fashion website and for certain prices, let's say 25 you want to replace them by 25.5.
+For instance, suppose you are scrapping a fashion website and for certain prices, let's say 25 you want to replace them by 25.5 you can do the following:
 
 ```python
 from zineb.models.expressions import When
 
-my_model.add_case(25, When('price__eq=25', 25.5))
+my_model.add_case(25, When(25, 25.5))
 ```
 
-#### Adding multiple values with expressions
+### Adding calculated values
 
-#### Adding calculated values
-
-If you wish to operate a calculation on a field before passing to your model, you can use expression classes in combination with the `add_calculated_value`.
+If you wish to operate a calculation on a field before passing the data to your model, you can use math function classes in combination with the `add_calculated_value`.
 
 ```python
 from zineb.models.expressions import Add
 
 my_model.add_calculatd_value('price', Add(25, 5))
 ```
-
-#### Adding related values
-
-In cases where you want to add a value to your model based on the last inserted value, this function serves exactly this purpose. Suppose you are retrieving date of births on a website and want to automatically derive the person's age based on that model field:
-
-```python
-class MyModel(Model):
-    date_of_birth = fields.DateField("%d-%M-%Y")
-    age = fields.AgeField("%Y-%M-%d")
-```
-
-Without the `add_related_value` this is what you would do:
-
-```python
-model.add_value("date_of_birth", value)
-model.add_value("age", value)
-```
-
-However, with the `add_related_value` you can automatically insert the age value in the model based on the returned value from the date of birth:
-
-```python
-model.add_related_value("date_of_birth", "age", value)
-```
-
-This will insert date of birth based on the DateField and then insert another on the AgeField.
 
 ## Meta options
 
@@ -379,7 +354,9 @@ Order your data in a specific way based on certain fields before saving your mod
 
 ## Fields
 
-Fields are a very simple way to passing HTML data to your model in a very structured way. Zineb comes with number of preset fields that you can use out of the box:
+Fields is the main entrypoint for passing a raw value from the internet to the underlying `SmartDict` container of your model. They guarantee cleanliness and consistency of all the values that are stored in your model.
+
+Zineb comes with number of preset fields that you can use out of the box:
 
 * CharField
 * TextField
@@ -391,16 +368,14 @@ Fields are a very simple way to passing HTML data to your model in a very struct
 * DecimalField
 * DateField
 * AgeField
-* FunctionField
 * CommaSeparatedField
 * ListField
 * BooleanField
+* Value
 
 ### How fields work
 
-Each fields comes with a  `resolve` function when called stores the resulting value within itself.
-
-By default, the resolve function will do the following things.
+Each fields comes with a `resolve` function and when called by the model stores the resulting value within itself. The resolve function will do the following things.
 
 First, it will run all cleaning functions on the original value for example by stripping tags like "<" or ">" which normalizes the value before additional processing.
 
@@ -487,23 +462,6 @@ The age field works likes the DateField but instead of returning the date, it wi
 * `date_format`: Indicates how to parse the incoming data value
 * `default`: Default value if None
 * `tz_info`: Timezone information
-
-### FunctionField
-
-The function field is a special field that you can use when you have a set of functions to run on the value before returning the final result. For example, let's say you have this value `Kendall J. Jenner` and you want to run a specific function that takes out the middle letter on every incoming values:
-
-```python
-def strip_middle_letter(value):
-    # Do something here
-    return value
-
-class MyModel(Model):
-    name = FunctionField(strip_middle_letter, output_field=CharField())
-```
-
-Every time the resolve function will be called on this field, the methods provided will be passed on the value sequentially. Each method should return the new value.
-
-An output field is not compulsory but if not provided, each value will be returned as a character.
 
 ### ListField
 
@@ -610,51 +568,82 @@ __NOTE:__ It is important to understand that the result of the regex compiler is
 
 #### Field resolution
 
-In order to get the complete structured data, you need to call `resolve_values` which will return a `pandas.DataFrame` object:
+In order to get the complete structured data, you need to call `resolve_fields` which will return the values as list stored into the `SmartDict` container.
 
 ```python
 player.add_value("name", "Kendall Jenner")
 player.resolve_values()
 
-# -> pandas.DataFrame
+# -> List
 ```
 
-Practically though, you'll be using the `save` method which also calls the `resolve_values` under the hood:
+Practically though, you'll be using the `save` method which then calls the `resolve_fields` under the hood:
 
 ```python
 player.save(commit=True, filename=None, **kwargs)
 
-# -> pandas.DataFrame or new file
+# -> List // New File
 ```
 
-By calling the save method, you'll be able to store the data directly to a JSON or CSV file.
+By calling the save method, you'll also be able to store the data directly to a JSON or CSV file.
 
-## Expressions
+## Functions
 
-Expressions a built-in functions that can modify the incoming value in some kind of way before storing to your model.
+Functions a built-in elements that can modify the incoming value in some kind of way before sending it to the `SmartDict` container through your model.
 
-### Math
+### Add, Substract, Divide, Multiply
 
-Run a calculation such as addition, substraction, division or multiplication on the value.
+Allows you to run a on an incoming value.
 
 ```python
-from zineb.models.expressions import Add
+from zineb.models.functions import Add, Substract, Divide, Multiply
 
 player.add_calculated_field('height', Add(175, 5))
+player.add_calculated_field('height', Substract(175, 5))
+player.add_calculated_field('height', Divide(175, 1))
+player.add_calculated_field('height', Multiply(175, 1))
 
 # -> {'height': [180]}
+# -> {'height': [170]}
+# -> {'height': [175]}
+# -> {'height': [175]}
 ```
 
-### ExtractYear, ExtractDate, ExtractDay
+### ExtractYear, ExtractMonth, ExtractDay
 
 From a date string, extract the year, the date or the day.
 
 ```python
-from zineb.models.expressions import ExtractYear
+from zineb.models.functions import ExtractYear
 
 player.add_value('competition_year', ExtractYear('11-1-2021'))
+player.add_value('competition_month', ExtractMonth('11-1-2021'))
+player.add_value('competition_day', ExtractDay('11-1-2021'))
 
 # -> {'competition_year': [2021]}
+# -> {'competition_month': [11]}
+# -> {'competition_day': [1]}
+```
+
+### When
+
+Allows you to conditionally implement a value in the model if it respects a set of conditions.
+
+```python
+from zineb.models.functions import When
+
+player.add_value('age', When(21, 25, else_condition=21))
+```
+
+### Smallest, Greatestt
+
+From a set of incoming data, pick the smallest or the greatest one. This requires that all the incoming values be of the same type.
+
+```python
+from zineb.models.functions import Smallest, Greatest
+
+player.add_value('name', Smallest('Kendall', 'Kylie', 'Hailey'))
+player.add_value('revenue', Greatest(12000, 5000, 156000))
 ```
 
 # Extractors
@@ -765,11 +754,11 @@ Zineb uses a special built-in HTTPRequest class which wraps the following for be
 * The `requests.Request` response class
 * The `bs4.BeautifulSoup` object
 
-In general, you will not need to interact with this class that much because it's just an interface for implement additional functionnalities especially to the Request class.
+In general, you will not need to interact with this class because it's just an interface for implementing additional functionnalities the base Request class from the requests module.
 
-* `follow`: create a new instance of the class whose resposne will be the one of a new url
-* `follow_all`: create new instances of the class who responses will tbe the ones of the new urls
-* `urljoin`: join a path the domain
+* `follow`: create a new instance of the class whose response will be one created from the url tha was followed
+* `follow_all`: create new instances of the class who responses will be ones created from the urls tha were followed
+* `urljoin`: join a domain to a given path
 
 # HTMLResponse
 
@@ -779,36 +768,6 @@ It wraps the BeautifulSoup object in order to implement some small additional fu
 * `links`: return all the links of the page
 * `images`: return all the images of the page
 * `tables`: return all the tables of the page
-
-# Signals
-
-Signals are a very simple yet efficient way for you to run functions during the lifecycle of your project when certain events occur at very specific moments.
-
-Internally signals are sent on the following events:
-
-* When the registry is populated
-* Before the spider starts
-* After the spider has started
-* Before an HTTP request is sent
-* Before and HTTP request is sent
-* Before the model downloads anything
-* After the model has downloaded something
-
-## Creating a custom signal
-
-To create custom signal, you need to mark a method as being a receiver for any incoming signals. For example, if you want to create a signal to intercept one of the events above, you should do:
-
-```python
-from zineb.signals import receiver
-
-@receiver(tag="Signal Name")
-def my_custom_signal(sender, **kwargs):
-    pass
-```
-
-The signals function has to be able to accept a `sender` object and additional parameters such as the current url or the current HTML page.
-
-You custom signals do not have to return anything.
 
 # Utilities
 
@@ -833,15 +792,15 @@ Collect files within a specific directory using `collect_files`. Collect files a
 
 # Settings
 
-This section will talk about all the available settings that are available for your project and how to use them for web scrapping.
+This section will talk about all the available settings for your project and how they should be used.
 
-**PROJECT_PATH**
+## PROJECT_PATH
 
-Represents the current path for your project. This setting is not be changed.
+Represents the current path for your project. This setting is not to be changed.
 
-**SPIDERS**
+## SPIDERS
 
-In order for your spider to be executed, every created spider should be registered here. The name of the class should serve as the name of the spider to be used.
+In order for your spiders to be executed, they should be registered here. The name of the spider class serves as the name of the spider to be run.
 
 ```python
 SPIDERS = [
@@ -849,7 +808,7 @@ SPIDERS = [
 ]
 ```
 
-**DOMAINS**
+## DOMAINS
 
 You can restrict your project to use only to a specific set of domains by ensuring that no request is sent if it matches one of the domains within this list.
 
@@ -859,41 +818,21 @@ DOMAINS = [
 ]
 ```
 
-**ENSURE_HTTPS**
+## ENSURE_HTTPS
 
 Enforce that every link in your project is a secured HTTPS link. This setting is set to False by default.
 
-**MIDDLEWARES**
-
-Middlewares are functions/classes that are executed when a signal is sent from any part of the project. Middlewares implement extra functionnalities without affecting the core parts of the project. They can then be disabled safely if you do not need them.
-
-```python
-MIDDLEWARES = [
-    "zineb.middlewares.handlers.Handler",
-    "myproject.middlewares.MyMiddleware"
-]
-```
-
-The main Zineb middlewares are the following:
-
-* zineb.middlewares.referer.Referer
-* zineb.middlewares.handlers.Handler
-* zineb.middlewares.automation.Automation
-* zineb.middlewares.history.History
-* zineb.middlewares.statistics.GeneralStatistics
-* zineb.middlewares.wireframe.WireFrame
-
-**USER_AGENTS**
+## USER_AGENTS
 
 A user agent is a characteristic string that lets servers and network peers identify the application, operating system, vendor, and/or version of the requesting [MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent).
 
 Implement additional sets of user agents to your projects in addition to those that were already created.
 
-**RANDOMIZE_USER_AGENTS**
+## RANDOMIZE_USER_AGENTS
 
 Specifies whether to use one user agent for every request or to randomize user agents on every request. This setting is set to to False by default.
 
-**DEFAULT_REQUEST_HEADERS**
+## DEFAULT_REQUEST_HEADERS
 
 Specify additional default headers to use for each requests.
 
@@ -901,11 +840,13 @@ The default initial headers are:
 
 * `Accept-Language` - en
 * `Accept` - text/html,application/json,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
-* Referrer - None
+* `Referrer` - None
 
-**PROXIES**
+## PROXIES
 
-Use a set of proxies for each request. When a request in sent, a random proxy is selected and implemented with the request.
+Allows every request to be sent via a proxy. A random proxy is selected and implemented within each request.
+
+`PROXIES` accepts a list of tuples implemeting a loc e.g. http, https and the IP address to bee used.
 
 ```python
 PROXIES = [
@@ -914,16 +855,18 @@ PROXIES = [
 ]
 ```
 
-**RETRY**
+## RETRY
 
 Specifies the retry policy. This is set to False by default. In other words, the request silently fails and never retries.
 
-**RETRY_TIMES**
+## RETRY_TIMES
 
 Specificies the amount of times the the request is sent before eventually failing.
 
-**RETRY_HTTP_CODES**
+## RETRY_HTTP_CODES
 
 Indicates which status codes should trigger a retry. By default, the following codes: 500, 502, 503, 504, 522, 524, 408 and 429 will trigger it.
 
-**TIME_ZONE**
+## TIME_ZONE
+
+Indicates which timezone to use when manipulating dates and times in the application. The default is `America/Chicago`.
