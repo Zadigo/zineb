@@ -1,16 +1,12 @@
 import datetime
 from typing import Any, Union
 
-from zineb.settings import lazy_settings
-from zineb.utils.conversion import string_to_number
-
-import math
-from typing import Any, Callable, Union
-
 from zineb.exceptions import ModelNotImplementedError
 from zineb.models.fields import Value
+from zineb.settings import lazy_settings
 from zineb.utils.conversion import string_to_number
 from zineb.utils.formatting import LazyFormat
+
 
 class FunctionsMixin:
     _cached_data = None
@@ -39,6 +35,9 @@ class Math(FunctionsMixin):
     SUBSTRACT = '-'
     DIVIDE = '/'
     MULTIPLY = '*'
+    
+    error_message = ('You are trying to use a math function on two values '
+    'of different types. Got: {value1} with {value2}')
 
     def __init__(self, by: Union[int, float]):
         self.by = by
@@ -57,7 +56,11 @@ class Math(FunctionsMixin):
         else:
             result = f"{self._cached_data} {self.by}"
 
-        return f"{class_name}(< {result} >)"
+        return f"{class_name}(<{result}>)"
+    
+    def raise_error(self, source_field):
+        message = LazyFormat(self.error_message, value1=type(source_field._cached_result), value2=type(self.by))
+        raise TypeError(message)
 
     def resolve(self):
         """Gets the source field, resolves the
@@ -79,7 +82,10 @@ class Substract(Math):
     """
     def resolve(self):
         source_field = super().resolve()
-        self._cached_data = source_field._cached_result - self.by
+        try:
+            self._cached_data = source_field._cached_result - self.by
+        except:
+            self.raise_error(source_field)
 
 
 class Add(Math):
@@ -88,7 +94,16 @@ class Add(Math):
     """
     def resolve(self):
         source_field = super().resolve()
-        self._cached_data = source_field._cached_result + self.by
+        
+        # Allow the user to add even if the resolved data
+        # is a string
+        if isinstance(source_field._cached_result, str):
+            self._cached_data = source_field._cached_result + str(self.by)
+        else:
+            try:
+                self._cached_data = source_field._cached_result + self.by
+            except:
+                self.raise_error(source_field)
 
 
 class Multiply(Math):
@@ -98,7 +113,10 @@ class Multiply(Math):
 
     def resolve(self):
         source_field = super().resolve()
-        self._cached_data = source_field._cached_result * self.by
+        try:
+            self._cached_data = source_field._cached_result * self.by
+        except:
+            self.raise_error(source_field)
 
 
 class Divide(Math):
@@ -108,7 +126,10 @@ class Divide(Math):
 
     def resolve(self):
         source_field = super().resolve()
-        self._cached_data = source_field._cached_result / self.by
+        try:
+            self._cached_data = source_field._cached_result / self.by
+        except:
+            self.raise_error(source_field)
 
         
 # class Mean(StatisticsMixin):
