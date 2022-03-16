@@ -40,6 +40,21 @@ class TestMathOperations(unittest.TestCase):
         instance.field_name = 'age'
         instance.resolve()
         self.assertEqual(instance._cached_data, 15)
+        
+    def test_can_add_values_of_two_different_types(self):
+        # Even though the value is a string result
+        # of the model field, ensure that we can
+        # still add it to a number for example
+        instance = functions.Add(5)
+        instance.model = items.SimpleModel()
+        instance.field_name = 'name'
+        
+        values_to_test = ['30', 'Kendall', 5]
+        for value in values_to_test:
+            with self.subTest(value=value):
+                instance._cached_data = value
+                instance.resolve()
+                self.assertIn(instance._cached_data, ['305', 'Kendall5', '55'])
 
     # def test_can_add_calculated_value(self):
     #     self.model.add_value('age', functions.Add(25, 5))
