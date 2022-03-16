@@ -11,7 +11,7 @@ def read_files(filename):
     try:
         with open(path.join(ROOT, filename), 'rb', encoding='utf-8') as f:
             data = f.read()
-            return data.strip()
+            return data
     except:
         pass
 
