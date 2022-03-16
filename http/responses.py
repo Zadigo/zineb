@@ -128,8 +128,9 @@ class HTMLResponse(BaseResponse):
     @staticmethod
     def _writer(content):
         name = f"{random_string(length=5)}.html"
-        # TODO:
-        # result = signal.send('Storage', self, filename=name)
+        # TODO: Send a signal once the content of
+        # the response was written to a file
+
         with open(name, mode='w', encoding='utf-8') as f:
             f.write(content)
 

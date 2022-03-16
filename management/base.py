@@ -64,12 +64,6 @@ class BaseCommand:
         }
         settings(_project_meta=attrs, **extra_settings)
 
-        # Update the settings with a REGISTRY
-        # that will contain the fully loaded 
-        # spiders which is the Registry class 
-        # itself
-        setattr(settings, 'REGISTRY', None)
-
         project_path = getattr(settings, 'PROJECT_PATH')
         zineb_path = getattr(settings, 'GLOBAL_ZINEB_PATH')
 

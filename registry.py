@@ -111,7 +111,7 @@ class Registry:
         try:
             return self.spiders[spider_name]
         except KeyError:
-            self.local_logger.error((f"The spider with the name '{spider_name}' does not "
+            self.local_logger.logger.error((f"The spider with the name '{spider_name}' does not "
             f"exist in the registry. Available spiders are {', '.join(self.spiders.keys())}. "
             f"If you forgot to register {spider_name}, check your settings file."), stack_info=True)
             raise SpiderExistsError(spider_name)
@@ -143,8 +143,9 @@ class Registry:
         # middlewares = Middleware(settings=settings)
         # middlewares._load
 
-        # TODO:
-        # signal.send(dispatcher.Any, self, spiders=self)
+        # TODO: Send a signal when the spider
+        # registry has been populated
+
         self.is_ready = True
 
     def run_all_spiders(self):

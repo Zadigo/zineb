@@ -3,7 +3,7 @@ from functools import cached_property
 from importlib import import_module
 
 from zineb.logger import global_logger
-from zineb.settings import lazy_settings
+from zineb.settings import settings
 
 
 class Middleware:
@@ -41,7 +41,7 @@ class Middleware:
                     except Exception as e:
                         raise TypeError(f"{obj} was not loaded. {e.args[0]}")
                     self.loaded_middlewares.setdefault(key, obj_instance)
-                    global_logger.info(f"Loaded middleware: {middleware}")
+                    global_logger.logger.info(f"Loaded middleware: {middleware}")
 
                     # signals.connect(obj, sender=self)
 

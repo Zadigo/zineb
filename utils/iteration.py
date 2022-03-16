@@ -152,8 +152,8 @@ class RequestQueue:
 
     def __init__(self, *urls, **request_params):
         from zineb.http.request import HTTPRequest
-        from zineb.settings import lazy_settings
-        self._zineb_settings = lazy_settings
+        from zineb.settings import settings
+        self._zineb_settings = settings
         
         self.url_strings = list(urls)
 

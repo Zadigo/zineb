@@ -129,4 +129,8 @@ def execute_command_inline(argv):
         argv (list): [file, command, ...]
     """
     utility = Utility()
-    utility.call_command(argv)
+    try:
+        utility.call_command(argv)
+    except KeyboardInterrupt:
+        from zineb.logger import global_logger
+        global_logger.logger.info('Zineb was stopped')

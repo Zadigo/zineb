@@ -92,6 +92,9 @@ class Settings:
             )
             log_file_path = os.path.join(project_path, LOG_FILE_NAME)
             setattr(self, 'LOG_FILE_NAME', log_file_path)
+            
+        # TODO: Send a signal when the Settings
+        # class has been modified
 
     def __call__(self, **kwargs):
         self.__init__()
@@ -99,8 +102,10 @@ class Settings:
         # Alert all middlewares and registered
         # signals on Any that the settings
         # have changed
-        # TODO:
-        # signal.send(dispatcher.Any, self)
+        
+        # TODO: Send a signal when the settings
+        # dict has changed
+
         return self.__dict__
 
     def __repr__(self):
@@ -146,4 +151,11 @@ class LazySettings(LazyObject):
     def _init_object(self):
         self.cached_object = Settings()
 
+
+# FIXME: When I tried to access the MEDIA_FOLDER
+# attribute on the lazy_settings instance, it
+# returned None while being correctly set on 
+#  settings instance above. There seems to be
+# an issue in how the items are set on the
+# lazy_settings instance
 lazy_settings = LazySettings() 

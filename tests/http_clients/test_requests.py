@@ -25,21 +25,11 @@ class TeestBaseRequest(unittest.TestCase):
         
         self.assertIsNotNone(request.html_response)
         self.assertIsInstance(request._http_response, Response)
-        
-    def test_url_prechecking(self):
-        request = HTTPRequest('http://example.com')
-        result = request._precheck_url('http://example.com')
-        self.assertEqual(result, 'http://example.com')
     
-    def test_failed_url_prechecking(self):
-        for url in BAD_URLS:
-            request = HTTPRequest(url)
-            result = request._precheck_url(url)
-            with self.subTest(url=url):
-                self.assertFalse(result)
-
     def test_domain_restriction(self):
-        pass
+        request = HTTPRequest('http://example.com')
+        request.only_secured_requests = True
+        request._send()
 
     def test_secured_requests(self):
         pass
