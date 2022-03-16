@@ -38,16 +38,19 @@
 
 from zineb.models import fields
 from zineb.models.datastructure import Model
-from zineb.models.functions import When, Add
+from zineb.models.functions import Add, Substract, Multiply, Divide
 
 
 class MyModel(Model):
-    name = fields.IntegerField()
+    name = fields.CharField()
+    age = fields.IntegerField()
+    other = fields.ListField()
             
 
 m = MyModel()
 # m.add_value('name', ExtractDay('25-1-2021'))
 # m.add_value('name', 'Kendall   <a>Jenner</a>')
 # m.add_case('Kendal', When('name__eq=Kendal', 'Kendall'))
-m.add_calculated_value('name', 15, Add(1))
+# m.add_value('name', '   Kendall    Jenner')
+m.add_calculated_value('name', 15, Divide(1))
 print(m)
