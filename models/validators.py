@@ -1,10 +1,10 @@
 import re
 from typing import Any, Callable, Tuple, Union
 
-from w3lib.url import is_url
 from zineb.exceptions import ValidationError
 from zineb.utils.conversion import convert_if_number
 from zineb.utils.formatting import LazyFormat
+from zineb.utils.urls import is_url
 
 
 class RegexValidator:
