@@ -151,4 +151,11 @@ class LazySettings(LazyObject):
     def _init_object(self):
         self.cached_object = Settings()
 
+
+# FIXME: When I tried to access the MEDIA_FOLDER
+# attribute on the lazy_settings instance, it
+# returned None while being correctly set on 
+#  settings instance above. There seems to be
+# an issue in how the items are set on the
+# lazy_settings instance
 lazy_settings = LazySettings() 

@@ -1,7 +1,7 @@
 import datetime
 from typing import Any, Union
 
-from zineb.settings import lazy_settings
+from zineb.settings import settings
 from zineb.utils.conversion import string_to_number
 
 import math
@@ -253,7 +253,7 @@ class DateExtractorMixin:
         
         self.date_parser = datetime.datetime.strptime
         
-        formats = set(getattr(lazy_settings, 'DEFAULT_DATE_FORMATS'))
+        formats = set(getattr(settings, 'DEFAULT_DATE_FORMATS'))
         formats.add(date_format)
         self.date_formats = formats
         

@@ -6,7 +6,7 @@ from collections import defaultdict
 from typing import Any
 
 from zineb.models.fields import Empty
-from zineb.settings import lazy_settings
+from zineb.settings import settings
 from zineb.utils.formatting import LazyFormat, remap_to_dict
 
 # class Query:
@@ -191,7 +191,7 @@ class SmartDict:
             try:
                 # If the MEDIA_FOLDER setting is None still allow
                 # saving the file in the local directory
-                path = os.path.join(lazy_settings.MEDIA_FOLDER, f'{filename}')
+                path = os.path.join(settings.MEDIA_FOLDER, f'{filename}')
             except:
                 path = filename
 
