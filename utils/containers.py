@@ -97,7 +97,9 @@ class SmartDict:
         if len(missing_fields) > 0:
             raise ValueError(LazyFormat('{fields} are missing in the incoming data', fields=','.join(missing_fields)))
         
-        self.values = values
+        # TODO: When rolling back, we should rollback to
+        #  a defaultdict just in case
+        self.values = defaultdict(list, values)
 
     def get_container(self, name: str):
         return self.values[name]
@@ -225,6 +227,9 @@ class SmartDict:
         else:
             data = json.loads(json.dumps(self.as_list()))
             return json.dumps(data, sort_keys=True)
+        
+    def copy_values(self):
+        return dict(copy.deepcopy(self.values))
 
     # def run_query(self, expressions):
     #     return Query([])

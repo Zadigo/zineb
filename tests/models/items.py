@@ -6,6 +6,10 @@ def simple_validator(value):
     return value
 
 
+class QuickModel(Model):
+    name = fields.CharField()
+
+
 class BareModel(Model):
     age = fields.IntegerField()
 

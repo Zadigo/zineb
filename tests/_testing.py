@@ -37,20 +37,16 @@
 # print(s.save(extension='csv'))
 
 
-from zineb.models.transactions import transaction, atomic
+from zineb.models.transactions import transaction
 from zineb.tests.models import items
 from zineb.models.datastructure import Model
 
-# with transaction(items.SimpleModel()) as t:
-#     t.model.add_value('name', 'Kendall')
-#     s1 = t.savepoint()
-#     t.rollback()
+model = items.QuickModel()
+t1 = transaction(model)
 
-# class Google:
-#     @atomic(items.SimpleModel)
-#     def start(self, response, request, transaction, **kwargs):
-#         print(transaction)
+model.add_value('name', 'Kendall')
+s1 = t1.savepoint()
 
+t1.rollback()
 
-# g = Google()
-# g.start(request='a', response='b')
+print(model)

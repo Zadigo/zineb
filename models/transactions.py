@@ -1,5 +1,6 @@
 from collections import defaultdict
-from typing import Callable
+from functools import wraps
+from typing import Callable, Type
 
 from zineb.utils.characters import create_random_string
 from zineb.utils.formatting import LazyFormat
@@ -52,12 +53,12 @@ class Transaction:
         return False
         
     @property
-    def _initial_savepoint(self):
+    def initial_savepoint(self):
         keys = list(self.savepoints.keys())
         return keys[-0]
     
     @property
-    def _last_savepoint(self):
+    def last_savepoint(self):
         keys = list(self.savepoints.keys())
         return keys[-1]
     
@@ -73,8 +74,11 @@ class Transaction:
         return savepoint_name
     
     def rollback(self, savepoint: str=None):
+        """Rollback to a specific savepoint. If no savepoint
+        is provided, rolls back to the first initially
+        created one"""
         if savepoint is None:
-            data_to_use = self.savepoints[self._initial_savepoint]
+            data_to_use = self.savepoints[self.initial_savepoint]
         else:
             data_to_use = self.savepoints[savepoint]
         self.model._cached_result._rollback_data_to(data_to_use)
@@ -82,7 +86,7 @@ class Transaction:
     def rollback_on_error(self):
         """Rollback container on the first initial
         savepoint on a saving error"""
-        return self.rollback(savepoint=self._initial_savepoint)
+        return self.rollback(savepoint=self.initial_savepoint)
     
     def delete(self, savepoint: str):
         del self.savepoints[savepoint]
@@ -93,7 +97,7 @@ def transaction(model: Callable):
     to a Transaction class"""
     existing_transaction = list(keep_while(lambda m: model in m, transactions_registry))
     if existing_transaction:
-        _, instance = existing_transaction
+        instance = existing_transaction[-1]
     else:
         instance = Transaction(model=model)        
         transactions_registry.new(model, instance)
@@ -114,9 +118,13 @@ def atomic(model):
                 transaction.model.add_value('name', 'Kendall')
                 transaction.savepoint()
     """
-    def wrapper(func):        
+    def wrapper(func):
+        @wraps(func) 
         def start(self, response=None, request=None, transaction=None, **kwargs):
-            transaction = Transaction(model=model())
+            try:
+                transaction = Transaction(model=model())
+            except TypeError:
+                raise TypeError('The model should be a type and not an instance.')
             return func(self, response=response, request=request, transaction=transaction, **kwargs)
         return start
     return wrapper
