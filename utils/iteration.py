@@ -159,7 +159,8 @@ class RequestQueue:
 
         for i, url in enumerate(self.url_strings):
             self.request_queue[url] = HTTPRequest(
-                url, counter=i, **request_params)
+                url, counter=i, **request_params
+            )
 
         self.retry_policies = {
             'retry': self._zineb_settings.get('RETRY', False),
