@@ -1,6 +1,6 @@
 import re
 from collections import OrderedDict
-from typing import Union
+from typing import List, Union
 from urllib import parse
 
 import requests
@@ -253,7 +253,7 @@ class HTTPRequest(BaseRequest):
         return instance.html_response
 
     @classmethod
-    def follow_all(cls, urls: Union[str, Link]):
+    def follow_all(cls, urls: List[Union[str, Link]]):
         for url in urls:
             yield cls.follow(url)
 
