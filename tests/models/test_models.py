@@ -14,18 +14,14 @@ class TestModelBaseFunctionnalities(unittest.TestCase):
     def setUp(self):
         self.model = SimpleModel()
 
-    # TODO: Raises concatenate error
-    # def test_can_add_value_without_resolution(self):
-    #     self.model._add_without_field_resolution('name', 'Kendall')
-    #     self.assertDictEqual(self.model._cached_result.as_values(), {'name': ['Kendall']})
-
     def test_can_add_value(self):
-        self.model.add_value('age', '1-1-2002')
-        self.assertDictEqual(self.model._cached_result.as_values(), {'age': [19], 'date_of_birth': [None], 'name': [None]})
+        self.model.add_value('date_of_birth', '1-1-2002')
+        self.assertDictEqual(self.model._cached_result.as_values(), {'age': [None], 'date_of_birth': ['2002-01-01'], 'name': [None]})
 
     def test_model_in_iteration(self):
         for i in range(1, 4):
             self.model.add_value('name', f'Kendall{i}')
+            
         expected = {
             'age': [None, None, None], 
             'date_of_birth': [None, None, None], 
@@ -60,13 +56,13 @@ class TestModelBaseFunctionnalities(unittest.TestCase):
 
     @unittest.expectedFailure
     def test_field_does_not_exist(self):
-        self.model.add_value('no_field', None)
+        self.model.add_value('FIELD_DOES_NOT_EXIST', None)
 
     def test_row_balancing(self):
         # Even when we add values to one of the x
         # other fields, we should get a balanced row
-        self.model.add_value('age', '1-1-2002')
-        self.assertListEqual(self.model.resolve_fields(), [{'age': 19, 'date_of_birth': None, 'name': None}])
+        self.model.add_value('date_of_birth', '1-1-2002')
+        self.assertListEqual(self.model.resolve_fields(), [{'age': None, 'date_of_birth': '2002-01-01', 'name': None}])
 
     def test_fields_descriptor(self):
         # Access the registered fields on the model
@@ -77,8 +73,8 @@ class TestModelBaseFunctionnalities(unittest.TestCase):
 
     def test_can_get_field(self):
         self.assertIsInstance(self.model._get_field_by_name('name'), fields.CharField)
-        self.assertIsInstance(self.model._meta.get_field('name'), fields.CharField)
-        self.assertIsInstance(self.model._meta.cached_fields['name'], fields.CharField)
+        self.assertIsInstance(self.model._meta.get_field('date_of_birth'), fields.DateField)
+        self.assertIsInstance(self.model._meta.cached_fields['age'], fields.AgeField)
 
 
 class TestModelWithValidators(unittest.TestCase):
@@ -88,14 +84,6 @@ class TestModelWithValidators(unittest.TestCase):
     def test_field_with_validation(self):
         self.model.add_value('height', 156)
         self.assertDictEqual(self.model._cached_result.as_values(), {'height': [156]})
-
-
-# class TestModelMeta(unittest.TestCase):
-#     def setUp(self):
-#         self.model = ModelWithMeta()
-
-#     def test_meta(self):
-#         self.assertIsInstance(model._meta, ModelOptions)
 
 
 class TestModelRegistery(unittest.TestCase):
@@ -158,6 +146,13 @@ class TestModelForCalculation(unittest.TestCase):
     def test_with_when(self):
         self.model.add_case(21, When('age__gt=20', 18))
         self.assertDictEqual(self.model._cached_result.as_values(), {'age': [18]})
+        
+    def test_using_function_with_add_value(self):
+        # Using a function that require calculation
+        # with a method other than add_calculated_value 
+        # should not be tolerated
+        self.assertRaises(ValueError, self.model.add_value, name='age', value=Add(3))
+        
 
 
 class TestWithDateFunctions(unittest.TestCase):

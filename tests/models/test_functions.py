@@ -39,7 +39,7 @@ class TestMathOperations(unittest.TestCase):
         instance.model = self.model
         instance.field_name = 'age'
         instance.resolve()
-        self.assertEqual(instance._cached_data, 15)
+        self.assertEqual(instance._cached_data, 15)    
 
     # def test_can_add_calculated_value(self):
     #     self.model.add_value('age', functions.Add(25, 5))

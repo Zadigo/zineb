@@ -1,9 +1,14 @@
+import asyncio
 import unittest
+from collections import namedtuple
+from http.client import InvalidURL
 from typing import Generator
+from urllib.parse import ParseResult
 
 import requests
 from bs4 import BeautifulSoup
 from requests.models import Response
+from zineb.exceptions import ResponseFailedError
 from zineb.http.headers import ResponseHeaders
 from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse
@@ -12,6 +17,20 @@ from zineb.tests.http_clients.items import BAD_URLS, create_simple_request
 
 
 class TeestBaseRequest(unittest.TestCase):
+    def test_request_class(self):
+        request = HTTPRequest
+        self.assertFalse(request.can_be_sent)
+        self.assertListEqual(request.http_methods, ['GET', 'POST'])
+        
+    def test_request_instance(self):
+        request = HTTPRequest('http://example.com')
+        # A request is considered safe
+        # to be sent as is
+        self.assertTrue(request.can_be_sent)
+        self.assertIsNone(request._http_response)
+        self.assertIsNone(request.html_response)
+        self.assertIsInstance(request._url_meta, ParseResult)
+        
     def test_global_http_api(self):
         request = create_simple_request(send=True)
 
@@ -34,41 +53,56 @@ class TeestBaseRequest(unittest.TestCase):
     def test_secured_requests(self):
         pass
 
-#     def test_link_following(self):
-#         response = _request.follow(_request.html_response.links[0])
-#         self.assertIsInstance(response, HTMLResponse)
+    def test_link_following(self):       
+        request = HTTPRequest('http://example.com')
+        response = request.follow('http://example.com')
         
-#         self.assertEqual(response.cached_response.url, 'http://www.iana.org/domains/reserved')
-#         self.assertEqual(response.page_title, 'IANA — IANA-managed Reserved Domains')
+        self.assertIsInstance(response, HTMLResponse)
+        self.assertEqual(response.cached_response.url, 'http://example.com/')
+        self.assertEqual(response.page_title, 'Example Domain')
+                
+        # async def new_request():
+        #     request = HTTPRequest('http://example.com')
+        #     return request.follow('http://example.com')
+        
+        # async def send():
+        #     response = await new_request()
+        #     return response
+        
+        # result = asyncio.run(send())
+        # print(result)
+        
+    def test_multiple_link_following(self):
+        request = HTTPRequest('http://example.com')
+        responses = request.follow_all(['http://example.com'])
+        
+        # Resolution of the the follow_all is deferred
+        # until the user iterates over the generator
+        self.assertIsInstance(responses, Generator)
+        # self.assertEqual(response.cached_response.url, 'http://example.com/')
+        # self.assertEqual(response.page_title, 'Example Domain')
 
+        # tag = _request.html_response.html_page.find('a')
+        # links = [Link(tag), Link(tag)]
+        # responses = _request.follow_all(links)
+        # self.assertIsInstance(responses, Generator)
+        # self.assertEqual(len(list(responses)), 2)
 
-#     def test_multiple_link_following(self):
-#         tag = _request.html_response.html_page.find('a')
-#         links = [Link(tag), Link(tag)]
-#         responses = _request.follow_all(links)
-#         self.assertIsInstance(responses, Generator)
-#         self.assertEqual(len(list(responses)), 2)
+    def test_headers(self):
+        request = HTTPRequest('http://example.com')
+        request._send()
+        self.assertIsInstance(request.html_response.headers, ResponseHeaders)
+        self.assertEqual(request.html_response.headers.get('x-cache'), 'HIT')
+        
+    def test_bad_urls(self):
+        # FIXME: Test bad urls on the request
+        for url in BAD_URLS:
+            with self.subTest(url=url):
+                request = HTTPRequest(url)
+                with self.assertRaises(Exception):
+                    request._send()
+                self.assertFalse(request.can_be_sent)
 
-#     def test_headers(self):
-#         self.assertIsInstance(_request.html_response.headers, ResponseHeaders)
-
-
-# class TestHTTPRequest(unittest.TestCase):
-#     def test_cached_response(self):
-#         self.assertIsInstance(_request.html_response.cached_response, Response)
-
-#     def test_html_response(self):
-#         self.assertIsInstance(_request.html_response, HTMLResponse)
-#         self.assertIsInstance(_request.html_response.html_page, BeautifulSoup)
-
-#     def test_count_links_on_page(self):
-#         self.assertEqual(len(_request.html_response.links), 1)
-
-#     def test_count_images_on_page(self):
-#         self.assertEqual(len(_request.html_response.images), 0)
-
-#     def test_url_join(self):
-#         self.assertEqual(_request.html_response.urljoin('kendall'), 'http://example.com/kendall')
 
 if __name__ == '__main__':
     unittest.main()
