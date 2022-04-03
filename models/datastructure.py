@@ -386,8 +386,8 @@ class DataStructure(metaclass=Base):
         # the isinstance check on this fails therefore
         # trying to add a None string function item
         # to the model
-        instances = (ExtractDay, ExtractMonth, ExtractYear, 
-                     Add, Substract, Divide, Multiply)
+        instances = (ExtractDay, ExtractMonth, ExtractYear)
+        
         if isinstance(value, instances):
             value.model = self
             value.field_name = name
@@ -475,7 +475,6 @@ class Model(DataStructure):
         run on the DataFrame here before calling the save
         function on your model
         """
-        self._cached_dataframe = dataframe
         
     def save(self, commit: bool=True, filename: str=None, **kwargs):
         """
