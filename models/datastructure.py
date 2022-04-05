@@ -1,7 +1,7 @@
 import bisect
 import os
 import secrets
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict, defaultdict, namedtuple
 from functools import cached_property
 
 from zineb.exceptions import FieldError, ModelExistsError
@@ -13,7 +13,7 @@ from zineb.utils.containers import SmartDict
 from zineb.utils.formatting import LazyFormat
 
 DEFAULT_META_OPTIONS = {
-    'ordering', 'label', 'verbose_name'
+    'constraints', 'ordering', 'verbose_name'
 }
 
 class ModelRegistry:
@@ -62,11 +62,22 @@ class ModelOptions:
         self.verbose_name = model_name.title()
         self.field_names = []
         self.fields_map = OrderedDict()
-        
         self.parents = set()
+        self.ordering = []
+        self.constraints = []
         
     def __repr__(self):
         return f'<{self.__class__.__name__} for {self.verbose_name}>'
+    
+    def _check_ordering_fields(self):
+        for name in self.ordering:
+            if name not in self.field_names:
+                raise FieldError(name, self.field_names)
+            
+    def _checks(self):
+        return [
+            self._check_ordering_fields
+        ]
         
     def add_field(self, name, field):
         if name in self.fields_map:
@@ -86,58 +97,49 @@ class ModelOptions:
             self.parents[parent] = field
         
     def add_meta_options(self, options):
-        pass
-    
+        for name, value in options:
+            if name not in DEFAULT_META_OPTIONS:
+                raise ValueError(LazyFormat("Meta for model '{name}' received "
+                "and illegal option '{option}'", name=self.verbose_name, option=name))
+            setattr(self, name, value)
+            
+        # TODO: Alter the check so that if the field
+        # starts with a - on the ordering, that it
+        # does not create an error
+        # for check in self._checks():
+        #     check()
+            
     def get_field(self, name):
         try:
             return self.fields_map[name]
         except KeyError:
             raise FieldError(name, self.field_names)
         
-    # authorized_options = ['ordering', 'label', 'template_model']
-
-    # def __init__(self, options: Union[List[tuple[str]], dict]):
-    #     self.model_name = None
-    #     self.cached_options = OrderedDict(options)
-
-    #     self.ordering_field_names = set()
-    #     self.ascending_fields = []
-    #     self.descending_fields = []
-    #     self.ordering_booleans = []
+    def get_ordering(self):
+        def remove_prefix(value):
+            return value.removeprefix(('-'))
         
-    #     if self.has_option('ordering'):
-    #         ordering = self.get_option_by_name('ordering')
-    #         for field in ordering:
-    #             self.ordering_field_names.add(field.removeprefix('-'))
-    #         self.ascending_fields = [
-    #             field for field in ordering 
-    #                 if not field.startswith('-')
-    #         ]
-    #         self.descending_fields = [
-    #             field for field in ordering 
-    #                 if field.startswith('-')
-    #         ]
-
-    #         # Convert each ordering field on the
-    #         # model to Booleans. This is what a
-    #         # DataFrame accepts in order to sort
-    #         # a particular column
-    #         def convert_to_boolean(value):
-    #             if value.startswith('-'):
-    #                 return False
-    #             return True
-    #         self.ordering_booleans = list(map(convert_to_boolean, ordering))
-
-    # def __getattr__(self, name):
-    #     if name in self.field_names:
-    #         try:
-    #             return self.forward_field_map[name]
-    #         except:
-    #             raise ValueError('Forward relationship does not exist')
-    #     raise AttributeError(LazyFormat('{klass} object has no attribute {attr}', 
-    #     klass=self.__class__.__name__, attr=name))
+        ascending_fields = [
+            field for field in self.ordering
+                if not field.startswith('-')
+        ]
+        
+        descending_fields = [
+            field for field in self.ordering
+                if field.startswith('-')
+        ]
     
+        # Create a map that can be used by the internal
+        # python sorted method. The Ascending order is
+        # represented by the minus
+        ordering_map = [
+            (remove_prefix(name), name.startswith('-'))
+                for name in self.ordering
+        ]
+        ordering = namedtuple('Ordering', ['ascending_fields', 'descending_fields', 'booleans'])
+        return ordering(ascending_fields, descending_fields, ordering_map)    
 
+        
 class Base(type):
     def __new__(cls, name, bases, attrs):
         super_new = super().__new__
@@ -175,11 +177,14 @@ class Base(type):
                 
         # Get the Meta options class
         if meta_attributes is not None:
-            options = meta_attributes.__dict__
-            non_authorized_options = list(map(lambda x: x in DEFAULT_META_OPTIONS, options.keys()))
-            if non_authorized_options:
-                raise ValueError('Meta declared options that are not legal')
-            meta.add_meta_options(options)
+            meta_dict = meta_attributes.__dict__
+            
+            declared_options = []
+            for key, value in meta_dict.items():
+                if key.startswith('__'):
+                    continue
+                declared_options.append((key, value))
+            meta.add_meta_options(declared_options)
             
         # declared_fields = set()
         # for key, field_obj in attrs.items():

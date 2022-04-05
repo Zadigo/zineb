@@ -53,21 +53,24 @@
 # m.query(age__contains=14, name__contains='Kendall')
 # print(m)
 
-# from zineb.models.datastructure import Model
-# from zineb.models import fields
+from zineb.models.datastructure import Model
+from zineb.models import fields
 
-# class MyModel(Model):
-#     surname = fields.CharField()
-#     name = fields.CharField()
-
-# model = MyModel()
-# model.add_value('name', 'Jenner')
-# model.add_value('surname', 'Kendall')
-# print(model)
-
-
-from zineb.app import Spider
-
-class MySpider(Spider):
-    start_urls = ['http://example.com']
+class MyModel(Model):
+    surname = fields.CharField()
+    name = fields.CharField()
     
+    class Meta:
+        ordering = ['name', '-surname']
+        verbose_name = 'SomeName'
+        constraints = []
+
+model = MyModel()
+print(model._meta.get_ordering())
+
+# from operator import attrgetter, itemgetter
+
+
+# x = [{'name': 'Noemie', 'age': 14}, {'name': 'Kendall', 'age': 21}]
+# print(sorted(x, key=itemgetter('name')))
+
