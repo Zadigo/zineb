@@ -41,7 +41,7 @@ class Math(FunctionsMixin):
     DIVIDE = '/'
     MULTIPLY = '*'
 
-    def __init__(self, by: Union[int, float]):
+    def __init__(self, by):
         self.by = by
 
     def __repr__(self):
