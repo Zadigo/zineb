@@ -74,6 +74,10 @@ class ModelOptions:
             if name not in self.field_names:
                 raise FieldError(name, self.field_names)
             
+    @property
+    def has_ordering(self):
+        return self.ordering
+        
     def _checks(self):
         return [
             self._check_ordering_fields
@@ -269,6 +273,28 @@ class Base(type):
 
 
 class Model(metaclass=Base):
+        
+    """
+    A Model is a class that helps you structure
+    your scrapped data efficiently for later use
+
+    Your custom models have to inherit from this
+    base Model class and implement a set of fields
+    from zineb.models.fields. For example:
+
+            class MyModel(Model):
+                name = CharField()
+
+    Once you've created the model, you can then use
+    it within your project like so:
+
+            custom_model = MyModel()
+            custom_model.add_value('name', 'p')
+            custom_model.save()
+    """
+    
+    _cached_dataframe = None
+    
     def __init__(self, html_document=None, response=None):
         self._cached_result = SmartDict.new_instance(self)
 
@@ -277,6 +303,12 @@ class Model(metaclass=Base):
 
         self.parser = self._choose_parser()
 
+    def __str__(self):
+        return str(self._cached_result)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}"
+    
     def _get_field_by_name(self, field_name):
         """
         Gets the cached field object that was registered
@@ -432,49 +464,6 @@ class Model(metaclass=Base):
 
     def resolve_fields(self):
         return self._cached_result.as_list()
-
-    """
-    A Model is a class that helps you structure
-    your scrapped data efficiently for later use
-
-    Your custom models have to inherit from this
-    base Model class and implement a set of fields
-    from zineb.models.fields. For example:
-
-            class MyModel(Model):
-                name = CharField()
-
-    Once you've created the model, you can then use
-    it within your project like so:
-
-            custom_model = MyModel()
-            custom_model.add_value('name', 'p')
-            custom_model.save()
-    """
-    _cached_dataframe = None
-
-    def __str__(self):
-        return str(self._cached_result)
-        
-    def __repr__(self):
-        return f"{self.__class__.__name__}"
-
-    def __getitem__(self, field_name: str):
-        return self._cached_result.get_container(field_name)
-    
-    # def __getattribute__(self, name):
-    #     # When the acceses model.field_name
-    #     # on the model, instead of returning the
-    #     # field instance, we should return the
-    #     # visual representation of the field
-    #     meta = getattr(self, '_meta')
-    #     if meta.has_field(name):
-    #         smart_dict = getattr(self, '_cached_result')
-    #         return smart_dict.get_container(name)
-    #     return super().__getattribute__(name)
-        
-    # def __get__(self, attr):
-    #     print(attr)
 
     def full_clean(self, dataframe, **kwargs):
         self._cached_dataframe = dataframe

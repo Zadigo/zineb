@@ -1,5 +1,6 @@
 import csv
 import json
+from operator import attrgetter, itemgetter
 import os
 import secrets
 from collections import defaultdict
@@ -51,7 +52,8 @@ class SmartDict:
         return self.values
 
     def __str__(self):
-        return str(dict(self.as_values()))
+        # return str(dict(self.as_list()))
+        return str(self.as_list())
 
     @classmethod
     def new_instance(cls, model):
@@ -142,12 +144,24 @@ class SmartDict:
     def update_multiple(self, attrs: dict):
         for key, value in attrs.items():
             self.update(key, value)
+            
+    def apply_sort(self, values):
+        if self.model._meta.has_ordering:
+            def multisort(values, sorting_methods):
+                for key, reverse in reversed(sorting_methods):
+                    values.sort(key=itemgetter(key), reverse=reverse)
+                    return values
+            ordering = self.model._meta.get_ordering()
+            return multisort(values, ordering.booleans)
+        return values
 
     def as_values(self):
         """
-        Return collected values by removing the index part 
-        in the tuple e.g [(1, ...), ...] becomes [(...), ...]
+        Returns the items without the index key as
+        {key1: [..., ...], key2: [..., ...], ...}
         """
+        # TODO: Completly remove the index part and allow
+        # indexing as an optional element
         container = {}
         for key, values in self.values.items():
             values_only = map(lambda x: x[-1], values)
@@ -157,13 +171,16 @@ class SmartDict:
     def as_list(self):
         """
         Return a collection of dictionnaries
-        e.g. [{a: 1}, {a: 2}, ...]
+        e.g. [{a: 1}, {b: 2}, ...]
         """
-        return remap_to_dict(self.as_values())
+        values = remap_to_dict(self.as_values())
+        return self.apply_sort(values)
 
     def as_csv(self):
-        """Return scrapped values to be written
-        to a CSV file"""
+        """
+        Return the values under a csv format
+        as [[col1, col2], [..., ...]]
+        """
         data = self.as_values()
         columns = list(data.keys())
         base = [columns]

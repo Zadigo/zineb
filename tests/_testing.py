@@ -61,16 +61,26 @@ class MyModel(Model):
     name = fields.CharField()
     
     class Meta:
-        ordering = ['name', '-surname']
+        ordering = ['name']
         verbose_name = 'SomeName'
         constraints = []
 
 model = MyModel()
-print(model._meta.get_ordering())
+model.add_value('name', 'Kendall')
+model.add_value('surname', 'Jenner')
+model.add_value('name', 'Hailey')
+model.add_value('surname', 'Baldwin')
+print(model)
+
 
 # from operator import attrgetter, itemgetter
 
 
-# x = [{'name': 'Noemie', 'age': 14}, {'name': 'Kendall', 'age': 21}]
-# print(sorted(x, key=itemgetter('name')))
+# c = [{'name': 'Kendall', 'age': 21}, {'name': 'Noemie', 'age': 14}]
+# def multisort(xs, specs):
+#     for key, reverse in reversed(specs):
+#         xs.sort(key=itemgetter(key), reverse=reverse)
+#         return xs
 
+
+# print(multisort(c, [['name', True], ['age', True]]))

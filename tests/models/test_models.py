@@ -43,8 +43,8 @@ class TestModelBaseFunctionnalities(unittest.TestCase):
         }
         self.assertDictEqual(model._cached_result.as_values(), expected)
 
-    def test_can_get_item(self):
-        self.assertIsInstance(self.model['age'], list)
+    # def test_can_get_item(self):
+    #     self.assertIsInstance(self.model['age'], list)
 
     @unittest.expectedFailure
     def test_wrong_value_to_field(self):
@@ -64,7 +64,7 @@ class TestModelBaseFunctionnalities(unittest.TestCase):
         self.model.add_value('date_of_birth', '1-1-2002')
         self.assertListEqual(self.model.resolve_fields(), [{'age': None, 'date_of_birth': '2002-01-01', 'name': None}])
 
-    def test_fields_descriptor(self):
+    def test_field_names(self):
         # Access the registered fields on the model
         self.assertIsInstance(self.model._meta, ModelOptions)
         for name in ['age', 'date_of_birth', 'name']:
@@ -74,7 +74,7 @@ class TestModelBaseFunctionnalities(unittest.TestCase):
     def test_can_get_field(self):
         self.assertIsInstance(self.model._get_field_by_name('name'), fields.CharField)
         self.assertIsInstance(self.model._meta.get_field('date_of_birth'), fields.DateField)
-        self.assertIsInstance(self.model._meta.cached_fields['age'], fields.AgeField)
+        self.assertIsInstance(self.model._meta.fields_map['age'], fields.AgeField)
 
 
 class TestModelWithValidators(unittest.TestCase):
