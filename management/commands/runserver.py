@@ -5,7 +5,7 @@ import subprocess
 from zineb.management.base import ProjectCommand
 from zineb.registry import registry
 from importlib import import_module
-from zineb.logger import global_logger
+from zineb.logger import logger
 
 class Command(ProjectCommand):
     def execute(self, namespace):
@@ -19,7 +19,7 @@ class Command(ProjectCommand):
                 settings._project_meta['spiders_path']
             )
         except Exception as e:
-            global_logger.logger.error(e.args, stack_info=True)
+            logger.instance.error(e.args, stack_info=True)
             raise
         except:
             raise ImportError(("The command was executed outside "

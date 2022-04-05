@@ -1,8 +1,7 @@
-from collections import OrderedDict
-from functools import cached_property
+import inspect
 from importlib import import_module
 
-from zineb.logger import global_logger
+from zineb.logger import logger
 from zineb.settings import settings
 
 
@@ -11,41 +10,23 @@ class Middleware:
     Loads every middleware present in the project's
     settings file and in the user's settings file
     """
-    settings = None
-    MODULES = OrderedDict()
+    
+    def __init__(self):
+        self.middlewares = {}
 
-    def __init__(self, settings: dict={}):
-        self.project_middlewares = settings.get('MIDDLEWARES', [])
-        self.loaded_middlewares = OrderedDict()
-
-    @property
-    def middlewares_by_name(self):
-        return self.module_registry.keys()
-
-    @cached_property
-    def _load(self):
-        for middleware in self.project_middlewares:
+        for middleware in settings.MIDDLEWARES:
             module_to_load, klass = middleware.rsplit('.', 1)
-            module = import_module(module_to_load)
-            module_dict = module.__dict__
-
-            _, name = module.__name__.rsplit('.', maxsplit=1)
-            self.MODULES[name] = module
-
-            # Now load each class object specified
-            # in the middleware list individually
-            for key, obj in module_dict.items():
-                if key == klass:
-                    try:
-                        obj_instance = obj()
-                    except Exception as e:
-                        raise TypeError(f"{obj} was not loaded. {e.args[0]}")
-                    self.loaded_middlewares.setdefault(key, obj_instance)
-                    global_logger.logger.info(f"Loaded middleware: {middleware}")
-
-                    # signals.connect(obj, sender=self)
-
-    def get_middleware(self, name):
-        if not self.loaded_middlewares:
-            raise ValueError('Settings is not yet loaded')
-        return self.loaded_middlewares.get(name, None)
+            try:
+                module = import_module(module_to_load)
+            except:
+                raise ImportError('Middleware with path does not exist')
+                                    
+            for name, klass in inspect.getmembers(module, inspect.isclass):
+                try:
+                    instance = klass()
+                except Exception as e:
+                    raise TypeError(f"{klass} was not loaded. {e.args[0]}")
+                else:
+                    self.middlewares[name] = instance
+                    
+                logger.instance.info(f"Loaded middleware: {middleware}")

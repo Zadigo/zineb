@@ -3,6 +3,7 @@ import json
 import os
 import secrets
 from collections import defaultdict
+from pathlib import Path
 from typing import Any
 
 from zineb.models.fields import Empty
@@ -38,12 +39,12 @@ class SmartDict:
     current_updated_fields = set()
 
     def __init__(self, *fields):
+        self.model = None
         self.values = defaultdict(list)
 
         for field in fields:
             self.values[field]
-        setattr(self, 'field_names', list(fields))
-
+            
         self._last_created_row = []
 
     def __repr__(self):
@@ -53,14 +54,10 @@ class SmartDict:
         return str(dict(self.as_values()))
 
     @classmethod
-    def new_instance(cls, *names):
-        # TODO: This section seems
-        # repetitive by adding the
-        # fields twice on the instance
-        instance = cls(*names)
-        for name in names:
-            instance.values[name]
-        setattr(instance, 'names', list(names))
+    def new_instance(cls, model):
+        field_names = model._meta.field_names
+        instance = cls(*field_names)
+        instance.model = model
         return instance
 
     @property
@@ -69,7 +66,7 @@ class SmartDict:
         Returns the last registered ID within
         the first container
         """
-        container = self.get_container(self.field_names[0])
+        container = self.get_container(self.model._meta.field_names[0])
         if not container:
             return 0
         return container[-1][0]
@@ -100,7 +97,7 @@ class SmartDict:
         if value == Empty:
             value = None
 
-        if name not in self.field_names:
+        if name not in self.model._meta.field_names:
             raise ValueError(LazyFormat("Field '{field}' is not present "
             "on the declared container fields.", field=name))
 
@@ -108,7 +105,7 @@ class SmartDict:
             # Generate a new row of values that will be
             # added to the overall data container
             # e.g. (id, value) or (id, None)
-            for _, field_name in enumerate(self.field_names, start=1):
+            for _, field_name in enumerate(self.model._meta.field_names, start=1):
                 if name == field_name:
                     yield (self._next_id, value)
                 else:
@@ -127,19 +124,19 @@ class SmartDict:
             # Iterate over each values that were created and with
             # the index returned by enumerate, append tuple
             # to their corresponding containers
-            for i, field_name in enumerate(self.field_names, start=1):
+            for i, field_name in enumerate(self.model._meta.field_names, start=1):
                 self.get_container(field_name).append(self._last_created_row[i - 1])
         else:
             self.current_updated_fields.add(name)
             if self._last_created_row:
-                for i, field_name in enumerate(self.field_names, start=1):
+                for i, field_name in enumerate(self.model._meta.field_names, start=1):
                     if field_name == name:
                         value_to_update = list(self._last_created_row[i - 1])
                         value_to_update[-1] = value
                         self.update_last_item(field_name, tuple(value_to_update))
             else:
                 self._last_created_row = list(row_generator())
-                for i, field_name in enumerate(self.field_names, start=1):
+                for i, field_name in enumerate(self.model._meta.field_names, start=1):
                     self.get_container(field_name).append(self._last_created_row[i - 1])
 
     def update_multiple(self, attrs: dict):
@@ -189,19 +186,20 @@ class SmartDict:
             filename = f'{filename}.{extension}'
             
             try:
-                # If the MEDIA_FOLDER setting is None still allow
-                # saving the file in the local directory
-                path = os.path.join(settings.MEDIA_FOLDER, f'{filename}')
+                path = Path(settings.MEDIA_FOLDER)
+                if not path.exists():
+                    path.mkdir()
             except:
                 path = filename
 
+            file_path = os.path.join(settings.MEDIA_FOLDER, f'{filename}')
             if extension == 'json':
                 data = json.loads(json.dumps(self.as_list()))
-                with open(path, mode='w', encoding='utf-8') as f:
+                with open(file_path, mode='w', encoding='utf-8') as f:
                     json.dump(data, f, indent=2, sort_keys=True)
 
             if extension == 'csv':
-                with open(path, mode='w', newline='\n', encoding='utf-8') as f:
+                with open(file_path, mode='w', newline='\n', encoding='utf-8') as f:
                     writer = csv.writer(f)
                     writer.writerows(self.as_csv())
         else:

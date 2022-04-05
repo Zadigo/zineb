@@ -152,8 +152,8 @@ class RequestQueue:
 
     def __init__(self, *urls, **request_params):
         from zineb.http.request import HTTPRequest
-        from zineb.settings import settings
-        self._zineb_settings = settings
+        # from zineb.settings import settings
+        # self._zineb_settings = settings
         
         self.url_strings = list(urls)
 
@@ -162,11 +162,11 @@ class RequestQueue:
                 url, counter=i, **request_params
             )
 
-        self.retry_policies = {
-            'retry': self._zineb_settings.get('RETRY', False),
-            'retry_times': self._zineb_settings.get('RETRY_TIMES', 2),
-            'retry_http_codes': self._zineb_settings.get('RETRY_HTTP_CODES', [])
-        }
+        # self.retry_policies = {
+        #     'retry': self._zineb_settings.get('RETRY', False),
+        #     'retry_times': self._zineb_settings.get('RETRY_TIMES', 2),
+        #     'retry_http_codes': self._zineb_settings.get('RETRY_HTTP_CODES', [])
+        # }
 
     def __repr__(self):
         return f"{self.__class__.__name__}(urls={len(self.request_queue)})"

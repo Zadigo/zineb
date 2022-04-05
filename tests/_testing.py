@@ -52,3 +52,22 @@
 # # m.update_model('age__gt=15')
 # m.query(age__contains=14, name__contains='Kendall')
 # print(m)
+
+# from zineb.models.datastructure import Model
+# from zineb.models import fields
+
+# class MyModel(Model):
+#     surname = fields.CharField()
+#     name = fields.CharField()
+
+# model = MyModel()
+# model.add_value('name', 'Jenner')
+# model.add_value('surname', 'Kendall')
+# print(model)
+
+
+from zineb.app import Spider
+
+class MySpider(Spider):
+    start_urls = ['http://example.com']
+    

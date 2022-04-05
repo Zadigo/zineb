@@ -71,3 +71,8 @@ class RequestAborted(Exception):
 class ModelConstrainError(Exception):
     def __init__(self, field_name, value):
         super().__init__(f"Constraint not respected on '{field_name}'. '{value}' already present in the model.")
+
+
+class RequiresProjectError(Exception):
+    def __init__(self):
+        super().__init__('Project scope is required for this command.')

@@ -132,5 +132,5 @@ def execute_command_inline(argv):
     try:
         utility.call_command(argv)
     except KeyboardInterrupt:
-        from zineb.logger import global_logger
-        global_logger.logger.info('Zineb was stopped')
+        from zineb.logger import logger
+        logger.instance.info('Zineb was stopped')

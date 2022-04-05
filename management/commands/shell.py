@@ -2,7 +2,7 @@ import code
 
 from zineb.extractors import base as base_extractors
 from zineb.http.request import HTTPRequest
-from zineb.logger import global_logger
+from zineb.logger import logger
 from zineb.management.base import BaseCommand
 
 
@@ -80,7 +80,7 @@ class Shell:
             self.shell_variables.setdefault('settings', global_settings)
             self._start_consoles()
         else:
-            global_logger.logger.error("Shells failed to start because the response "
+            logger.instance.error("Shells failed to start because the response "
             "did not return a valid success code. Try pinging the url for validity.")
 
     def start_file_shell(self, filepath, use_settings=None):

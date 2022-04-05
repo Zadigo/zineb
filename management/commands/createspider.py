@@ -1,7 +1,9 @@
 import os
 
-from zineb.logger import global_logger
-from zineb.management.base import BaseCommand, RequiresProjectError
+from zineb import initialize
+from zineb.exceptions import RequiresProjectError
+from zineb.logger import logger
+from zineb.management.base import BaseCommand
 
 
 class Command(BaseCommand):
@@ -32,5 +34,5 @@ class Command(BaseCommand):
                     pass
             """
             f.write(bytes(base.encode('utf-8')))
-            global_logger.logger.info((f"{namespace.name} was succesfully created. "
+            logger.instance.info((f"{namespace.name} was succesfully created. "
             "Do not forget to register the spider in order to run it."))

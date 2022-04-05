@@ -16,6 +16,13 @@ PROJECT_PATH = None
 SPIDERS = []
 
 
+# Specifies whether the models should
+# loaded on project startup. This only
+# works if the project is not standalone
+
+LOAD_MODELS = False
+
+
 # Limit scrapping to certain specific amount of
 # domains by requiring that each requests needs
 # to respect the domains in this list before
