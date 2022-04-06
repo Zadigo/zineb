@@ -3,7 +3,7 @@ from zineb.models import fields
 
 
 def simple_validator(value):
-    return value
+    return value    
 
 
 class BareModel(Model):
@@ -54,3 +54,18 @@ class ExampleModel(Model):
 
 class ExampleModel2(Model):
     value = fields.CharField()
+
+
+class BasicModel(Model):
+    name = fields.NameField()
+    age = fields.IntegerField()
+
+
+class SortedModel(Model):
+    name = fields.NameField()
+    age = fields.IntegerField()
+    height = fields.EmailField()
+
+
+s = fields.URLField()
+

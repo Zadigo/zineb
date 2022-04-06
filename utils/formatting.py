@@ -35,7 +35,7 @@ class LazyFormat:
         return str(self) % value
 
 
-def remap_to_dict(data: dict) -> List[dict]:
+def remap_to_dict(data: dict, include_index: bool=False) -> List[dict]:
     """
     From a dictionnary of values, remap the different
     items to create a list of dictionnaries
@@ -53,7 +53,10 @@ def remap_to_dict(data: dict) -> List[dict]:
             try:
                 items[i][key] = item
             except:
-                items.append({key: item})
+                row = {key: item}
+                # if include_index:
+                #     row['id'] = i
+                items.append(row)
     return items
 
 

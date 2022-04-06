@@ -53,8 +53,10 @@
 # m.query(age__contains=14, name__contains='Kendall')
 # print(m)
 
-from zineb.models.datastructure import Model
 from zineb.models import fields
+from zineb.models.constraints import CheckConstraint, UniqueConstraint
+from zineb.models.datastructure import Model
+
 
 class MyModel(Model):
     surname = fields.CharField()
@@ -63,15 +65,17 @@ class MyModel(Model):
     class Meta:
         ordering = ['name']
         verbose_name = 'SomeName'
-        constraints = []
+        constraints = [
+            UniqueConstraint(['name'], 'unique_name', condition=lambda x: x == 'Surname'),
+            CheckConstraint(['surname'], 'unique_surname')
+        ]
 
 model = MyModel()
 model.add_value('name', 'Kendall')
 model.add_value('surname', 'Jenner')
 model.add_value('name', 'Hailey')
 model.add_value('surname', 'Baldwin')
-print(model)
-
+model.save(commit=False)
 
 # from operator import attrgetter, itemgetter
 

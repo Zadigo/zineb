@@ -42,13 +42,6 @@ class ModelRegistry:
 model_registry = ModelRegistry()
 
 
-# TODO: Refactor the ModelOptions completely
-# to add better more valuable informations
-# including the fields.
-# TODO: Merge the FieldMixin in the ModelOptions
-# TODO: Add a "contribute_to_class" type of method
-# on the items that depend on the model which will
-# allow use to better initialize these item
 class ModelOptions:
     """
     A container that stores the options
@@ -293,10 +286,10 @@ class Model(metaclass=Base):
             custom_model.save()
     """
     
-    _cached_dataframe = None
+    _cached_resolved_data = None
     
     def __init__(self, html_document=None, response=None):
-        self._cached_result = SmartDict.new_instance(self)
+        self._data_container = SmartDict.new_instance(self)
 
         self.html_document = html_document
         self.response = response
@@ -304,7 +297,7 @@ class Model(metaclass=Base):
         self.parser = self._choose_parser()
 
     def __str__(self):
-        return str(self._cached_result)
+        return str(self._data_container)
 
     def __repr__(self):
         return f"{self.__class__.__name__}"
@@ -335,9 +328,9 @@ class Model(metaclass=Base):
         field resolution and raw data from the internet
         would be added as is
         """
-        cached_values = self._cached_result.get_container(field_name)
+        cached_values = self._data_container.get_container(field_name)
         cached_values.append(value)
-        self._cached_result.update(field_name, cached_values)
+        self._data_container.update(field_name, cached_values)
 
     def add_calculated_value(self, name, value, *funcs):
         funcs = list(funcs)
@@ -410,7 +403,7 @@ class Model(metaclass=Base):
         tag_value = self.parser.find(name=tag, attrs=attrs)
         obj.resolve(tag_value.string)
         resolved_value = obj._cached_result
-        self._cached_result.update(name, resolved_value)
+        self._data_container.update(name, resolved_value)
 
     def add_values(self, **attrs):
         """
@@ -419,7 +412,7 @@ class Model(metaclass=Base):
         arguments
         """
         self._fields.has_fields(list(attrs.keys()), raise_exception=True)
-        self._cached_result.update_multiple(**attrs)
+        self._data_container.update_multiple(**attrs)
 
     def add_value(self, name, value):
         """
@@ -436,7 +429,7 @@ class Model(metaclass=Base):
             value.model = self
             value.field_name = name
             value.resolve()
-            return self._cached_result.update(name, value._cached_data)
+            return self._data_container.update(name, value._cached_data)
 
         obj = self._get_field_by_name(name)
         obj.resolve(value)
@@ -451,22 +444,12 @@ class Model(metaclass=Base):
             # user might get something unexpected
             resolved_value = str(obj._cached_result)
         
-        self._cached_result.update(name, resolved_value)
-        
-    # def update_model(self, func):
-    #     """Run an update function directly on the underlying
-    #     data container of the model e.g. SmartDict"""
-        
-    # def query(self, **expressions):
-    #     """Method to check that the underlying model
-    #     contains a certain set of elements"""
-    #     return self._cached_result.run_query('')
+        self._data_container.update(name, resolved_value)
 
-    def resolve_fields(self):
-        return self._cached_result.as_list()
-
-    def full_clean(self, dataframe, **kwargs):
-        self._cached_dataframe = dataframe
+    def full_clean(self, **kwargs):
+        data = self._data_container.as_list()
+        self._cached_resolved_data = data
+        self.clean(data)
 
     def clean(self, dataframe, **kwargs):
         """
@@ -487,11 +470,8 @@ class Model(metaclass=Base):
         """
         # TODO: Send a signal before the model
         # is saved
-
-        dataframe = self.resolve_fields()
-
-        self.full_clean(dataframe=dataframe)
-        self.clean(self._cached_dataframe)
+        
+        self.full_clean()
 
         if commit:
             if filename is None:
@@ -503,6 +483,5 @@ class Model(metaclass=Base):
             if settings.MEDIA_FOLDER is not None:
                 filename = os.path.join(settings.MEDIA_FOLDER, filename)
                 
-            self._cached_result.save(commit=commit, filename=filename, **kwargs)
-            return dataframe
-        return self._cached_dataframe.copy()    
+            self._data_container.execute_save(commit=commit, filename=filename, **kwargs)
+        return self._cached_resolved_data    

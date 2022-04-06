@@ -21,16 +21,6 @@ class FunctionsMixin:
     def _to_python_object(self, value):
         return value
 
-    def get_field_object(self):
-        try:
-            return self.model._get_field_by_name(self.field_name)
-        except:
-            class_name = self.__class__.__name__
-            text= "{class_name} could not retrieve the field object for '{field_name}'"
-            raise ModelNotImplementedError(
-                LazyFormat(text, class_name=class_name, field_name=self.field_name)
-            )
-
     def resolve(self):
         raise NotImplementedError('Expression resolution should be implement by child classes')
 
@@ -61,7 +51,7 @@ class Math(FunctionsMixin):
         return f"{class_name}(< {result} >)"
 
     def resolve(self):
-        source_field = self.get_field_object()
+        source_field = self.model._meta.get_field(self.field_name)
 
         if self._cached_data is None:
             raise ValueError(LazyFormat("{func} requires a value. Got: '{value}'",
@@ -161,7 +151,7 @@ class When:
 
     def resolve(self):
         field_name, exp, value_to_compare = self.parse_expression(self.if_condition)
-        field_object = self.model._get_field_by_name(field_name)
+        field_object = self.model._meta.get_field(field_name)
         
         result = self.compare(exp, value_to_compare)
         if result:
@@ -277,7 +267,7 @@ class DateExtractorMixin:
         self._datetime_object = self._to_python_object(self.value)
         self._cached_data = getattr(self._datetime_object, self.lookup_name)
                 
-        source_field = super().get_field_object()
+        source_field = self.model._meta.get_field(self.field_name)
         
         # TODO: Technically, it makes no sense to use
         # a date extractor on the DateField 
@@ -302,20 +292,8 @@ class ExtractMonth(DateExtractorMixin, FunctionsMixin):
 
 class ExtractDay(DateExtractorMixin, FunctionsMixin):
     lookup_name = 'day'
-
-
-# class Truncate(FunctionsMixin):
-#     def __init__(self, value: str, by: int):
-#         self.initial_value = value
-#         self.by = by
-        
-#     def resolve(self):
-#         if not isinstance(self.initial_value, str):
-#             raise ValueError()
-        
-#         self._cached_data = self.value[:self.by]
-
-
+    
+    
 class ComparisionMixin(FunctionsMixin):
     def __init__(self, *values):
         values = list(values)
@@ -358,7 +336,3 @@ class Smallest(ComparisionMixin):
     
     def resolve(self):
         self._cached_data = min(self.values)
-
-
-# class Replace(FunctionsMixin):
-#     def __init__(self, value: Any, by: Any):

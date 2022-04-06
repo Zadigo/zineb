@@ -10,13 +10,13 @@ from zineb.tests.models.items import (BareModel, CalculatedModel, DateModel,
                                       SimpleModel)
 
 
-class TestModelBaseFunctionnalities(unittest.TestCase):
+class TestModel(unittest.TestCase):
     def setUp(self):
         self.model = SimpleModel()
 
     def test_can_add_value(self):
         self.model.add_value('date_of_birth', '1-1-2002')
-        self.assertDictEqual(self.model._cached_result.as_values(), {'age': [None], 'date_of_birth': ['2002-01-01'], 'name': [None]})
+        self.assertDictEqual(self.model._data_container.as_values(), {'age': [None], 'date_of_birth': ['2002-01-01'], 'name': [None]})
 
     def test_model_in_iteration(self):
         for i in range(1, 4):
@@ -27,7 +27,7 @@ class TestModelBaseFunctionnalities(unittest.TestCase):
             'date_of_birth': [None, None, None], 
             'name': ['Kendall1', 'Kendall2', 'Kendall3']
         }
-        self.assertDictEqual(self.model._cached_result.as_values(), expected)
+        self.assertDictEqual(self.model._data_container.as_values(), expected)
 
     def test_model_instanciation_in_iteration(self):
         # The model should return the last value of
@@ -41,10 +41,7 @@ class TestModelBaseFunctionnalities(unittest.TestCase):
             'date_of_birth': [None],
             'name': ['Kendall3']
         }
-        self.assertDictEqual(model._cached_result.as_values(), expected)
-
-    # def test_can_get_item(self):
-    #     self.assertIsInstance(self.model['age'], list)
+        self.assertDictEqual(model._data_container.as_values(), expected)
 
     @unittest.expectedFailure
     def test_wrong_value_to_field(self):
@@ -62,7 +59,9 @@ class TestModelBaseFunctionnalities(unittest.TestCase):
         # Even when we add values to one of the x
         # other fields, we should get a balanced row
         self.model.add_value('date_of_birth', '1-1-2002')
-        self.assertListEqual(self.model.resolve_fields(), [{'age': None, 'date_of_birth': '2002-01-01', 'name': None}])
+        self.model.full_clean()
+        self.assertListEqual(self.model._cached_resolved_data, [
+                             {'age': None, 'date_of_birth': '2002-01-01', 'name': None}])
 
     def test_field_names(self):
         # Access the registered fields on the model
@@ -75,6 +74,33 @@ class TestModelBaseFunctionnalities(unittest.TestCase):
         self.assertIsInstance(self.model._get_field_by_name('name'), fields.CharField)
         self.assertIsInstance(self.model._meta.get_field('date_of_birth'), fields.DateField)
         self.assertIsInstance(self.model._meta.fields_map['age'], fields.AgeField)
+        
+    def test_instanciated_meta(self):
+        self.assertIsInstance(self.model._meta, ModelOptions)
+        self.assertIsInstance(self.model._meta.get_field('name'), fields.Field)
+        self.assertEqual(self.model._meta.model_name, 'simplemodel')
+        self.assertIsNotNone(self.model._meta.model)
+        
+    def test_field_descriptor(self):
+        pass
+    
+    def test_save(self):
+        self.model.add_value('name', 'Kendall')
+        self.model.add_value('age', '1992-01-24')
+        self.model.add_value('date_of_birth', '1992-01-24')
+        result = self.model.save(commit=False)
+        
+        self.assertGreater(len(result), 0)
+        self.assertIsInstance(result, list)
+        expected = [{'age': 30, 'date_of_birth': '1992-01-24', 'name': 'Kendall'}]
+        
+        self.assertListEqual(result, expected)
+        for item in result:
+            with self.subTest(item=item):
+                self.assertIsInstance(item, dict)
+                self.assertTrue('name' in item)
+                self.assertTrue('age' in item)
+                self.assertTrue('date_of_birth' in item)
 
 
 class TestModelWithValidators(unittest.TestCase):
@@ -83,31 +109,33 @@ class TestModelWithValidators(unittest.TestCase):
 
     def test_field_with_validation(self):
         self.model.add_value('height', 156)
-        self.assertDictEqual(self.model._cached_result.as_values(), {'height': [156]})
+        self.assertDictEqual(self.model._data_container.as_values(), {'height': [156]})
+        
+    
 
 
-class TestModelRegistery(unittest.TestCase):
-    def test_has_model(self):
-        result = model_registry.has_model('SimpleModel')
-        self.assertTrue(result)
+# class TestModelRegistery(unittest.TestCase):
+#     def test_has_model(self):
+#         result = model_registry.has_model('SimpleModel')
+#         self.assertTrue(result)
 
-    def test_can_get_model(self):
-        model = model_registry.get_model('SimpleModel')
-        self.assertIsInstance(model, SimpleModel)
+#     def test_can_get_model(self):
+#         model = model_registry.get_model('SimpleModel')
+#         self.assertIsInstance(model, SimpleModel)
 
-    def test_can_get_all_models(self):
-        self.assertGreater(len(model_registry.models), 0)
+#     def test_can_get_all_models(self):
+#         self.assertGreater(len(model_registry.models), 0)
 
-    def test_can_iterate(self):
-        for model in model_registry:
-            with self.subTest(model=model):
-                self.assertTrue(issubclass(model, Model))
+#     def test_can_iterate(self):
+#         for model in model_registry:
+#             with self.subTest(model=model):
+#                 self.assertTrue(issubclass(model, Model))
 
-    @unittest.expectedFailure
-    def test_adding_existing_model(self):
-        model_registry.add('SimpleModel', SimpleModel)
-        with self.assertRaises(ModelExistsError):
-            print('Model exists.')
+#     @unittest.expectedFailure
+#     def test_adding_existing_model(self):
+#         model_registry.add('SimpleModel', SimpleModel)
+#         with self.assertRaises(ModelExistsError):
+#             pass
 
 
 # class TestModelWithOptions(unittest.TestCase):
@@ -115,58 +143,57 @@ class TestModelRegistery(unittest.TestCase):
 #         pass
     # def test_can_add_case(self):
     #     model.add_case(21, When('age__eq=21', 23))
-    #     self.assertDictEqual(model._cached_result, {'age': [23]})
+    #     self.assertDictEqual(model._data_container, {'age': [23]})
 
     # def test_can_add_using_expression(self):
     #     model = SimpleModel(html_document=None)
     #     model.add_using_expression('age', 'span', attrs={'id': 'age'})
-    #     self.assertDictEqual(model._cached_result, {'age': 23})
+    #     self.assertDictEqual(model._data_container, {'age': 23})
 
     # def test_add_related_value(self):
     #     model.add_related_value('age', 'date_of_birth', '01-01-1992')
     #     # TODO: When adding a value to the fields, this can create
     #     # an unbalance between all fields and we should watch against that
-    #     self.assertDictEqual(model._cached_result, {
+    #     self.assertDictEqual(model._data_container, {
     #                          'date_of_birth': ['01-01-1992'], 'age': [23]})
 
 
+# class TestModelForCalculation(unittest.TestCase):
+#     def setUp(self):
+#         self.model = CalculatedModel()
 
-class TestModelForCalculation(unittest.TestCase):
-    def setUp(self):
-        self.model = CalculatedModel()
+#     def test_can_add_calculated_value(self):
+#         self.model.add_calculated_value('age', 17, Add(2))
+#         self.assertDictEqual(self.model._data_container.as_values(), {'age': [19]})
 
-    def test_can_add_calculated_value(self):
-        self.model.add_calculated_value('age', 17, Add(2))
-        self.assertDictEqual(self.model._cached_result.as_values(), {'age': [19]})
+#     def test_can_add_multiple_calculated_functions(self):
+#         self.model.add_calculated_value('age', 17, Add(2), Substract(1))
+#         self.assertDictEqual(self.model._data_container.as_values(), {'age': [18]})
 
-    def test_can_add_multiple_calculated_functions(self):
-        self.model.add_calculated_value('age', 17, Add(2), Substract(1))
-        self.assertDictEqual(self.model._cached_result.as_values(), {'age': [18]})
-
-    def test_with_when(self):
-        self.model.add_case(21, When('age__gt=20', 18))
-        self.assertDictEqual(self.model._cached_result.as_values(), {'age': [18]})
+#     def test_with_when(self):
+#         self.model.add_case(21, When('age__gt=20', 18))
+#         self.assertDictEqual(self.model._data_container.as_values(), {'age': [18]})
         
-    def test_using_function_with_add_value(self):
-        # Using a function that require calculation
-        # with a method other than add_calculated_value 
-        # should not be tolerated
-        self.assertRaises(ValueError, self.model.add_value, name='age', value=Add(3))
+#     def test_using_function_with_add_value(self):
+#         # Using a function that require calculation
+#         # with a method other than add_calculated_value 
+#         # should not be tolerated
+#         self.assertRaises(ValueError, self.model.add_value, name='age', value=Add(3))
         
 
 
-class TestWithDateFunctions(unittest.TestCase):
-    def setUp(self):
-        self.model = DateModel()
+# class TestWithDateFunctions(unittest.TestCase):
+#     def setUp(self):
+#         self.model = DateModel()
 
-    # @unittest.expectedFailure
-    def test_with_extract_year(self):
-        # We should not be able to use ExtractYear etc.
-        # with a field that is not a DateField since we'll
-        # be relying on that specific field to resolve the
-        # date in order to extract the year
-        self.model.add_value('age', ExtractYear('1-1-2002'))
-        self.assertDictEqual(self.model._cached_result.as_values(), {'age': [2002]})
+#     # @unittest.expectedFailure
+#     def test_with_extract_year(self):
+#         # We should not be able to use ExtractYear etc.
+#         # with a field that is not a DateField since we'll
+#         # be relying on that specific field to resolve the
+#         # date in order to extract the year
+#         self.model.add_value('age', ExtractYear('1-1-2002'))
+#         self.assertDictEqual(self.model._data_container.as_values(), {'age': [2002]})
 
 
 if __name__ == '__main__':

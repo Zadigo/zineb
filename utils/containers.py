@@ -1,40 +1,20 @@
 import csv
 import json
-from operator import attrgetter, itemgetter
 import os
 import secrets
 from collections import defaultdict
+from operator import itemgetter
 from pathlib import Path
-from typing import Any
 
 from zineb.models.fields import Empty
 from zineb.settings import settings
 from zineb.utils.formatting import LazyFormat, remap_to_dict
-
-# class Query:
-#     """Represents a subset of data extracted
-#     from the SmartDict"""
-#     def __init__(self, data):
-#         pass
-
 
 class SmartDict:
     """
     A container that regroups data under multiple keys by ensuring that
     when one key is updated, the other keys are in the same way therefore
     creating balanced data
-    
-    Example
-    -------
-    
-        container = SmartDict('name', 'surname')
-        
-        container.update('name', 'Kendall')
-        {'name': ['Kendall'], 'surname': [None]}
-
-        container.update('name', 'Kylie')
-        container.update('surname', 'Jenner')
-        {'name': ['Kendall', 'Kylie'], 'surname': [None, 'Jenner']}
     """
 
     current_updated_fields = set()
@@ -47,12 +27,13 @@ class SmartDict:
             self.values[field]
             
         self._last_created_row = []
+        
+        self._id = 0
 
     def __repr__(self):
         return self.values
 
     def __str__(self):
-        # return str(dict(self.as_list()))
         return str(self.as_list())
 
     @classmethod
@@ -62,36 +43,20 @@ class SmartDict:
         instance.model = model
         return instance
 
-    @property
-    def _last_id(self) -> int:
-        """
-        Returns the last registered ID within
-        the first container
-        """
-        container = self.get_container(self.model._meta.field_names[0])
-        if not container:
-            return 0
-        return container[-1][0]
-
-    @property
-    def _next_id(self):
-        return self._last_id + 1
-
     def _last_value(self, name: str):
         return self.get_container(name)[-1][-1]
 
     def get_container(self, name: str):
         return self.values[name]
 
-    def update_last_item(self, name: str, value: Any):
+    def update_last_item(self, name: str, value):
         container = self.get_container(name)
         if isinstance(value, tuple):
-            container[-1] = value
+            container[-1] = value[-1]
         else:
-            # TODO: Check that the id is correct
-            container[-1] = (self._last_id, value)
+            container[-1] = (value)
 
-    def update(self, name: str, value: Any):
+    def update(self, name, value):
         """
         Generates a new row and then implements them on
         the overall data placeholder
@@ -104,14 +69,15 @@ class SmartDict:
             "on the declared container fields.", field=name))
 
         def row_generator():
-            # Generate a new row of values that will be
-            # added to the overall data container
-            # e.g. (id, value) or (id, None)
+            # Generate a new list of values for all
+            # the fields. For example if we have
+            # fields name, surname then we'll get
+            # a list [value_for_name, value_for_surname]
             for _, field_name in enumerate(self.model._meta.field_names, start=1):
                 if name == field_name:
-                    yield (self._next_id, value)
+                    yield (value)
                 else:
-                    yield (self._next_id, None)
+                    yield (None)
 
         # When the name is already present
         # in current_updated_fields, it means
@@ -127,19 +93,26 @@ class SmartDict:
             # the index returned by enumerate, append tuple
             # to their corresponding containers
             for i, field_name in enumerate(self.model._meta.field_names, start=1):
-                self.get_container(field_name).append(self._last_created_row[i - 1])
+                container = self.get_container(field_name)
+                container.append(self._last_created_row[i - 1])
+            self._id = self._id + 1
         else:
             self.current_updated_fields.add(name)
             if self._last_created_row:
                 for i, field_name in enumerate(self.model._meta.field_names, start=1):
                     if field_name == name:
-                        value_to_update = list(self._last_created_row[i - 1])
+                        value_to_update = [self._last_created_row[i - 1]]
                         value_to_update[-1] = value
                         self.update_last_item(field_name, tuple(value_to_update))
             else:
                 self._last_created_row = list(row_generator())
+                # Based on the position of the field name in the
+                # field_names, return the corresponding value that
+                # we got from the generated row
                 for i, field_name in enumerate(self.model._meta.field_names, start=1):
-                    self.get_container(field_name).append(self._last_created_row[i - 1])
+                    container = self.get_container(field_name)
+                    container.append(self._last_created_row[i - 1])
+                self._id = self._id + 1
 
     def update_multiple(self, attrs: dict):
         for key, value in attrs.items():
@@ -157,18 +130,12 @@ class SmartDict:
 
     def as_values(self):
         """
-        Returns the items without the index key as
+        Returns the data as
         {key1: [..., ...], key2: [..., ...], ...}
         """
-        # TODO: Completly remove the index part and allow
-        # indexing as an optional element
-        container = {}
-        for key, values in self.values.items():
-            values_only = map(lambda x: x[-1], values)
-            container.update({key: list(values_only)})
-        return container
+        return self.values
 
-    def as_list(self):
+    def as_list(self, include_index=False):
         """
         Return a collection of dictionnaries
         e.g. [{a: 1}, {b: 2}, ...]
@@ -197,7 +164,7 @@ class SmartDict:
         base.extend(canvas)
         return base
 
-    def save(self, commit: bool=True, filename: str=None, extension: str='json', **kwargs):
+    def execute_save(self, commit: bool=True, filename: str=None, extension: str='json', **kwargs):
         if commit:
             filename = filename or secrets.token_hex(5)
             filename = f'{filename}.{extension}'
@@ -222,7 +189,3 @@ class SmartDict:
         else:
             data = json.loads(json.dumps(self.as_list()))
             return json.dumps(data, sort_keys=True)
-
-    # def run_query(self, expressions):
-    #     return Query([])
-    

@@ -1,12 +1,14 @@
 import unittest
-
+from zineb.tests.models import items
 from zineb.utils.containers import SmartDict
 
 
-class TestDataContainer(unittest.TestCase):
+class TestSmartDict(unittest.TestCase):
     def setUp(self):
         fields = ['name', 'age']
-        self.container = SmartDict.new_instance(*fields)
+        container = SmartDict(*fields)
+        container.model = items.BasicModel()
+        self.container = container
 
     def test_can_update_field(self):
         # When there are many fields, like in the above, if we
@@ -46,6 +48,11 @@ class TestDataContainer(unittest.TestCase):
         # Expected [['name', 'age'], ['Kendall', 24]]
         self.assertEqual(result[1], ['Kendall', None])
         self.assertListEqual(result, [['name', 'age'], ['Kendall', None]])
+        
+    def test_elements_sorting(self):
+        fields = ['name', 'age']
+        container = SmartDict(*fields)
+        
 
 
 if __name__ == '__main__':

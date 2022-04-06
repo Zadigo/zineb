@@ -326,7 +326,6 @@ class EmailField(CharField):
 
 
 class URLField(CharField):
-    name = 'url'
     _default_validators = [model_validators.validate_url]
 
     @property
@@ -372,8 +371,7 @@ class ImageField(URLField):
 
 
 class IntegerField(Field):
-    def __init__(self, default: Any=None, min_value: int=None, 
-                 max_value: int=None, validators: list=[]):
+    def __init__(self, default=None, min_value=None, max_value=None, validators=[]):
         super().__init__(default=default, validators=validators)
 
         if min_value is not None:
@@ -416,7 +414,7 @@ class DecimalField(IntegerField):
     
 
 class DateFieldsMixin:
-    def __init__(self, date_format: str=None, default: Any=None):
+    def __init__(self, date_format=None, default=None):
         super().__init__(default=default)
 
         self.date_parser = datetime.datetime.strptime
@@ -462,7 +460,7 @@ class DateField(DateFieldsMixin, Field):
 
 
 class AgeField(DateFieldsMixin, Field):
-    def __init__(self, date_format: str=None, default: Any = None):
+    def __init__(self, date_format=None, default=None):
         super().__init__(date_format=date_format, default=default)
                 
     @property
@@ -632,3 +630,21 @@ class BooleanField(Field):
                 value = Empty
             result = self._run_validation(value)              
         self._cached_result = self._to_python_object(result)
+
+
+class DeferredAttribute:
+    """A base class for deferred-loadign of the data
+    of a model field"""
+    
+    def __init__(self, field):
+        self.field = field
+
+    def __get__(self, instance, cls=None):
+        if instance is None:
+            return self
+        
+        data = instance.__dict__
+        field_name = self.field.name
+        if field_name not in data:
+            data[field_name] = None
+        return data[field_name]

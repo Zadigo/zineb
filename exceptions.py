@@ -76,3 +76,8 @@ class ModelConstrainError(Exception):
 class RequiresProjectError(Exception):
     def __init__(self):
         super().__init__('Project scope is required for this command.')
+
+
+class ConstraintError(Exception):
+    def __init__(self):
+        super().__init__('A constraint error was raised on the given model')
