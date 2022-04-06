@@ -287,6 +287,26 @@ On its own however, a model does nothing. In order to make it work, you have to 
 
 Adding a new value to the model generally requires two main parameters: _the name of the field to use and the incoming data to be added._
 
+## Adding values to the model
+
+Each model gets instantiated with a underlying container that does the heavy work of storing and aggregating the data. The default container is called `SmartDict`.
+
+### Understanding SmartDict
+
+The `SmartDict` container ensures that each row is well balanced and with the same amount of fields when values are added to the model.
+
+For instance, if your model has two fields `name` and `surname`, suppose you add `name` but not `surname`, the final result should be `{"name": ['Kendall'], "surname": [None]}` which in return will be saved as `[{"name": "Kendall", "surname": null}]`.
+
+In the same manner, if you supply values for both fields then your final result should be `{"name": ['Kendall'], "surname": ["Jenner"]}` which in return will be saved as `[{"name": "Kendall", "surname": "Jenner"}]`.
+
+In other words, whichever fields are supplied, the finale result will always be a well balanced data with no missing fields. That's the benefit that `SmartDict` provides.
+
+This class does the following process:
+
+* Before the data is added, it runs any field constraint present on the model
+* It then adds the value to the existing container via the `update` function
+* Finally, once `execute_save` is called, it applies any sorting specified on the fields in the `Meta` class of the model and returns the corresponding data
+
 ### Adding a free custom value
 
 The first one consists using the `add_value` method.
@@ -325,12 +345,26 @@ from zineb.models.expressions import Add
 my_model.add_calculatd_value('price', Add(25, 5))
 ```
 
+## Saving the model
+
+You can save the data within a model by calling the `save` method. It takes the following arguments:
+
+* `filename`
+* `commit`
+
+The save method does the following things in order:
+
+* Call `full_clean` in order to apply general modifications to the final data
+* `full_clean` then calls the `clean` method to apply any custom user modifications to be applied on the resulting data
+* Finally, save the data to a file if commit or return the elements as list
+
 ## Meta options
 
 By adding a Meta to your model, you can pass custom behaviours.
 
 * Ordering
 * Template model
+* Constraints
 
 ### Template model
 
@@ -352,9 +386,13 @@ class MainModel(TemplateModel):
 
 Order your data in a specific way based on certain fields before saving your model.
 
+### Constraints
+
+You an ensiure that the data on your model is unique using `UniqueConstraint` and `CheckConstraint` classes in the `Meta` of your model.
+
 ## Fields
 
-Fields is the main entrypoint for passing a raw value from the internet to the underlying `SmartDict` container of your model. They guarantee cleanliness and consistency of all the values that are stored in your model.
+Fields are the main entrypoint for passing a raw value from the internet to the underlying `SmartDict` container of your model. They guarantee cleanliness and consistency.
 
 Zineb comes with number of preset fields that you can use out of the box:
 
@@ -373,9 +411,11 @@ Zineb comes with number of preset fields that you can use out of the box:
 * BooleanField
 * Value
 
-### How fields work
+### How they work
 
-Each fields comes with a `resolve` function and when called by the model stores the resulting value within itself. The resolve function will do the following things.
+Each fields comes with a `resolve` function whiche gets called by the model. The resulting data is then passed unto the model's data store (`SmartDict`\).
+
+The resolve function will do the following things.
 
 First, it will run all cleaning functions on the original value for example by stripping tags like "<" or ">" which normalizes the value before additional processing.
 
