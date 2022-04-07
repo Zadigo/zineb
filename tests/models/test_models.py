@@ -123,8 +123,7 @@ class TestModel(unittest.TestCase):
         result = model.save(commit=False)
         expected = [{'name': 'Candice'}, {'name': 'Kendall'}]
         self.assertListEqual(result, expected)
-
-
+        
 class TestModelWithValidators(unittest.TestCase):
     def setUp(self):
         self.model = ModelWithValidator()
@@ -202,21 +201,6 @@ class TestModelWithValidators(unittest.TestCase):
 #         # should not be tolerated
 #         self.assertRaises(ValueError, self.model.add_value, name='age', value=Add(3))
         
-
-
-# class TestWithDateFunctions(unittest.TestCase):
-#     def setUp(self):
-#         self.model = DateModel()
-
-#     # @unittest.expectedFailure
-#     def test_with_extract_year(self):
-#         # We should not be able to use ExtractYear etc.
-#         # with a field that is not a DateField since we'll
-#         # be relying on that specific field to resolve the
-#         # date in order to extract the year
-#         self.model.add_value('age', ExtractYear('1-1-2002'))
-#         self.assertDictEqual(self.model._data_container.as_values(), {'age': [2002]})
-
 
 if __name__ == '__main__':
     unittest.main()
