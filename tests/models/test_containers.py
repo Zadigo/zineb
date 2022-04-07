@@ -68,5 +68,6 @@ class TestSmartDict(unittest.TestCase):
         result = container.apply_sort(data)
         self.assertListEqual(result, [{'name': 'Kendall', 'age': 20}, {'name': 'Candice', 'age': 26}])
         
+        
 if __name__ == '__main__':
     unittest.main()
