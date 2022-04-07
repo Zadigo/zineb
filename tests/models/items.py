@@ -65,7 +65,10 @@ class SortedModel(Model):
     name = fields.NameField()
     age = fields.IntegerField()
     height = fields.EmailField()
-
-
-s = fields.URLField()
-
+    
+    
+class ComplicatedModel(Model):
+    name = fields.NameField()
+    year_of_birth = fields.IntegerField()
+    zip_code = fields.IntegerField()
+    current_balance = fields.IntegerField()

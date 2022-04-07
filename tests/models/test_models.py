@@ -7,7 +7,7 @@ from zineb.models.functions import (Add, Divide, ExtractDay, ExtractMonth,
                                     ExtractYear, Multiply, Substract, When)
 from zineb.tests.models.items import (BareModel, CalculatedModel, DateModel,
                                       ModelWithMeta, ModelWithValidator,
-                                      SimpleModel)
+                                      SimpleModel, ComplicatedModel)
 
 
 class TestModel(unittest.TestCase):
@@ -81,8 +81,12 @@ class TestModel(unittest.TestCase):
         self.assertEqual(self.model._meta.model_name, 'simplemodel')
         self.assertIsNotNone(self.model._meta.model)
         
-    def test_field_descriptor(self):
-        pass
+    def test_deferred_attribute(self):
+        # When calling model.field_name on the
+        # model instance, we should get the data
+        # container for that field
+        self.model.add_value('name', 'Kendall')
+        self.assertListEqual(self.model.name, ['Kendall'])
     
     def test_save(self):
         self.model.add_value('name', 'Kendall')
@@ -101,6 +105,24 @@ class TestModel(unittest.TestCase):
                 self.assertTrue('name' in item)
                 self.assertTrue('age' in item)
                 self.assertTrue('date_of_birth' in item)
+                
+    def test_adding_values(self):
+        model = ComplicatedModel()
+        model.add_value('name', 'Kendall Jenner')
+        model.add_value('year_of_birth', ExtractYear('1992-10-4'))
+        model.add_case(59000, When('zip_code__eq=59000', 59))
+        model.add_calculated_value('current_balance', 15000, Substract(5000))
+        result = model.save(commit=False)
+        expected = [{'name': 'Kendall Jenner', 'year_of_birth': 1992, 'zip_code': 59, 'current_balance': 10000}]
+        self.assertListEqual(result, expected)
+        
+    def test_sorting(self):
+        model = ModelWithMeta()
+        model.add_value('name', 'Kendall')
+        model.add_value('name', 'Candice')
+        result = model.save(commit=False)
+        expected = [{'name': 'Candice'}, {'name': 'Kendall'}]
+        self.assertListEqual(result, expected)
 
 
 class TestModelWithValidators(unittest.TestCase):

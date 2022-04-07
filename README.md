@@ -423,6 +423,25 @@ Second, a `deep_clean` method is run on the result by taking out out any useless
 
 Finally, all the registered validators (default and custom) are called on the final value.
 
+### Accessing data from the field instance
+
+You can access the data of a declared field directly on the model by calling the field's name. Suppose you have the following model:
+
+```python
+class PlayerModel(Model):
+	name = fields.CharField()
+	surname = fields.CharField()
+
+model = PlayerModel()
+model.add_value('name': 'Shelly-Ann')
+model.add_value('surname', 'Fraiser')
+
+# -> model.name -> ["Shelly-Ann"]
+# -> model.surname -> ["Fraiser"]
+```
+
+By calling `model.name` you will receive an array containing all the values that were registered on in the data container e.g. `["Shelly-Ann"]`.
+
 ### CharField
 
 The CharField represents the normal character element on an HTML page.
