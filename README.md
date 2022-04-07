@@ -410,6 +410,7 @@ Zineb comes with number of preset fields that you can use out of the box:
 * ListField
 * BooleanField
 * Value
+* RelatedModelField
 
 ### How they work
 
@@ -545,6 +546,71 @@ RegexField(r'(\d+)(?<=\€)')
 ### BooleanField
 
 Adds a boolean based value to your model. Uses classic boolean represenations such as `on, off, 1, 0, True, true, False or false` to resolve the value.
+
+### RelatedModelField
+
+This field allows you to create a direct relationship with any existing models of your project. Suppose you have the given models:
+
+```python
+from zineb.models.datastructure import Model
+from zineb.models import fields
+
+class Tournament(Model):
+    location = fields.CharField()
+
+
+class Player(Model):
+    full_name = fields.CharField()
+
+```
+
+You might be tempted when scrapping your data to instantiate both models in order to add values like this:
+
+```python
+class MySpider(Spider):
+    def start(self, soup, **kwargs):
+        player = Player()
+        tournament = Tournament()
+        
+        player.add_value('full_name', 'Kendall Jenner')
+        tournament.add_value('location', 'Paris')
+```
+
+There's lots of code and this is not necessarily the most efficient way for this task. The `RelatedModelField` allows us then to create both a forward and backward relationship between two different models.
+
+The above technique can then be simplified the code below:
+
+```python
+from zineb.models.datastructure import Model
+from zineb.models import fields
+
+class Tournament(Model):
+    location = fields.CharField()
+
+
+class Player(Model):
+    full_name = fields.CharField()
+    tournament = fields.RelatedModelField(Tournament)
+```
+
+Which would then allow us to do the following:
+
+```python
+class MySpider(Spider):
+    def start(self, soup, **kwargs):
+        player = Player()
+        
+        player.add_value('full_name', 'Kendall Jenner')
+        player.tournament.add_value('location', 'Paris')
+
+        player.save(commit=False)
+
+# -> [{"full_name": "Kendall Jenner", "tournament": [{"location": "Paris"}]}]     
+```
+
+It does not keep track of the individual relationship the main model and the related model. In other words, all data from the main model will receive the same data from the related model contrarily to a database foreign key.
+
+This is ideal for creating nested data within your model.
 
 ### Creating your own field
 

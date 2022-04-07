@@ -90,7 +90,19 @@ class DeferredAttribute:
             field_data = instance._data_container.get_container(field_name)
             data[field_name] = field_data
         return data[field_name]
-
+    
+    
+class OneToOneDescriptor(DeferredAttribute):
+    def __get__(self, instance, cls=None):
+        if instance is None:
+            return self
+        
+        data = instance.__dict__
+        field_name = self.field.field_name
+        if field_name not in data:
+            data[field_name] = self.field.related_model
+        return data[field_name]
+    
 
 class Field:
     """Base class for all fields """
@@ -656,3 +668,64 @@ class BooleanField(Field):
                 value = Empty
             result = self._run_validation(value)              
         self._cached_result = self._to_python_object(result)
+
+
+class AutoField(Field):
+    """Tracks the current IDs for a given model"""
+    def __init__(self):
+        self._tracked_id = 0
+        
+    @property
+    def internal_name(self):
+        return 'AutoField'
+        
+    def update_model_options(self, model, field_name):
+        return super().update_model_options(model, field_name)
+        
+    def resolve(self):
+        self._tracked_id = self._tracked_id + 1
+
+
+class RelatedField(Field):
+    is_relationship_field = True
+
+    def __init__(self, model, relation_name=None, null=True):
+        super().__init__(null=null)
+        self.related_model = model
+        self.related_name = relation_name
+        self.reverse_related_name = None
+        self.is_relationship_field = True
+
+    def resolve(self, value):
+        # The related model field should not
+        # be resolving data directly so raise
+        # an error if the user tries something
+        # like model_name.add_value(related_field_name, value)
+        raise Exception(f"A RelatedModel field cannot resolve data directly. Use {self.model._meta.model_name}.{self.field_name}.add_value(...) for example to add a value to the related model.")
+ 
+    
+class RelatedModel(RelatedField):
+    """Creates a relationship between two models. Does not
+    keep track of the relationship between individual data
+    and the related model. In other words, all the data
+    from the related model will be included in the model"""
+    field_descriptor = OneToOneDescriptor
+    
+    def update_model_options(self, model, field_name):
+        self.model = model
+        self.field_name = field_name
+                
+        if self.related_name is None:
+            related_model_name = self.related_model._meta.model_name
+            self.related_name = f"{model._meta.model_name}_{related_model_name}"
+            self.reverse_related_name = f"{related_model_name}_set"
+            # This section we create the attribute that allows
+            # us to get the data from the related model to the
+            # one that created the relation. In that sense, if
+            # we have model1.field where field being the
+            # RelatedModelField, then we should be able to do
+            # model2.field_set in reverse for model1
+            setattr(self.related_model, self.reverse_related_name, self.model)
+        
+        setattr(model, field_name, self.field_descriptor(self))
+        model._meta.add_field(self.field_name, self)

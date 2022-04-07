@@ -2,7 +2,7 @@ import bisect
 import os
 import secrets
 from collections import OrderedDict, defaultdict, namedtuple
-from functools import cached_property
+from functools import cached_property, lru_cache
 
 from zineb.exceptions import FieldError, ModelExistsError
 from zineb.http.responses import HTMLResponse
@@ -13,7 +13,8 @@ from zineb.utils.containers import SmartDict
 from zineb.utils.formatting import LazyFormat
 
 DEFAULT_META_OPTIONS = {
-    'constraints', 'ordering', 'verbose_name'
+    'constraints', 'ordering', 'verbose_name',
+    'include_id_field'
 }
 
 class ModelRegistry:
@@ -55,32 +56,40 @@ class ModelOptions:
         self.verbose_name = model_name.title()
         self.field_names = []
         self.fields_map = OrderedDict()
+        self.related_model_fields = OrderedDict()
         self.parents = set()
         self.ordering = []
         self.constraints = []
+        self.include_id_field = False
         
     def __repr__(self):
         return f'<{self.__class__.__name__} for {self.verbose_name}>'
     
+    @property
+    def has_ordering(self):
+        return self.ordering
+        
     def _check_ordering_fields(self):
         for name in self.ordering:
             if name not in self.field_names:
                 raise FieldError(name, self.field_names)
             
-    @property
-    def has_ordering(self):
-        return self.ordering
-        
     def _checks(self):
         return [
             self._check_ordering_fields
         ]
-        
+                
     def add_field(self, name, field):
         if name in self.fields_map:
             raise ValueError('Field is already present on the model')
+        
+        if getattr(field, 'is_relationship_field', False):
+            # We have to keep track of a two way relationship:
+            # one from model1 -> model2 and the reverse from
+            # model1 <- model2 where model1.field accesses
+            # model1 and model2.field_set accesses model2
+            self.related_model_fields[name] = field
         self.fields_map[name] = field
-
         self.field_names.append(name)
         
         sorted_names = []
@@ -100,6 +109,10 @@ class ModelOptions:
                 "and illegal option '{option}'", name=self.verbose_name, option=name))
             setattr(self, name, value)
             
+        if self.include_id_field:
+            from zineb.models.fields import AutoField
+            self.add_field('id', AutoField())
+            
         # TODO: Alter the check so that if the field
         # starts with a - on the ordering, that it
         # does not create an error
@@ -110,7 +123,7 @@ class ModelOptions:
         try:
             return self.fields_map[name]
         except KeyError:
-            raise FieldError(name, self.field_names)
+            raise FieldError(name, self.field_names, model_name=self.model_name)
         
     def get_ordering(self):
         def remove_prefix(value):
@@ -177,10 +190,11 @@ class Base(type):
         # to the ModelOptions class defining their own
         # way of how they should be integrated
         for name, item in attrs.items():
-            if hasattr(item, 'update_model_options'):
+            if hasattr(item, 'update_model_options'):                
                 item.update_model_options(new_class, name)
             else:
                 setattr(cls, name, item)
+            
                 
         # Get the Meta options class
         if meta_attributes is not None:
@@ -192,6 +206,12 @@ class Base(type):
                     continue
                 declared_options.append((key, value))
             meta.add_meta_options(declared_options)
+            
+            meta
+            
+            # include_id_field = attrs.get('include_id_field', False)
+            # if include_id_field:
+            #     item.update_model_options(cls, 'id')
             
         # declared_fields = set()
         # for key, field_obj in attrs.items():
@@ -300,6 +320,16 @@ class Model(metaclass=Base):
     
     def __init__(self, html_document=None, response=None):
         self._data_container = SmartDict.new_instance(self)
+        
+        # When the class is instantiated, that's where
+        # we finalize the relationships between all the
+        # classes by making sure that they are
+        # correctly instantiated
+        related_model_fields = self._meta.related_model_fields
+        if related_model_fields:
+            for field in related_model_fields.values():
+                if isinstance(field.related_model, type):
+                    setattr(field, 'related_model', field.related_model())
 
         self.html_document = html_document
         self.response = response
@@ -307,10 +337,30 @@ class Model(metaclass=Base):
         self.parser = self._choose_parser()
 
     def __str__(self):
-        return str(self._data_container)
+        # data = self._data_container.as_list()
+        return str(self.resolve_all_related_fields())
 
     def __repr__(self):
         return f"{self.__class__.__name__}"
+    
+    def __getattr__(self, name):
+        id_names = ['id', 'pk']
+        if name in id_names:
+            field = self._meta.get_field('id')
+            return field._tracked_id
+    
+    @lru_cache(maxsize=10)
+    def resolve_all_related_fields(self):
+        # When return the data, we have to map all
+        # the related fields in order to return their
+        new_data = self._data_container.as_list()
+        related_model_fields = self._meta.related_model_fields
+        if related_model_fields:
+            for name, field in related_model_fields.items():
+                related_model_data = field.related_model._data_container.as_list()
+                for item in new_data:
+                    item[name] = related_model_data
+        return new_data
     
     def _get_field_by_name(self, field_name):
         """
@@ -341,7 +391,12 @@ class Model(metaclass=Base):
         cached_values = self._data_container.get_container(field_name)
         cached_values.append(value)
         self._data_container.update(field_name, cached_values)
-
+        
+    def update_id_field(self):
+        if self._meta.include_id_field:
+            field = self._meta.get_field('id')
+            field.resolve()
+    
     def add_calculated_value(self, name, value, *funcs):
         funcs = list(funcs)
 
@@ -384,6 +439,7 @@ class Model(metaclass=Base):
             # use the data of the last function to
             # add the given value to the model
             self.add_value(funcs[-1].field_name, funcs[-1]._cached_data)
+            self.update_id_field()
 
     def add_case(self, value, case):
         """
@@ -397,6 +453,7 @@ class Model(metaclass=Base):
         case.model = self
         field_name, value = case.resolve()
         self.add_value(field_name, value)
+        self.update_id_field()
 
     def add_using_expression(self, name, tag, attrs={}):
         """
@@ -414,6 +471,7 @@ class Model(metaclass=Base):
         obj.resolve(tag_value.string)
         resolved_value = obj._cached_result
         self._data_container.update(name, resolved_value)
+        self.update_id_field()
 
     def add_values(self, **attrs):
         """
@@ -423,6 +481,7 @@ class Model(metaclass=Base):
         """
         self._fields.has_fields(list(attrs.keys()), raise_exception=True)
         self._data_container.update_multiple(**attrs)
+        self.update_id_field()
 
     def add_value(self, name, value):
         """
@@ -455,9 +514,11 @@ class Model(metaclass=Base):
             resolved_value = str(obj._cached_result)
         
         self._data_container.update(name, resolved_value)
+        self.update_id_field()
 
     def full_clean(self, **kwargs):
-        data = self._data_container.as_list()
+        # data = self._data_container.as_list()
+        data = self.resolve_all_related_fields()
         self._cached_resolved_data = data
         self.clean(data)
 
