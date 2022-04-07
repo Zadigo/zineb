@@ -1,10 +1,11 @@
 import bisect
-from importlib import import_module
 import os
 import secrets
 from collections import OrderedDict, defaultdict, namedtuple
 from functools import cached_property, lru_cache
+from importlib import import_module
 
+# from zineb.checks.messages import DEBUG
 from zineb.exceptions import FieldError, ModelExistsError
 from zineb.http.responses import HTMLResponse
 from zineb.models.functions import (Add, Divide, ExtractDay, ExtractMonth,
@@ -359,7 +360,7 @@ class Model(metaclass=Base):
             self._meta.model_name == obj._meta.model_name,
             self._meta.field_names == obj._meta.field_names
         ])
-    
+        
     @lru_cache(maxsize=10)
     def resolve_all_related_fields(self):
         # When return the data, we have to map all
@@ -402,6 +403,20 @@ class Model(metaclass=Base):
         cached_values = self._data_container.get_container(field_name)
         cached_values.append(value)
         self._data_container.update(field_name, cached_values)
+        
+    def _checks_for_fields(self):
+        errors = []
+        for field in self._meta.fields_map.values():
+            errors.extend(field.checks())
+        return errors
+    
+    def checks(self):
+        # This is the main collector for all the errors
+        # that might have occured during the creation
+        # of the the current model
+        return [
+            *self._checks_for_fields()
+        ]
         
     def update_id_field(self):
         if self._meta.include_id_field:

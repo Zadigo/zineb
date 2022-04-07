@@ -4,7 +4,7 @@ import json
 import re
 from typing import Any, Callable, List, Tuple, Union
 from urllib.parse import urlparse
-
+from zineb.checks import messages
 from bs4.element import Tag as beautiful_soup_tag
 from w3lib import html
 from w3lib.url import canonicalize_url, safe_download_url
@@ -115,7 +115,10 @@ class Field:
 
     def __init__(self, max_length=None, null=True, default=None, validators=[]):
         self.model = None
-        self.field_name = None
+        # Use '' instead of None to be able to
+        # test checks when using test comparision
+        # on field_name
+        self.field_name = ''
         
         self.max_length = max_length
         self.null = null
@@ -130,7 +133,7 @@ class Field:
         self.default = default
         self.creation_counter = 0
 
-        # Be careful here, the problem is each
+        # FIXME: Be careful here, the problem is each
         # time the field is used, a validator
         # is added for each new value which
         # creates an array containing the same
@@ -200,6 +203,7 @@ class Field:
             return validator_return_value
         return value
 
+    # TODO: Rename this method
     def _check_emptiness(self, value):
         """
         Deals with true empty values e.g. '' that
@@ -233,6 +237,64 @@ class Field:
         else:
             result = self._to_python_object(clean_value)
             self._cached_result = self._run_validation(result)
+            
+    def checks(self):
+        """Run global checks on the Field. Other specific
+        fields need to implement their other other additional
+        checking method"""
+        def check_field_name():
+            if self.field_name.endswith('__'):
+                return [
+                    messages.ErrorMessage(
+                        f"{self.field_name} is not a valid field name",
+                        obj=self
+                    )
+                ]
+                
+            if '__' in self.field_name:
+                return [
+                    messages.ErrorMessage(
+                        f"{self.field_name} cannot have '__' in the name",
+                        obj=self
+                    )
+                ]
+            
+            if self.field_name == 'pk' or self.field_name == 'id':
+                return [
+                    messages.ErrorMessage(
+                        f"{self.field_name} cannot be 'id' or 'pk' which are reserved keywords",
+                        obj=self
+                    ),
+                ]
+            return []
+        
+        def check_validators():
+            errors = []
+            for validator in self._validators:
+                if not callable(validator):
+                    errors.append(
+                        messages.ErrorMessage(
+                            f'Validators have be a callable',
+                            obj=validator
+                        )
+                    )
+            return errors
+        
+        def check_null():
+            if not isinstance(self.null, bool):
+                return [
+                    messages.ErrorMessage(
+                        f"null attribute should be a boolean",
+                        obj=self
+                    )                    
+                ]
+            return []
+        
+        return [
+            *check_field_name(),
+            *check_validators(),
+            *check_null()
+        ]
                 
     def update_model_options(self, model, field_name):
         self.model = model
@@ -318,7 +380,25 @@ class CharField(Field):
             return value
         
         return self.internal_type(value)
-
+    
+    def checks(self):
+        errors = super().checks()
+        
+        def check_max_length():
+            if self.max_length is not None:
+                if (not isinstance(self.max_length, int) or self.max_length < 0):
+                    return [
+                        messages.ErrorMessage(
+                            "'max_length' attribute should be a positive integer",
+                            obj=self
+                        )
+                    ]
+            return []
+        
+        errors.extend([
+            *check_max_length()
+        ])
+        return errors
 
 class TextField(CharField):
     def __init__(self, max_length: int=500, **kwargs):
@@ -383,8 +463,8 @@ class URLField(CharField):
 
 
 class ImageField(URLField):
-    def __init__(self, max_length: int=None, null: bool=True, validators: list=[], 
-                 download: bool=False, as_thumnail: bool=False, download_to: str=None):
+    def __init__(self, max_length=None, null=True, validators=[], 
+                 download=False, as_thumnail=False, download_to=None):
         valid_extensions = ['jpeg', 'jpg', 'png']
         self._default_validators.extend([model_validators.validate_extension(valid_extensions)])
         
@@ -415,6 +495,8 @@ class ImageField(URLField):
 class IntegerField(Field):
     def __init__(self, default=None, min_value=None, max_value=None, validators=[]):
         super().__init__(default=default, validators=validators)
+        self.min_value = min_value
+        self.max_value = max_value
 
         if min_value is not None:
             self._validators.add(model_validators.MinLengthValidator(min_value))
@@ -444,6 +526,28 @@ class IntegerField(Field):
                 }
                 raise ValidationError(LazyFormat(self._validation_error_message, **attrs))
 
+    def checks(self):
+        errors = super().checks()
+        
+        def check_min_and_max_values():
+            if self.min_value is not None:
+                if not isinstance(self.min_value, int) and self.min_value < 0:
+                    return [
+                        messages.ErrorMessage(f"min_value attribute should be a positive integer")
+                    ]
+            
+            if self.max_value is not None:    
+                if not isinstance(self.max_value, int) and self.max_value < 0:
+                    return [
+                        messages.ErrorMessage(f"max_value attribute should be a positive integer")
+                    ]
+            return []
+        
+        errors.extend([
+            *check_min_and_max_values()
+        ])
+        return errors
+
 
 class DecimalField(IntegerField):    
     @property
@@ -465,6 +569,7 @@ class DateFieldsMixin:
         formats = set(getattr(settings, 'DEFAULT_DATE_FORMATS'))
         formats.add(date_format)
         self.date_formats = formats
+        self.date_format = date_format
 
     def _to_python_object(self, result: str):
         for date_format in self.date_formats:
@@ -483,9 +588,16 @@ class DateFieldsMixin:
         self._datetime_object = d
         return d.date()
 
-    # def _function_resolve(self, func):
-    #     self._datetime_object = getattr(func, '_datetime_object')
-
+    def checks(self):
+        errors = super().checks()
+        if not isinstance(self.date_format, str):
+            errors.extend([
+                messages.ErrorMessage(
+                    f"'date_format' attribute should be a string",
+                    obj=self
+                )
+            ])
+        return errors
 
 class DateField(DateFieldsMixin, Field):
     @property
@@ -538,7 +650,7 @@ class MappingFieldMixin:
     
 
 class ListField(MappingFieldMixin, Field):
-    def __init__(self, default: Any=None, validators: list=[]):
+    def __init__(self, default=None, validators=[]):
         super().__init__(default=default, validators=validators)
         
     @property
@@ -551,7 +663,7 @@ class ListField(MappingFieldMixin, Field):
 
 
 class JsonField(MappingFieldMixin, Field):
-    def __init__(self, default: Any=None, validators: list=[]):
+    def __init__(self, default=None, validators=[]):
         super().__init__(default=default, validators=validators)
         
     @property
@@ -634,7 +746,7 @@ class BooleanField(Field):
     REP_FALSE = ['False', 'false', '0', 
                  'OFF', 'Off', 'off', False]
 
-    def __init__(self, default: Any=None, null: bool=True):
+    def __init__(self, default=None, null=True):
         super().__init__(null=null, default=default)
         
     @property
@@ -677,6 +789,7 @@ class BooleanField(Field):
 class AutoField(Field):
     """Tracks the current IDs for a given model"""
     def __init__(self):
+        super().__init__()
         self._tracked_id = 0
         
     @property
@@ -690,12 +803,30 @@ class AutoField(Field):
 class RelatedField(Field):
     is_relationship_field = True
 
-    def __init__(self, model, relation_name=None, null=True):
-        super().__init__(null=null)
+    def __init__(self, model, relation_name=None):
+        super().__init__()
         self.related_model = model
         self.related_name = relation_name
         self.reverse_related_name = None
         self.is_relationship_field = True
+        
+    def checks(self):
+        errors = super().checks()
+        if self.related_model is None:
+            errors.extend([
+                messages.ErrorMessage(
+                    f"Related model cannot be None"
+                )
+            ])
+            
+        if not isinstance(self.related_name, str):
+            errors.extend([
+                messages.ErrorMessage(
+                    f"Related name must be a string"
+                )
+            ])
+        return errors
+
 
     def resolve(self, value):
         # The related model field should not

@@ -53,29 +53,16 @@
 # m.query(age__contains=14, name__contains='Kendall')
 # print(m)
 
-from zineb.models import fields
-from zineb.models.constraints import CheckConstraint, UniqueConstraint
 from zineb.models.datastructure import Model
-import pickle
-
-class Tournament(Model):
-    location = fields.CharField()
+from zineb.models import fields
 
 
-class Player(Model):
-    full_name = fields.CharField()
-    tournaments = fields.RelatedModel(Tournament, relation_name='some_relation')
+class MyModel(Model):
+    name = fields.CharField(max_length=-1, null=1)
+    pk = fields.IntegerField()
+    surname__ = fields.CharField()
+    created_on = fields.DateField(date_format=True)
     
-model = Player()
-# print(model._meta.include_id_field)
-# model.add_value('full_name', 'Kendall Jenner')
-# model.add_value('full_name', 'Hailey Baldwin')
-# model.tournament.add_value('location', 'Paris')
-# print(model)
-# model.tournaments.add_value('location', 'Paris')
-# model = Tournament()
-# print(model.tournament_set)
-# print(model)
-# print(pickle.dumps(model))
-# print(model == model2)
-print(model.id)
+model = MyModel()
+
+print(model.checks())
