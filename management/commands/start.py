@@ -1,4 +1,4 @@
-from zineb import initialize
+import zineb
 from zineb.checks.core import checks_registry
 from zineb.exceptions import ImproperlyConfiguredError
 from zineb.management.base import ProjectCommand
@@ -11,7 +11,7 @@ class Command(ProjectCommand):
         parser.add_argument('--settings', help='A settings module to use e.g. myproject.settings', action='store_true')
 
     def execute(self, namespace):        
-        initialize.setup()
+        zineb.setup()
         
         checks_registry.run()
         
