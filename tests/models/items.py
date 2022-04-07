@@ -72,3 +72,13 @@ class ComplicatedModel(Model):
     year_of_birth = fields.IntegerField()
     zip_code = fields.IntegerField()
     current_balance = fields.IntegerField()
+
+
+class RelatedModel2(Model):
+    surname = fields.CharField()
+    
+    
+class RelatedModel1(Model):
+    surname = fields.RelatedModel(RelatedModel2)
+    age = fields.IntegerField()
+    

@@ -5,14 +5,12 @@ from zineb.models import fields
 from zineb.models.datastructure import Model, ModelOptions, model_registry
 from zineb.models.functions import (Add, Divide, ExtractDay, ExtractMonth,
                                     ExtractYear, Multiply, Substract, When)
-from zineb.tests.models.items import (BareModel, CalculatedModel, DateModel,
-                                      ModelWithMeta, ModelWithValidator,
-                                      SimpleModel, ComplicatedModel)
+from zineb.tests.models import items
 
 
 class TestModel(unittest.TestCase):
     def setUp(self):
-        self.model = SimpleModel()
+        self.model = items.SimpleModel()
 
     def test_can_add_value(self):
         self.model.add_value('date_of_birth', '1-1-2002')
@@ -34,7 +32,7 @@ class TestModel(unittest.TestCase):
         # iteration if the user instanciates the model
         # repeteadly in a loop
         for i in range(1, 4):
-            model = SimpleModel()
+            model = items.SimpleModel()
             model.add_value('name', f'Kendall{i}')
         expected = {
             'age': [None],
@@ -107,7 +105,7 @@ class TestModel(unittest.TestCase):
                 self.assertTrue('date_of_birth' in item)
                 
     def test_adding_values(self):
-        model = ComplicatedModel()
+        model = items.ComplicatedModel()
         model.add_value('name', 'Kendall Jenner')
         model.add_value('year_of_birth', ExtractYear('1992-10-4'))
         model.add_case(59000, When('zip_code__eq=59000', 59))
@@ -117,16 +115,41 @@ class TestModel(unittest.TestCase):
         self.assertListEqual(result, expected)
         
     def test_sorting(self):
-        model = ModelWithMeta()
+        model = items.ModelWithMeta()
         model.add_value('name', 'Kendall')
         model.add_value('name', 'Candice')
         result = model.save(commit=False)
         expected = [{'name': 'Candice'}, {'name': 'Kendall'}]
         self.assertListEqual(result, expected)
+    
+    def test_relationships(self):
+        # 1. We should be able to get the related
+        # model as an instance: forward relationship
+        model = items.RelatedModel1()
+        model.add_value('age', 24)
+        self.assertIsInstance(model.surname, items.RelatedModel2)
+        
+        # 2. We should be able to add values to the
+        # related model
+        model.surname.add_value('surname', 'Kendall')
+        self.assertListEqual(model.surname._data_container.as_list(), [{'surname': 'Kendall'}])
+        
+        # 3. The final result should be the result of the
+        # main model data with the result of the related
+        # model data nested in the data of the main model
+        # e.g. [{...: ..., ...: {...}}]
+        result = model.save(commit=False)
+        self.assertListEqual(result, [{'age': 24, 'surname': [{'surname': 'Kendall'}]}])
+        
+        # We SHOULD NOT be able to add values
+        # to a RelatedModel field directly on
+        # on main model e.g. model.add_value('name', 'Kendall')
+        # but through model.name.add_value(...)
+        
         
 class TestModelWithValidators(unittest.TestCase):
     def setUp(self):
-        self.model = ModelWithValidator()
+        self.model = items.ModelWithValidator()
 
     def test_field_with_validation(self):
         self.model.add_value('height', 156)
