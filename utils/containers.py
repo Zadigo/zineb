@@ -19,7 +19,7 @@ class SmartDict:
 
     current_updated_fields = set()
 
-    def __init__(self, *fields):
+    def __init__(self, *fields, order_by=[]):
         self.model = None
         self.values = defaultdict(list)
 
@@ -29,6 +29,7 @@ class SmartDict:
         self._last_created_row = []
         
         self._id = 0
+        self.order_by = order_by
 
     def __repr__(self):
         return self.values
@@ -119,13 +120,33 @@ class SmartDict:
             self.update(key, value)
             
     def apply_sort(self, values):
-        if self.model._meta.has_ordering:
+        if self.model is not None:
+            has_ordering = self.model._meta.has_ordering
+            ordering = self.model._meta.get_ordering()
+            ordering_booleans = ordering.booleans
+        else:
+            has_ordering = len(self.order_by) > 0
+            # For the ordering to work, we need a list
+            # of dicts as [{field_name: True}, ...].
+            # The boolean determines whether the sort
+            # is ascending or descending.
+            for item in self.order_by:
+                if not isinstance(item, (list, tuple)):
+                    raise ValueError('Ordering method should be either an array or a tuple')  
+                
+                _, value = item
+                if not isinstance(value, bool):
+                    raise TypeError('Ordering direction for needs to be a boolean')
+                        
+            ordering_booleans = self.order_by
+            
+        # This requires a list of dicts
+        if has_ordering:
             def multisort(values, sorting_methods):
                 for key, reverse in reversed(sorting_methods):
                     values.sort(key=itemgetter(key), reverse=reverse)
                     return values
-            ordering = self.model._meta.get_ordering()
-            return multisort(values, ordering.booleans)
+            return multisort(values, ordering_booleans)
         return values
 
     def as_values(self):
@@ -137,7 +158,7 @@ class SmartDict:
 
     def as_list(self, include_index=False):
         """
-        Return a collection of dictionnaries
+        Return a sorted collection of dictionnaries
         e.g. [{a: 1}, {b: 2}, ...]
         """
         values = remap_to_dict(self.as_values())

@@ -34,7 +34,7 @@ class TestSmartDict(unittest.TestCase):
 
     def test_can_save_without_commit(self):
         self.container.update('name', 'Kendall')
-        result = self.container.save(commit=False)
+        result = self.container.execute_save(commit=False)
         # NOTE: Technically we should receive a dict
         # but we're also using JSON dump, this returns
         # string
@@ -50,10 +50,23 @@ class TestSmartDict(unittest.TestCase):
         self.assertListEqual(result, [['name', 'age'], ['Kendall', None]])
         
     def test_elements_sorting(self):
+        # True = Descending
+        # False = Ascending
         fields = ['name', 'age']
-        container = SmartDict(*fields)
+        container = SmartDict(*fields, order_by=[['name', False]])
         
-
-
+        data = [{'name': 'Kendall', 'age': 20}, {'name': 'Candice', 'age': 26}]
+        
+        result = container.apply_sort(data)
+        self.assertListEqual(result, [{'name': 'Candice', 'age': 26}, {'name': 'Kendall', 'age': 20}])
+        
+        container.order_by = [['name', False], ['age', True]]
+        result = container.apply_sort(data)
+        self.assertListEqual(result, [{'name': 'Candice', 'age': 26}, {'name': 'Kendall', 'age': 20}])
+        
+        container.order_by = [['age', False]]
+        result = container.apply_sort(data)
+        self.assertListEqual(result, [{'name': 'Kendall', 'age': 20}, {'name': 'Candice', 'age': 26}])
+        
 if __name__ == '__main__':
     unittest.main()
