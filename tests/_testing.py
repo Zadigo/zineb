@@ -56,7 +56,7 @@
 from zineb.models import fields
 from zineb.models.constraints import CheckConstraint, UniqueConstraint
 from zineb.models.datastructure import Model
-
+import pickle
 
 class Tournament(Model):
     location = fields.CharField()
@@ -66,17 +66,16 @@ class Player(Model):
     full_name = fields.CharField()
     tournaments = fields.RelatedModel(Tournament, relation_name='some_relation')
     
-    class Meta:
-        include_id_field = True
-
 model = Player()
 # print(model._meta.include_id_field)
-model.add_value('full_name', 'Kendall Jenner')
-model.add_value('full_name', 'Hailey Baldwin')
-print(model.id)
+# model.add_value('full_name', 'Kendall Jenner')
+# model.add_value('full_name', 'Hailey Baldwin')
 # model.tournament.add_value('location', 'Paris')
 # print(model)
 # model.tournaments.add_value('location', 'Paris')
 # model = Tournament()
 # print(model.tournament_set)
 # print(model)
+# print(pickle.dumps(model))
+# print(model == model2)
+print(model.id)

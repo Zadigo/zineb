@@ -128,6 +128,7 @@ class Field:
             )
 
         self.default = default
+        self.creation_counter = 0
 
         # Be careful here, the problem is each
         # time the field is used, a validator
@@ -139,6 +140,9 @@ class Field:
 
         if not self.null:
             self._validators.add(model_validators.validate_is_not_null)
+            
+    def __hash__(self):
+        return hash((self.model._meta.verbose_name, self.field_name))
 
     @property 
     def internal_type(self):
@@ -678,10 +682,7 @@ class AutoField(Field):
     @property
     def internal_name(self):
         return 'AutoField'
-        
-    def update_model_options(self, model, field_name):
-        return super().update_model_options(model, field_name)
-        
+                
     def resolve(self):
         self._tracked_id = self._tracked_id + 1
 

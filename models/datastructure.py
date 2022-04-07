@@ -1,4 +1,5 @@
 import bisect
+from importlib import import_module
 import os
 import secrets
 from collections import OrderedDict, defaultdict, namedtuple
@@ -55,12 +56,11 @@ class ModelOptions:
         self.model_name = model_name.lower()
         self.verbose_name = model_name.title()
         self.field_names = []
-        self.fields_map = OrderedDict()
-        self.related_model_fields = OrderedDict()
+        self.fields_map = {}
+        self.related_model_fields = {}
         self.parents = set()
         self.ordering = []
         self.constraints = []
-        self.include_id_field = False
         
     def __repr__(self):
         return f'<{self.__class__.__name__} for {self.verbose_name}>'
@@ -78,7 +78,13 @@ class ModelOptions:
         return [
             self._check_ordering_fields
         ]
-                
+        
+    def _prepare(self):
+        # Include the ID field by default for functions
+        # or definitions that might require using this
+        from zineb.models.fields import AutoField
+        self.add_field('id', AutoField())
+
     def add_field(self, name, field):
         if name in self.fields_map:
             raise ValueError('Field is already present on the model')
@@ -92,6 +98,8 @@ class ModelOptions:
         self.fields_map[name] = field
         self.field_names.append(name)
         
+        field.creation_counter = len(self.field_names) - 1
+        
         sorted_names = []
         for name in self.field_names:
             bisect.insort(sorted_names, name)
@@ -101,17 +109,14 @@ class ModelOptions:
         for name, items in fields:
             field, parent = items
             self.parents[parent] = field
-        
+
     def add_meta_options(self, options):
         for name, value in options:
             if name not in DEFAULT_META_OPTIONS:
                 raise ValueError(LazyFormat("Meta for model '{name}' received "
                 "and illegal option '{option}'", name=self.verbose_name, option=name))
             setattr(self, name, value)
-            
-        if self.include_id_field:
-            from zineb.models.fields import AutoField
-            self.add_field('id', AutoField())
+        
             
         # TODO: Alter the check so that if the field
         # starts with a - on the ordering, that it
@@ -206,19 +211,7 @@ class Base(type):
                     continue
                 declared_options.append((key, value))
             meta.add_meta_options(declared_options)
-            
-            meta
-            
-            # include_id_field = attrs.get('include_id_field', False)
-            # if include_id_field:
-            #     item.update_model_options(cls, 'id')
-            
-        # declared_fields = set()
-        # for key, field_obj in attrs.items():
-        #     if isinstance(field_obj, Field):
-        #         field_obj._bind(key)
-        #         declared_fields.add((key, field_obj))
-
+                        
         # # If the model is subclassed, resolve the MRO
         # # to get all the fields from the superclass
         # # [...] also maybe create direct relationship
@@ -288,10 +281,11 @@ class Base(type):
         #     # on the new model and its meta
         #     model_registry.add(name, new_class)
         #     return new_class
-        new_class._prepare_model()
+        new_class._prepare()
         return new_class
     
-    def _prepare_model(cls):
+    def _prepare(cls):
+        cls._meta._prepare()
         model_registry.add(cls.__name__, cls)
 
 
@@ -343,11 +337,28 @@ class Model(metaclass=Base):
     def __repr__(self):
         return f"{self.__class__.__name__}"
     
+    def __hash__(self):
+        attrs = [self._meta.verbose_name, len(self._meta.field_names)]
+        if self._meta.include_id_field:
+            attrs.append(self.id)
+        return hash(tuple(attrs))
+    
     def __getattr__(self, name):
         id_names = ['id', 'pk']
         if name in id_names:
             field = self._meta.get_field('id')
             return field._tracked_id
+        
+    def __reduce__(self):
+        return self.__class__, (self._meta.verbose_name,), {}
+    
+    def __eq__(self, obj):
+        if not isinstance(obj, Model):
+            raise ValueError('Object to compare is not a Model')
+        return all([
+            self._meta.model_name == obj._meta.model_name,
+            self._meta.field_names == obj._meta.field_names
+        ])
     
     @lru_cache(maxsize=10)
     def resolve_all_related_fields(self):
