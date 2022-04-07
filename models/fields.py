@@ -73,9 +73,29 @@ class Value:
         return CharField()
 
 
+class DeferredAttribute:
+    """A base class for deferred-loading of the data
+    from the data container of a model field"""
+
+    def __init__(self, field):
+        self.field = field
+
+    def __get__(self, instance, cls=None):
+        if instance is None:
+            return self
+
+        data = instance.__dict__
+        field_name = self.field.field_name
+        if field_name not in data:
+            field_data = instance._data_container.get_container(field_name)
+            data[field_name] = field_data
+        return data[field_name]
+
+
 class Field:
     """Base class for all fields """
 
+    field_descriptor = DeferredAttribute
     _cached_result = None
     _default_validators = []
     _validation_error_message = ("The value '{value}' does not match the type provided "
@@ -202,6 +222,12 @@ class Field:
         self.model = model
         self.field_name = field_name
         model._meta.add_field(self.field_name, self)
+        # Since we removed the original declared field
+        # on the model, we replace it with a descriptor
+        # that will allow the user to directly load the
+        # field's data from the data container directly
+        # as opposed to returning the Field class
+        setattr(model, self.field_name, self.field_descriptor(self))
             
     def resolve(self, value):
         """
@@ -630,21 +656,3 @@ class BooleanField(Field):
                 value = Empty
             result = self._run_validation(value)              
         self._cached_result = self._to_python_object(result)
-
-
-class DeferredAttribute:
-    """A base class for deferred-loadign of the data
-    of a model field"""
-    
-    def __init__(self, field):
-        self.field = field
-
-    def __get__(self, instance, cls=None):
-        if instance is None:
-            return self
-        
-        data = instance.__dict__
-        field_name = self.field.name
-        if field_name not in data:
-            data[field_name] = None
-        return data[field_name]

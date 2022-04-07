@@ -75,16 +75,4 @@ model.add_value('name', 'Kendall')
 model.add_value('surname', 'Jenner')
 model.add_value('name', 'Hailey')
 model.add_value('surname', 'Baldwin')
-model.save(commit=False)
-
-# from operator import attrgetter, itemgetter
-
-
-# c = [{'name': 'Kendall', 'age': 21}, {'name': 'Noemie', 'age': 14}]
-# def multisort(xs, specs):
-#     for key, reverse in reversed(specs):
-#         xs.sort(key=itemgetter(key), reverse=reverse)
-#         return xs
-
-
-# print(multisort(c, [['name', True], ['age', True]]))
+model.name

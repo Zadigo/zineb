@@ -146,7 +146,17 @@ class Base(type):
             return super_new(cls, name, bases, attrs)
 
         meta_attributes = attrs.pop('Meta', None)
-        new_class = super_new(cls, name, bases, attrs)
+        
+        # "Remove" all the declared fields on the model.
+        # They will be replaced later on with descriptor
+        # that wil load the fields true value directly
+        # from the data container
+        new_attrs = {}
+        for item_name, value in attrs.items():
+            if not hasattr(value, 'update_model_options'):
+                new_attrs[item_name] = value
+                
+        new_class = super_new(cls, name, bases, new_attrs)
 
         meta = ModelOptions(new_class, name)
         setattr(new_class, '_meta', meta)
