@@ -17,8 +17,7 @@ SPIDERS = []
 
 
 # Specifies whether the models should
-# loaded on project startup. This only
-# works if the project is not standalone
+# loaded on project startup
 
 LOAD_MODELS = False
 
@@ -47,6 +46,13 @@ LOG_FILE_NAME = 'zineb.log'
 LOG_FORMAT = '%(asctime)s [%(name)s] %(levelname)s: %(message)s'
 
 LOG_LEVEL = logging.DEBUG
+
+# LOGGING = {
+#     'name': 'zineb.log',
+#     'path': None,
+#     'format': '%(asctime)s [%(name)s] %(levelname)s: %(message)s',
+#     'level': logging.DEBUG,
+# }
 
 
 # A set of codes that will be executed before or after

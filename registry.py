@@ -6,11 +6,15 @@ from functools import lru_cache
 from importlib import import_module
 from pathlib import Path
 
+import pytz
+
 from zineb.exceptions import RequiresProjectError, SpiderExistsError
 from zineb.logger import logger
 from zineb.middleware import Middleware
 
 SPIDERS_MODULE = 'spiders'
+
+MODELS_MODULE = 'models'
 
 ENVIRONMENT_VARIABLE = 'ZINEB_SPIDER_PROJECT'
 
@@ -30,6 +34,7 @@ class SpiderConfig:
 
     def __init__(self, name, spiders_module):
         self.name = name
+        self.dotted_path = None
         self.registry = None
         self.spider_class = getattr(spiders_module, name, None)
         
@@ -68,7 +73,31 @@ class SpiderConfig:
         """Runs the spider by calling the spider class
         which in return calls "start" method on the
         spider via the __init__ method"""
+        if self.spider_class is None:
+            raise ValueError(f'Could not start spider in project: {self.dotted_path}')
         self.spider_class()
+        
+    # def load_models(self):
+    #     try:
+    #         models_module = import_module(f'{self.dotted_path}.{MODELS_MODULE}')
+    #     except:
+    #         # If we could not get a module for the
+    #         # models just continue
+    #         models_module = None
+    #     else:
+    #         from zineb.models.datastructure import Model
+            
+    #         if models_module is not None:
+    #             all_models = inspect.getmembers(models_module, inspect.isclass)
+    #             models = filter(lambda x: isinstance(x[1], Model), all_models)
+                
+    #             for name, model in models:
+    #                 self.all_models[name] = model
+                    
+    #             for spider in self.spiders.values():
+    #                 descriptor = ModelsDescriptor()
+    #                 descriptor.models = self.all_models
+    #                 setattr(spider, 'models', descriptor)
     
 
 class MasterRegistry:
@@ -117,39 +146,30 @@ class MasterRegistry:
             f"If you forgot to register {spider_name}, check your settings file."), stack_info=True)
             raise SpiderExistsError(spider_name)
         
-    def preconfigure_project(self, dotted_path, settings):        
-        setattr(settings, 'LOG_FILE_NAME', Path.joinpath(self.absolute_path, settings.LOG_FILE_NAME))
+    def preconfigure_project(self, dotted_path, settings):
+        # Replace the log file name with the full path
+        # to the project's log file 
+        # setattr(settings, 'LOG_FILE_NAME', Path.joinpath(self.absolute_path, settings.LOG_FILE_NAME))
+        setattr(settings, 'LOG_FILE_NAME', settings.PROJECT_PATH.joinpath(settings.LOG_FILE_NAME))
 
         # If the user did not explicitly set the path
         # to a MEDIA_FOLDER, we will be doing it
         # autmatically here
         media_folder = getattr(settings, 'MEDIA_FOLDER')
         if media_folder is None:
-            setattr(settings, 'MEDIA_FOLDER', Path.joinpath(self.absolute_path, 'media'))
-            
-        if settings.LOAD_MODELS:
-            try:
-                models_module = import_module(f'{dotted_path}.models')
-            except:
-                # If we could not get a module for the
-                # models just continue
-                models_module = None
-            else:
-                pass
-                # from zineb.models.datastructure import Model
+            # setattr(settings, 'MEDIA_FOLDER', Path.joinpath(self.absolute_path, 'media'))
+            setattr(settings, 'MEDIA_FOLDER', settings.PROJECT_PATH.joinpath('media'))
                 
-                # if models_module is not None:
-                #     all_models = inspect.getmembers(models_module, inspect.isclass)
-                #     models = filter(lambda x: isinstance(x[1], Model), all_models)
+        try:
+            # Change TIME_ZONE to a pytz usable 
+            # instance for the project
+            instance = pytz.timezone(settings.TIME_ZONE)
+        except pytz.exceptions.UnknownTimeZoneError:
+            raise ValueError(f'Timezone specified in TIME_ZONE '
+                'does not exist. Got: {settings.TIME_ZONE}')
+        else:
+            settings.TIME_ZONE = instance
                     
-                #     for name, model in models:
-                #         self.all_models[name] = model
-                        
-                #     for spider in self.spiders.values():
-                #         descriptor = ModelsDescriptor()
-                #         descriptor.models = self.all_models
-                #         setattr(spider, 'models', descriptor)
-                        
         self.is_ready = True
         
         # TODO: Load all the middlewares once everything
@@ -162,10 +182,9 @@ class MasterRegistry:
                         
     def populate(self):
         """
-        Definition that populates the registry
-        with the spiders that were registered
-        in the `SPIDERS` variable in the
-        settings.py file
+        Populates the registry with the spiders 
+        that were registered in the `SPIDERS` variable 
+        in the settings.py file
         """        
         dotted_path = os.environ.get(ENVIRONMENT_VARIABLE, None)
         
@@ -190,18 +209,24 @@ class MasterRegistry:
         setattr(settings, 'PROJECT_PATH', self.absolute_path)
         
         try:
+            # Try to load the spiders submodule specifically
+            # to ensure that this is a zineb project
             spiders_module = import_module(f'{dotted_path}.{SPIDERS_MODULE}')
         except:
             raise ImportError("Failed to load the project's spiders submodule")
         
-
+        # Check that there are class elements that we can used
+        # and that ar subclassed by Spider that we can use
         elements = inspect.getmembers(spiders_module, predicate=inspect.isclass)
+        
         valid_spiders = list(filter(lambda x: issubclass(x[1], Spider), elements))
         valid_spider_names = list(map(lambda x: x[0], valid_spiders))
         
         for name in settings.SPIDERS:
             if name not in valid_spider_names:
-                raise ValueError(f'You are trying to trying to use a class that is not a subclass of Zineb. Got: {name}')
+                raise ValueError(f'You are trying to trying to use a class that '
+                    'is not a subclass of Zineb. Got: {name}')
+                
             instance = SpiderConfig.create(name, spiders_module)
             self.spiders[name] = instance
             instance.regitry = self
@@ -213,7 +238,6 @@ class MasterRegistry:
 
         # Cache the registry in the settings
         # file for performance reasons
-        # setattr(settings, 'REGISTRY', self)
         settings['REGISTRY'] = self
         
         # TODO: Send a signal when the spider
