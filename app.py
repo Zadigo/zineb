@@ -2,6 +2,7 @@ import os
 from io import StringIO
 
 from zineb.logger import logger
+from zineb.registry import registry
 from zineb.settings import settings
 from zineb.utils.formatting import LazyFormat
 from zineb.utils.iteration import RequestQueue
@@ -91,6 +92,11 @@ class Spider(metaclass=BaseSpider):
 
     def __repr__(self):
         return f"{self.__class__.__name__}(requests={len(self.meta.prepared_requests)})"
+    
+    def __getattribute__(self, name):
+        if name == 'storage':
+            return registry.get_default_storage()
+        return super().__getattribute__(name)
 
     def _resolve_requests(self):
         """

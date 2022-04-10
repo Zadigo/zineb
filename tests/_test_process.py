@@ -27,3 +27,14 @@
 #     e.resolve()
 
 # print(e[0].attrs)
+
+
+import subprocess
+from zineb import setup
+import os
+
+os.environ.setdefault('ZINEB_SPIDER_PROJECT', 'tests.testproject')
+setup()
+
+from zineb.registry import registry
+registry.get_default_storage()
