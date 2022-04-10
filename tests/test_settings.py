@@ -98,6 +98,7 @@ class TestLazySettings(unittest.TestCase):
 
     def test_can_be_reloaded(self):
         result = self.settings(MYSETTING='Kendall')
+        self.assertEqual(result.MYSETTING, 'Kendall')
 
     def test_can_change(self):
         self.settings.PROJECT_PATH = 'some/path'

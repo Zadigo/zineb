@@ -137,10 +137,7 @@ class Settings:
         for candidate in candidates:
             sub_settings[candidate] = self.__dict__[candidate]
         return sub_settings
-            
-
-settings = Settings()
-
+    
 
 class LazySettings(LazyObject):
     """
@@ -158,4 +155,4 @@ class LazySettings(LazyObject):
 #  settings instance above. There seems to be
 # an issue in how the items are set on the
 # lazy_settings instance
-lazy_settings = LazySettings() 
+settings = LazySettings() 
