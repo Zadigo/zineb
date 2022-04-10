@@ -788,8 +788,9 @@ class BooleanField(Field):
 
 class AutoField(Field):
     """Tracks the current IDs for a given model"""
-    def __init__(self):
+    def __init__(self, auto_created=False):
         super().__init__()
+        self.auto_created = auto_created
         self._tracked_id = 0
         
     @property

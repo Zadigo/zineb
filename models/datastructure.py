@@ -1,11 +1,9 @@
 import bisect
 import os
 import secrets
-from collections import OrderedDict, defaultdict, namedtuple
+from collections import defaultdict, namedtuple
 from functools import cached_property, lru_cache
-from importlib import import_module
 
-# from zineb.checks.messages import DEBUG
 from zineb.exceptions import FieldError, ModelExistsError
 from zineb.http.responses import HTMLResponse
 from zineb.models.functions import (Add, Divide, ExtractDay, ExtractMonth,
@@ -15,8 +13,7 @@ from zineb.utils.containers import SmartDict
 from zineb.utils.formatting import LazyFormat
 
 DEFAULT_META_OPTIONS = {
-    'constraints', 'ordering', 'verbose_name',
-    'include_id_field'
+    'constraints', 'ordering', 'verbose_name'
 }
 
 class ModelRegistry:
@@ -62,6 +59,7 @@ class ModelOptions:
         self.parents = set()
         self.ordering = []
         self.constraints = []
+        self.initial_model_meta = None
         
     def __repr__(self):
         return f'<{self.__class__.__name__} for {self.verbose_name}>'
@@ -82,13 +80,21 @@ class ModelOptions:
         
     def _prepare(self):
         # Include the ID field by default for functions
-        # or definitions that might require using this
+        # or definitions that might require using this.
+        # If we have not inherited from an ID field
+        # skip this process
         from zineb.models.fields import AutoField
-        self.add_field('id', AutoField())
+        self.set_field_names()
+        if not self.has_field('id'):
+            auto_field = AutoField(auto_created=True)
+            self.add_field('id', auto_field)
+        
+    def has_field(self, name):
+        return name in self.field_names
 
     def add_field(self, name, field):
         if name in self.fields_map:
-            raise ValueError('Field is already present on the model')
+            raise ValueError(f"Field '{name}' is already present on the model '{self.model_name}'")
         
         if getattr(field, 'is_relationship_field', False):
             # We have to keep track of a two way relationship:
@@ -100,16 +106,19 @@ class ModelOptions:
         self.field_names.append(name)
         
         field.creation_counter = len(self.field_names) - 1
+        self.set_field_names()
         
+    def set_field_names(self):
         sorted_names = []
-        for name in self.field_names:
+        names = self.fields_map.keys()
+        for name in names:
             bisect.insort(sorted_names, name)
         self.field_names = sorted_names
         
-    def update_fields(self, fields):
-        for name, items in fields:
-            field, parent = items
-            self.parents[parent] = field
+    # def update_fields(self, fields):
+    #     for name, items in fields:
+    #         field, parent = items
+    #         self.parents[parent] = field
 
     def add_meta_options(self, options):
         for name, value in options:
@@ -167,7 +176,7 @@ class Base(type):
         meta_attributes = attrs.pop('Meta', None)
         
         # "Remove" all the declared fields on the model.
-        # They will be replaced later on with descriptor
+        # They will be replaced later on with a descriptor
         # that wil load the fields true value directly
         # from the data container
         new_attrs = {}
@@ -178,6 +187,7 @@ class Base(type):
         new_class = super_new(cls, name, bases, new_attrs)
 
         meta = ModelOptions(new_class, name)
+        meta.initial_model_meta = meta_attributes
         setattr(new_class, '_meta', meta)
         
         # If the model is subclassed, resolve the MRO
@@ -186,9 +196,11 @@ class Base(type):
         for parent in bases:
             if hasattr(parent, '_meta'):
                 fields = parent._meta.fields_map
+                meta.parents.add(parent)
+                
                 for name, field in fields.items():
-                    super_class_fields.append({name: (field, parent)})
-                    
+                    super_class_fields.append((name, field, parent))
+                                
         # Get all the declared items on the model
         # regardless whether they are fields or not
         # and if they have update_model_options function
@@ -200,8 +212,28 @@ class Base(type):
                 item.update_model_options(new_class, name)
             else:
                 setattr(cls, name, item)
-            
                 
+        # Now that we've resolved all fields
+        # from the model itself, deal with
+        # those present on the parent
+        if super_class_fields:
+            for item in super_class_fields:
+                field_name, field, parent = item
+
+                if meta.has_field(field_name):
+                    continue
+                                
+                meta.fields_map[field_name] = field
+                
+            # If the superclass has a Meta that the user
+            # has configured on the superclass, we have to
+            # inherit from it and copy the values in the
+            # subclass's meta
+            if parent._meta.initial_model_meta is not None:
+                meta_attributes_to_update = {'ordering', 'constraints', 'initial_model_meta'}
+                for attribute in meta_attributes_to_update:
+                    setattr(meta, attribute, getattr(parent, attribute))
+            
         # Get the Meta options class
         if meta_attributes is not None:
             meta_dict = meta_attributes.__dict__
@@ -213,75 +245,6 @@ class Base(type):
                 declared_options.append((key, value))
             meta.add_meta_options(declared_options)
                         
-        # # If the model is subclassed, resolve the MRO
-        # # to get all the fields from the superclass
-        # # [...] also maybe create direct relationship
-        # # with the parent model via a ForeignKey
-        # for parent in bases:
-        #     if hasattr(parent, '_meta'):
-        #         fields = getattr(getattr(parent, '_meta'), 'cached_fields', {})
-        #         for key, field_obj in fields.items():
-        #             # If the field is registered twice (on the
-        #             # superclass and on the subclass), use the
-        #             # subclass version of the field
-        #             if field_obj not in declared_fields:
-        #                 declared_fields.add((key, field_obj))
-        #             # Create the map that will allow us to register
-        #             # and use ForeignKey type fields in forward and
-        #             # backward relationships
-        #             # meta.forward_fields_map.update({key: field_obj})
-        #         meta.parents.append(parent)
-
-        # meta.model_name = name
-        # if declared_fields:
-        #     meta.cached_fields = OrderedDict(declared_fields)
-
-        # # if 'Meta' in attrs:
-        # #     meta_dict = attrs.pop('Meta').__dict__
-        # #     non_authorized_options = []
-
-        # #     def check_option(item):
-        # #         key, _ = item
-        # #         if key.startswith('__'):
-        # #             return False
-
-        # #         if key in meta.authorized_options:
-        # #             return True
-                
-        # #         non_authorized_options.append(key)
-        # #         return False
-
-        # #     options = list(filter(check_option, meta_dict.items()))
-        # #     if non_authorized_options:
-        # #         raise ValueError("Meta received an illegal "
-        # #         f"option. Valid options are: {', '.join(meta.authorized_options)}")
-        # #     default_options.extend(options)
-        # #     meta = meta(default_options)
-            
-        # # attrs['_meta'] = meta
-
-        # if declared_fields:
-        #     # is_template_model = False
-        #     # if meta.has_option('template_model'):
-        #     #     is_template_model = meta.get_option_by_name('template_model')
-        #     # # The parent model is just a template,
-        #     # # we'll not create any ForeignKey
-        #     # # relationship to the parent
-        #     # if not is_template_model:
-        #     #     relationships = [
-        #     #         (f"{parent}_rel", ForeignKey(new_class, parent)) 
-        #     #             for parent in new_class._meta.parents
-        #     #     ]
-        #     #     meta.cached_fields.update(relationship for relationship in relationships)
-
-        #     # That's where is explicitely register
-        #     # models that have declared fields and
-        #     # that are actually user created models -;
-        #     # this might seem odd to implement this block
-        #     # but it allows us to do additional things on
-        #     # on the new model and its meta
-        #     model_registry.add(name, new_class)
-        #     return new_class
         new_class._prepare()
         return new_class
     
@@ -339,9 +302,7 @@ class Model(metaclass=Base):
         return f"{self.__class__.__name__}"
     
     def __hash__(self):
-        attrs = [self._meta.verbose_name, len(self._meta.field_names)]
-        if self._meta.include_id_field:
-            attrs.append(self.id)
+        attrs = [self._meta.verbose_name, len(self._meta.field_names), self.id]
         return hash(tuple(attrs))
     
     def __getattr__(self, name):
@@ -419,9 +380,10 @@ class Model(metaclass=Base):
         ]
         
     def update_id_field(self):
-        if self._meta.include_id_field:
-            field = self._meta.get_field('id')
-            field.resolve()
+        # TODO: Maybe move this to the
+        # options class
+        field = self._meta.get_field('id')
+        field.resolve()
     
     def add_calculated_value(self, name, value, *funcs):
         funcs = list(funcs)

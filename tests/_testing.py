@@ -66,3 +66,22 @@
 # model = MyModel()
 
 # print(model.checks())
+
+
+from zineb.models.datastructure import Model
+from zineb.models import fields
+
+class ModelA(Model):
+    name = fields.CharField()
+    surname = fields.CharField()
+    
+
+class ModelB(ModelA):
+    name = fields.CharField()
+    
+    
+model = ModelB()
+model.add_value('name', 'Kendall')
+model.add_value('surname', 'Jenner')
+model.add_value('name', 'Kylie')
+print(model)
