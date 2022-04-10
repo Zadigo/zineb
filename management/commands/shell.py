@@ -53,10 +53,10 @@ class Shell:
                 pass
 
     def start(self, url, use_settings=None):
-        from zineb.settings import settings as global_settings
+        from zineb.settings import settings
 
         request = HTTPRequest(url)
-        # request.project_settings = use_settings or global_settings
+        # request.project_settings = use_settings or settings
         request._send()
 
         # When the request fails, the html_response
@@ -77,7 +77,7 @@ class Shell:
             self.shell_variables.setdefault('table', base_extractors.TableExtractor)
 
             # Pass the project setttings
-            self.shell_variables.setdefault('settings', global_settings)
+            self.shell_variables.setdefault('settings', settings)
             self._start_consoles()
         else:
             logger.instance.error("Shells failed to start because the response "
@@ -87,13 +87,13 @@ class Shell:
         import os
 
         from bs4 import BeautifulSoup
-        from zineb.settings import settings as global_settings
+        from zineb.settings import settings as settings
 
-        with open(os.path.join(global_settings.PROJECT_PATH, filepath), mode='r') as f:
+        with open(os.path.join(settings.PROJECT_PATH, filepath), mode='r') as f:
             soup = BeautifulSoup(f, 'html.parser')
 
         self.shell_variables.setdefault('soup', soup)
-        self.shell_variables.setdefault('settings', global_settings)
+        self.shell_variables.setdefault('settings', settings)
 
         self._start_consoles()
 

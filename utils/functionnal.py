@@ -13,8 +13,8 @@ def create_proxy_function(func):
 class LazyObject:
     cached_object = None
     
-    def __init__(self):
-        self.cached_object = None
+    # def __init__(self):
+    #     self.cached_object = None
 
     def __getattr__(self, name):
         if self.cached_object is None:
@@ -44,6 +44,7 @@ class LazyObject:
         if self.cached_object is None:
             self._init_object()
         self.cached_object(**kwargs)
+        return self.cached_object
 
     __dir__ = create_proxy_function(dir)
     __str__ = create_proxy_function(str)

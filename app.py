@@ -2,7 +2,7 @@ import os
 from io import StringIO
 
 from zineb.logger import logger
-from zineb.settings import settings as global_settings
+from zineb.settings import settings
 from zineb.utils.formatting import LazyFormat
 from zineb.utils.iteration import RequestQueue
 
@@ -173,7 +173,7 @@ class FileCrawler:
             self.root_dir = 'media'
 
         def create_full_path(path):
-            result = os.path.join(global_settings.PROJECT_PATH, self.root_dir, path)
+            result = os.path.join(settings.PROJECT_PATH, self.root_dir, path)
 
             if not os.path.isfile(result):
                 raise ValueError(LazyFormat('Path does not point to a valid '

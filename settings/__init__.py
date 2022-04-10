@@ -135,14 +135,6 @@ class Settings:
         for candidate in candidates:
             sub_settings[candidate] = self.__dict__[candidate]
         return sub_settings
-            
-
-# FIXME: The settings get reinstantiated loosing
-# all the parameters included by setup on project
-# start. Find a away to keep the settings persistent
-# for the when the user imports the settings globally
-# in their project
-settings = Settings()
 
 
 class LazySettings(LazyObject):
@@ -161,4 +153,4 @@ class LazySettings(LazyObject):
 #  settings instance above. There seems to be
 # an issue in how the items are set on the
 # lazy_settings instance
-lazy_settings = LazySettings() 
+settings = LazySettings() 
