@@ -9,7 +9,7 @@ from zineb.http.responses import HTMLResponse
 from zineb.models.functions import (Add, Divide, ExtractDay, ExtractMonth,
                                     ExtractYear, Multiply, Substract, When)
 from zineb.settings import settings
-from zineb.utils.containers import SmartDict
+from zineb.utils.containers import ModelSmartDict
 from zineb.utils.formatting import LazyFormat
 
 DEFAULT_META_OPTIONS = {
@@ -277,7 +277,7 @@ class Model(metaclass=Base):
     _cached_resolved_data = None
     
     def __init__(self, html_document=None, response=None):
-        self._data_container = SmartDict.new_instance(self)
+        self._data_container = ModelSmartDict.new_instance(self)
         
         # When the class is instantiated, that's where
         # we finalize the relationships between all the
