@@ -11,6 +11,8 @@ def create_proxy_function(func):
 
 
 class LazyObject:
+    """A class that defers the 
+    instantiation of an object"""
     cached_object = None
     
     # def __init__(self):

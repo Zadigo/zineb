@@ -135,8 +135,8 @@ class Settings:
         for candidate in candidates:
             sub_settings[candidate] = self.__dict__[candidate]
         return sub_settings
-
-
+      
+      
 class LazySettings(LazyObject):
     """
     This class implements a lazy loading of the settings
