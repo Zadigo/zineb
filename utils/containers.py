@@ -209,6 +209,8 @@ class ModelSmartDict(SmartDict):
         return values
         
     def execute_save(self, commit: bool=True, filename: str=None, extension: str='json', **kwargs):
+        # TODO: Move the file creation to the Model
+        # and only make this deal with the values
         if commit:
             filename = filename or secrets.token_hex(5)
             filename = f'{filename}.{extension}'
