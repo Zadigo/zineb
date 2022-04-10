@@ -16,6 +16,12 @@ PROJECT_PATH = None
 SPIDERS = []
 
 
+# Specifies whether the models should
+# loaded on project startup
+
+LOAD_MODELS = False
+
+
 # Limit scrapping to certain specific amount of
 # domains by requiring that each requests needs
 # to respect the domains in this list before
@@ -40,6 +46,13 @@ LOG_FILE_NAME = 'zineb.log'
 LOG_FORMAT = '%(asctime)s [%(name)s] %(levelname)s: %(message)s'
 
 LOG_LEVEL = logging.DEBUG
+
+# LOGGING = {
+#     'name': 'zineb.log',
+#     'path': None,
+#     'format': '%(asctime)s [%(name)s] %(levelname)s: %(message)s',
+#     'level': logging.DEBUG,
+# }
 
 
 # A set of codes that will be executed before or after

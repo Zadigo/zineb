@@ -52,3 +52,17 @@
 # # m.update_model('age__gt=15')
 # m.query(age__contains=14, name__contains='Kendall')
 # print(m)
+
+# from zineb.models.datastructure import Model
+# from zineb.models import fields
+
+
+# class MyModel(Model):
+#     name = fields.CharField(max_length=-1, null=1)
+#     pk = fields.IntegerField()
+#     surname__ = fields.CharField()
+#     created_on = fields.DateField(date_format=True)
+    
+# model = MyModel()
+
+# print(model.checks())

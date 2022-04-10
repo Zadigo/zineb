@@ -35,7 +35,7 @@ class BaseRequest:
     can_be_sent = True
     http_methods = ['GET', 'POST']
 
-    def __init__(self, url: Union[Link, str, ImageTag], method='GET', **kwargs):
+    def __init__(self, url, method='GET', **kwargs):
         self.local_logger = Logger(self.__class__.__name__)
 
         if method not in self.http_methods:
@@ -114,7 +114,7 @@ class BaseRequest:
             # TODO: When using https:// this returns True
             # when this is not even a real URL
             message = (f"The url that was provided is not valid. Got: {url}.")
-            self.local_logger.logger.error(message, stack_info=True)
+            self.local_logger.instance.error(message, stack_info=True)
             raise requests.exceptions.InvalidURL(message)
 
         parsed_url = urlparse(url)
@@ -135,12 +135,12 @@ class BaseRequest:
             # ]
             # if not all(logic):
             if 'https' not in parsed_url.scheme:
-                self.local_logger.logger.critical(f"{url} is not secured. No HTTPS scheme is present.")
+                self.local_logger.instance.critical(f"{url} is not secured. No HTTPS scheme is present.")
                 self.can_be_sent = False
 
         if self.only_domains:
             if parsed_url.netloc not in self.only_domains:
-                self.local_logger.logger.critical((f"{url} is part of the restricted domains "
+                self.local_logger.instance.critical((f"{url} is part of the restricted domains "
                 "settings list and will not be sent. Adjust your settings if you "
                 "want to prevent this security check on his domain."))
                 self.can_be_sent = False
@@ -151,7 +151,7 @@ class BaseRequest:
         response = None
 
         if not self.can_be_sent:
-            self.local_logger.logger.info(("A request was not sent for the following "
+            self.local_logger.instance.logger.info(("A request was not sent for the following "
             f"url {self.url} because self.can_be_sent is marked as False. Ensure that "
             "the url is not part of a restricted DOMAIN or that ENSURE_HTTPS does not"
             "force only secured requests."))
@@ -163,7 +163,7 @@ class BaseRequest:
         try:
             response = self.session.send(self.prepared_request)
         except requests.exceptions.HTTPError as e:
-            self.local_logger.logger.error(f"An error occured while processing "
+            self.local_logger.instance.logger.error(f"An error occured while processing "
             "request for {self.prepared_request}", stack_info=True)
             self.errors.append([e.args])
         except Exception as e:
@@ -189,7 +189,7 @@ class BaseRequest:
         return instance._send()
 
     @classmethod
-    def follow_all(cls, urls: Union[str, Link]):
+    def follow_all(cls, urls):
         for url in urls:
             # FIXME: Calling str() on the url
             # allows Tags like Link to
@@ -213,7 +213,7 @@ class HTTPRequest(BaseRequest):
     """
     referer = None
 
-    def __init__(self, url: str, is_download_url=False, **kwargs):
+    def __init__(self, url, is_download_url=False, **kwargs):
         super().__init__(url, **kwargs)
         self.html_response = None
         self.counter = kwargs.get('counter', 0)
@@ -233,7 +233,7 @@ class HTTPRequest(BaseRequest):
         http_response = super()._send()
         if http_response is not None:
             if http_response.ok:
-                self.local_logger.logger.info(f'Sent request for {self.url}')
+                self.local_logger.instance.info(f'Sent request for {self.url}')
                 self._http_response = http_response
                 self.html_response = HTMLResponse(
                     http_response,
@@ -242,9 +242,9 @@ class HTTPRequest(BaseRequest):
                 )
                 self.session.close()
             else:
-                self.local_logger.logger.error('Response failed.')
+                self.local_logger.instance.error('Response failed.')
         else:
-            self.local_logger.logger.error(f'An error occured on this request: {self.url} with status code {http_response.status_code}')
+            self.local_logger.instance.error(f'An error occured on this request: {self.url} with status code {http_response.status_code}')
 
     @classmethod
     def follow(cls, url: Union[str, Link]):
@@ -257,7 +257,7 @@ class HTTPRequest(BaseRequest):
         for url in urls:
             yield cls.follow(url)
 
-    def urljoin(self, path: str, use_domain=False) -> str:
+    def urljoin(self, path: str, use_domain=False):
         """
         To compensate for relative paths not being
         full ones, this joins the main url to the

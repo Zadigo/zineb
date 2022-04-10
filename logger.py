@@ -1,7 +1,6 @@
 import logging
-import os
+
 from zineb.settings import settings
-from zineb.exceptions import ProjectNotConfiguredError
 
 # TODO: When testing Zineb from a global perspective
 # via the test_project, the global settings is not
@@ -14,35 +13,33 @@ class Logger:
             name = self.__class__.__name__
 
         logger = logging.getLogger(name)
-        handler = logging.StreamHandler()
+        # handler = logging.StreamHandler()
 
-        logger.addHandler(handler)
-        logger.setLevel(getattr(settings, 'LOG_LEVEL', logging.DEBUG))
+        # logger.addHandler(handler)
+        # logger.setLevel(getattr(settings, 'LOG_LEVEL', logging.DEBUG))
+       
         log_format = getattr(settings, 'LOG_FORMAT', '%(asctime)s - [%(name)s] %(message)s')
         formatter = logging.Formatter(log_format, datefmt='%d-%m-%Y %H:%S')
-        handler.setFormatter(formatter)
-
-        if getattr(settings, 'LOG_TO_FILE', False):
-            if settings.PROJECT_PATH is None:
-                raise ProjectNotConfiguredError('In order to log to a file,'
-                'a project needs to be configured.')
+       
+        # handler.setFormatter(formatter)
+        
+        # if settings.LOG_TO_FILE:
+        # TODO: Let the user choose if he wants
+        # to log to a given file
+        file_handler = logging.FileHandler(settings.LOG_FILE_NAME)
+        logger.addHandler(file_handler)
+        file_handler.setFormatter(formatter)
             
-            # The full path of the log file is set when the
-            # settings parameter is first called
-            handler = logging.FileHandler(settings.LOG_FILE_NAME)
-            logger.addHandler(handler)
+        self.instance = logger
 
-        handler.setFormatter(formatter)
-        self.logger = logger
-
-    def __call__(self, name=None, **kwargs):
-        self.__init__(name=name, **kwargs)
-        return self.logger
+    # def __call__(self, name=None, **kwargs):
+    #     self.__init__(name=name, **kwargs)
+    #     return self.logger
 
     @classmethod
-    def new(cls, name: str=None):
+    def create(cls, name: str=None):
         instance = cls(name=name)
         return instance
 
 
-global_logger = Logger('Zineb')
+logger = Logger('Zineb')

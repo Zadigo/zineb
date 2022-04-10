@@ -6,7 +6,7 @@ class ValidationError(Exception):
 
 
 class FieldError(Exception):
-    def __init__(self, field_name, available_fields):
+    def __init__(self, field_name, available_fields, model_name=None):
         msg = (f"The field '{field_name}' is not present on your model. "
         f"Available fields are: {', '.join(available_fields)}")
         super().__init__(msg)
@@ -71,3 +71,13 @@ class RequestAborted(Exception):
 class ModelConstrainError(Exception):
     def __init__(self, field_name, value):
         super().__init__(f"Constraint not respected on '{field_name}'. '{value}' already present in the model.")
+
+
+class RequiresProjectError(Exception):
+    def __init__(self):
+        super().__init__('Project scope is required for this command.')
+
+
+class ConstraintError(Exception):
+    def __init__(self):
+        super().__init__('A constraint error was raised on the given model')

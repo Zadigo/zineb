@@ -287,6 +287,26 @@ On its own however, a model does nothing. In order to make it work, you have to 
 
 Adding a new value to the model generally requires two main parameters: _the name of the field to use and the incoming data to be added._
 
+## Adding values to the model
+
+Each model gets instantiated with a underlying container that does the heavy work of storing and aggregating the data. The default container is called `SmartDict`.
+
+### Understanding SmartDict
+
+The `SmartDict` container ensures that each row is well balanced and with the same amount of fields when values are added to the model.
+
+For instance, if your model has two fields `name` and `surname`, suppose you add `name` but not `surname`, the final result should be `{"name": ['Kendall'], "surname": [None]}` which in return will be saved as `[{"name": "Kendall", "surname": null}]`.
+
+In the same manner, if you supply values for both fields then your final result should be `{"name": ['Kendall'], "surname": ["Jenner"]}` which in return will be saved as `[{"name": "Kendall", "surname": "Jenner"}]`.
+
+In other words, whichever fields are supplied, the finale result will always be a well balanced data with no missing fields. That's the benefit that `SmartDict` provides.
+
+This class does the following process:
+
+* Before the data is added, it runs any field constraint present on the model
+* It then adds the value to the existing container via the `update` function
+* Finally, once `execute_save` is called, it applies any sorting specified on the fields in the `Meta` class of the model and returns the corresponding data
+
 ### Adding a free custom value
 
 The first one consists using the `add_value` method.
@@ -325,12 +345,26 @@ from zineb.models.expressions import Add
 my_model.add_calculatd_value('price', Add(25, 5))
 ```
 
+## Saving the model
+
+You can save the data within a model by calling the `save` method. It takes the following arguments:
+
+* `filename`
+* `commit`
+
+The save method does the following things in order:
+
+* Call `full_clean` in order to apply general modifications to the final data
+* `full_clean` then calls the `clean` method to apply any custom user modifications to be applied on the resulting data
+* Finally, save the data to a file if commit or return the elements as list
+
 ## Meta options
 
 By adding a Meta to your model, you can pass custom behaviours.
 
 * Ordering
 * Template model
+* Constraints
 
 ### Template model
 
@@ -352,9 +386,13 @@ class MainModel(TemplateModel):
 
 Order your data in a specific way based on certain fields before saving your model.
 
+### Constraints
+
+You an ensiure that the data on your model is unique using `UniqueConstraint` and `CheckConstraint` classes in the `Meta` of your model.
+
 ## Fields
 
-Fields is the main entrypoint for passing a raw value from the internet to the underlying `SmartDict` container of your model. They guarantee cleanliness and consistency of all the values that are stored in your model.
+Fields are the main entrypoint for passing a raw value from the internet to the underlying `SmartDict` container of your model. They guarantee cleanliness and consistency.
 
 Zineb comes with number of preset fields that you can use out of the box:
 
@@ -372,16 +410,38 @@ Zineb comes with number of preset fields that you can use out of the box:
 * ListField
 * BooleanField
 * Value
+* RelatedModelField
 
-### How fields work
+### How they work
 
-Each fields comes with a `resolve` function and when called by the model stores the resulting value within itself. The resolve function will do the following things.
+Each fields comes with a `resolve` function whiche gets called by the model. The resulting data is then passed unto the model's data store (`SmartDict`\).
+
+The resolve function will do the following things.
 
 First, it will run all cleaning functions on the original value for example by stripping tags like "<" or ">" which normalizes the value before additional processing.
 
 Second, a `deep_clean` method is run on the result by taking out out any useless spaces, removing escape characters and finally reconstructing the value to ensure that any none-detected white space be eliminated.
 
 Finally, all the registered validators (default and custom) are called on the final value.
+
+### Accessing data from the field instance
+
+You can access the data of a declared field directly on the model by calling the field's name. Suppose you have the following model:
+
+```python
+class PlayerModel(Model):
+	name = fields.CharField()
+	surname = fields.CharField()
+
+model = PlayerModel()
+model.add_value('name': 'Shelly-Ann')
+model.add_value('surname', 'Fraiser')
+
+# -> model.name -> ["Shelly-Ann"]
+# -> model.surname -> ["Fraiser"]
+```
+
+By calling `model.name` you will receive an array containing all the values that were registered on in the data container e.g. `["Shelly-Ann"]`.
 
 ### CharField
 
@@ -486,6 +546,71 @@ RegexField(r'(\d+)(?<=\€)')
 ### BooleanField
 
 Adds a boolean based value to your model. Uses classic boolean represenations such as `on, off, 1, 0, True, true, False or false` to resolve the value.
+
+### RelatedModelField
+
+This field allows you to create a direct relationship with any existing models of your project. Suppose you have the given models:
+
+```python
+from zineb.models.datastructure import Model
+from zineb.models import fields
+
+class Tournament(Model):
+    location = fields.CharField()
+
+
+class Player(Model):
+    full_name = fields.CharField()
+
+```
+
+You might be tempted when scrapping your data to instantiate both models in order to add values like this:
+
+```python
+class MySpider(Spider):
+    def start(self, soup, **kwargs):
+        player = Player()
+        tournament = Tournament()
+        
+        player.add_value('full_name', 'Kendall Jenner')
+        tournament.add_value('location', 'Paris')
+```
+
+There's lots of code and this is not necessarily the most efficient way for this task. The `RelatedModelField` allows us then to create both a forward and backward relationship between two different models.
+
+The above technique can then be simplified the code below:
+
+```python
+from zineb.models.datastructure import Model
+from zineb.models import fields
+
+class Tournament(Model):
+    location = fields.CharField()
+
+
+class Player(Model):
+    full_name = fields.CharField()
+    tournament = fields.RelatedModelField(Tournament)
+```
+
+Which would then allow us to do the following:
+
+```python
+class MySpider(Spider):
+    def start(self, soup, **kwargs):
+        player = Player()
+        
+        player.add_value('full_name', 'Kendall Jenner')
+        player.tournament.add_value('location', 'Paris')
+
+        player.save(commit=False)
+
+# -> [{"full_name": "Kendall Jenner", "tournament": [{"location": "Paris"}]}]     
+```
+
+It does not keep track of the individual relationship the main model and the related model. In other words, all data from the main model will receive the same data from the related model contrarily to a database foreign key.
+
+This is ideal for creating nested data within your model.
 
 ### Creating your own field
 

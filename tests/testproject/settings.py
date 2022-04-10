@@ -16,3 +16,5 @@ SPIDERS = ['MySpider']
 # certain specific actions within the application
 
 MIDDLEWARES = []
+
+LOAD_MODELS = True

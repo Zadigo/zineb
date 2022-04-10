@@ -1,8 +1,8 @@
 import datetime
 import secrets
 from collections import deque, namedtuple
-from io import FileIO
 from hashlib import md5
+from io import FileIO
 
 
 class History:

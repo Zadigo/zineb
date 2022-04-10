@@ -3,7 +3,7 @@ import warnings
 from collections import OrderedDict, deque
 from importlib import import_module
 from typing import Callable
-
+from zineb.logger import logger
 from zineb.exceptions import ImproperlyConfiguredError, ProjectExistsError
 from zineb.settings import settings
 
@@ -22,32 +22,19 @@ class GlobalMixins:
 
 class ApplicationChecks(GlobalMixins):
     def __init__(self):
-        # self._default_settings = settings
         self._checks = deque()
     
     def run(self):
-        # We have to preload all the modules
-        # in order for the checks to be correctly
-        # registered within this class
-        for module in DEFAULT_CHECKS_MODULES:
-            module = import_module(f'zineb.checks.{module}')
-
-            path = getattr(module, '__file__')
-            filename = getattr(module, '__name__')
-
-            filename = filename.rpartition('.')[-1]
-            self._MODULES.setdefault(filename, [path, module])
-
         self.check_settings_base_integrity()
             
         for func in self._checks:
-            # new_errors = func(self._default_settings)
             new_errors = func()
             if new_errors:
                 self._errors.extend(new_errors)
 
         for error in self._errors:
-            warnings.warn(error, stacklevel=1)
+            # warnings.warn(error, stacklevel=1)
+            logger.instance.exception(error)
             
         if self._errors:
             raise ImproperlyConfiguredError(self._errors)
@@ -58,7 +45,7 @@ class ApplicationChecks(GlobalMixins):
         are correctly implemented
         
         For example the PROXIES setting requires a tuple or list
-        """
+        """        
         required_values = ['PROJECT_PATH', 'SPIDERS']
         keys = settings.keys()
         for value in required_values:
@@ -90,7 +77,7 @@ class ApplicationChecks(GlobalMixins):
         # Also make sure that this is
         # a directory
         if not os.path.isdir(PROJECT_PATH):
-            raise IsADirectoryError("PROJECT_PATH should be the project's directory")
+            raise IsADirectoryError("PROJECT_PATH should be the valid project's directory")
 
     def register(self, tag: str = None):
         """Register a check on this class by using 
