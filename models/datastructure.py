@@ -388,8 +388,7 @@ class Model(metaclass=Base):
         """Runs before the model tries to a add a value
         to the underlying container by running each
         constraints created on the model"""
-        for constraint in self._meta.get_option_by_name('contraints'):
-            constraint.check(value)
+        pass
     
     def checks(self):
         # This is the main collector for all the errors

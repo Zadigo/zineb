@@ -1,5 +1,5 @@
 from zineb.models import fields
-from zineb.models.constraints import CheckConstraint
+from zineb.models.constraints import CheckConstraint, UniqueConstraint
 from zineb.models.datastructure import Model
 
 
@@ -57,17 +57,6 @@ class ExampleModel2(Model):
     value = fields.CharField()
 
 
-<<<<<<< HEAD
-class ConstrainedModel(Model):
-    name = fields.CharField()
-    
-    class Meta:
-        constraints = [
-            CheckConstraint('my_contraint', 'name')
-        ]
-# c = ConstrainedModel()
-# print(c._meta.cached_options)
-=======
 class BasicModel(Model):
     name = fields.NameField()
     age = fields.IntegerField()
@@ -94,4 +83,22 @@ class RelatedModel1(Model):
     surname = fields.RelatedModel(RelatedModel2)
     age = fields.IntegerField()
     
->>>>>>> develop
+
+
+class ConstrainedModel(Model):
+    name = fields.CharField()
+    surname = fields.CharField()
+    
+    class Meta:
+        constraints = [
+            UniqueConstraint(['surname'], 'unique_for_name'),
+            CheckConstraint(['name'], 'unique_name')
+        ]
+
+
+class SuperModel(Model):
+    name = fields.NameField()
+    
+    
+class SubModel(SuperModel):
+    surname = fields.NameField()

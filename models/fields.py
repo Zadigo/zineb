@@ -863,6 +863,6 @@ class RelatedModel(RelatedField):
             # RelatedModelField, then we should be able to do
             # model2.field_set in reverse for model1
             setattr(self.related_model, self.reverse_related_name, self.model)
-        
+                
         setattr(model, field_name, self.field_descriptor(self))
         model._meta.add_field(self.field_name, self)

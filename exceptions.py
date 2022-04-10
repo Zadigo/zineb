@@ -79,5 +79,6 @@ class RequiresProjectError(Exception):
 
 
 class ConstraintError(Exception):
-    def __init__(self):
-        super().__init__('A constraint error was raised on the given model')
+    def __init__(self, model_name, constraint):
+        message = f"Model {model_name} did no pass constraint for {constraint}"
+        super().__init__(message)
