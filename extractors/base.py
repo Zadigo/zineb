@@ -11,7 +11,7 @@ from bs4.element import ResultSet, Tag
 from w3lib.html import safe_url_string
 from w3lib.url import is_url, urljoin
 from zineb.extractors._mixins import MultipleRowsMixin
-from zineb.settings import settings as global_settings
+from zineb.settings import settings
 from zineb.utils.characters import deep_clean
 from zineb.utils.decoders import decode_email
 from zineb.utils.iteration import keep_while
@@ -437,7 +437,7 @@ class TextExtractor(Extractor):
 
     @cached_property
     def _stop_words(self):
-        stop_words_path = os.path.join(global_settings.GLOBAL_ZINEB_PATH, 'extractors', 'stop_words')
+        stop_words_path = os.path.join(settings.GLOBAL_ZINEB_PATH, 'extractors', 'stop_words')
         with open(stop_words_path, mode='r') as f:
             data = f.readlines()
             words = data.copy()

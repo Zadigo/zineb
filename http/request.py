@@ -12,7 +12,7 @@ from zineb.exceptions import ResponseFailedError
 from zineb.http.responses import HTMLResponse
 from zineb.http.user_agent import UserAgent
 from zineb.logger import Logger
-from zineb.settings import settings as global_settings
+from zineb.settings import settings
 from zineb.tags import ImageTag, Link
 from zineb.utils.conversion import transform_to_bytes
 
@@ -49,11 +49,11 @@ class BaseRequest:
 
         session = Session()
 
-        proxy_list = dict(set(global_settings.PROXIES))
+        proxy_list = dict(set(settings.PROXIES))
         session.proxies.update(proxy_list)
 
-        self.only_domains = global_settings.DOMAINS
-        self.only_secured_requests = global_settings.get('ENSURE_HTTPS', False)
+        self.only_domains = settings.DOMAINS
+        self.only_secured_requests = settings.get('ENSURE_HTTPS', False)
 
         self._url_meta = None
         self.url = self._precheck_url(url)
@@ -90,7 +90,7 @@ class BaseRequest:
         return f"{self.__class__.__name__}(url={self.url}, resolved={self.resolved})"
 
     def _set_headers(self, request: Request, **extra_headers):
-        headers = global_settings.get('DEFAULT_REQUEST_HEADERS', {})
+        headers = settings.get('DEFAULT_REQUEST_HEADERS', {})
         
         user_agent = USER_AGENT.get_random_agent()
         headers.update({'User-Agent': user_agent})
