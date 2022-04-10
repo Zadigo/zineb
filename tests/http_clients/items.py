@@ -1,5 +1,5 @@
-from functools import lru_cache
 import threading
+
 from zineb.http.request import HTTPRequest
 
 BAD_URLS = [
@@ -36,11 +36,10 @@ BAD_URLS = [
 ]
 
 
-
-@lru_cache(maxsize=10)
-def create_test_request():
+def create_simple_request(send=False):
     request = HTTPRequest('http://example.com')
-    request._send()
+    if send:
+        request._send()
     return request
 
 
@@ -48,6 +47,7 @@ def create_test_requests(urls):
     requests = [HTTPRequest(url) for url in urls]
 
     results = []
+
     def wrapper(request):
         try:
             request._send()
@@ -55,10 +55,9 @@ def create_test_requests(urls):
             results.append(False)
         else:
             results.append(True)
-            
-    threads = [threading.Thread(target=wrapper, request=request) for request in requests]
+
+    threads = [threading.Thread(target=wrapper, request=request)
+               for request in requests]
     for thread in threads:
         thread.start()
     return results
-
-create_test_requests(BAD_URLS)

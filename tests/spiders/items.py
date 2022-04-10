@@ -10,14 +10,16 @@ class SpiderSubclass(Spider):
     start_urls = ['http://example.com']
     
 
-class SimpleSpider(Zineb):
+class SimpleSpider(Spider):
     start_urls = ['http://example.com']
 
 
-
-class MetaSpider(Zineb):
+class MetaSpider(Spider):
     class Meta:
         domains = ['example.com']
+        limit_requests_to = 0
+        verbose_name = None
+        base_url = 'http://example.com'
 
 
 class SpiderWithMultiple(Zineb):
@@ -30,10 +32,11 @@ class SpiderWithMultiple(Zineb):
     def start(self, response, **kwargs):
         model = ExampleModel()
         model.add_value('url', response.find('a')['href'])
+        
         model2 = ExampleModel2()
         model2.add_value('value', response.find('a').text)
+        
         self._temp_model_holder.extend([model, model2])
-
 
 
 class SpiderWithMultipleDomains(Zineb):

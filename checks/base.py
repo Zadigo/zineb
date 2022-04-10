@@ -1,5 +1,6 @@
 import re
-from datetime import timezone
+
+from datetime import tzinfo
 
 from zineb.checks.core import register
 from zineb.settings import settings
@@ -47,6 +48,12 @@ E007 = ('MEDIA_FOLDER should either be None or a string representing a relative 
 
 
 E008 = ('TIME_ZONE should be a string. Got {timezone}')
+
+
+E009 = ('DEFAULT_DATE_FORMATS should be a tuple or a list')
+
+
+E010 = ('DEFAULT_DATE_FORMATS should be a string. Got {date_format}')
 
 
 @register(tag='middlewares')
@@ -124,6 +131,7 @@ def check_media_folder():
     media_folder = settings.MEDIA_FOLDER
     if media_folder is not None and not isinstance(media_folder, str):
         return [E007]
+    return []
     
 
 @register(tag='timezone')
@@ -131,5 +139,16 @@ def check_test_timzone():
     if settings.TIME_ZONE is None:
         return []
 
-    if not isinstance(settings.TIME_ZONE, str):
+    if not isinstance(settings.TIME_ZONE, tzinfo):
         return [E008.format(timezone=settings.TIME_ZONE)]
+
+
+@register(tag='date_format')
+def check_default_date_formats():
+    default_date_formats = settings.DEFAULT_DATE_FORMATS
+    if not isinstance(default_date_formats, (list, tuple)):
+        return [E009]
+    
+    for item in default_date_formats:
+        if not isinstance(item, str):
+            return [E010.format(date_format=item)]

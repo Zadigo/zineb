@@ -6,7 +6,7 @@ when starting a new project is correctly done
 import os
 import re
 
-from zineb.settings import lazy_settings
+from zineb.settings import settings
 
 
 def _clean_file_name(name_or_path: str):
@@ -38,7 +38,7 @@ def execute():
     current_dir = os.path.abspath(os.curdir)
     full_project_path_dir = os.path.join(current_dir, project_name)
 
-    zineb_templates_dir_path = os.path.join(lazy_settings.GLOBAL_ZINEB_PATH, 'templates/project')
+    zineb_templates_dir_path = os.path.join(settings.GLOBAL_ZINEB_PATH, 'templates/project')
     zineb_template_items = list(os.walk(zineb_templates_dir_path))
     root_path, folders, root_files = zineb_template_items.pop(0)
 
