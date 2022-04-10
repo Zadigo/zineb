@@ -1,9 +1,6 @@
-import ast
 import datetime
-import json
 import re
-from typing import Any, Callable, List, Tuple, Union
-from urllib.parse import urlparse
+from typing import Any, List
 from zineb.checks import messages
 from bs4.element import Tag as beautiful_soup_tag
 from w3lib import html
@@ -12,7 +9,7 @@ from zineb.exceptions import ValidationError
 from zineb.models import validators as model_validators
 from zineb.settings import settings
 from zineb.utils.characters import deep_clean
-from zineb.utils.conversion import convert_to_type, detect_object_in_string
+from zineb.utils.conversion import detect_object_in_string
 from zineb.utils.encoders import DefaultJsonEncoder
 from zineb.utils.formatting import LazyFormat
 from zineb.utils.images import download_image_from_url
@@ -836,6 +833,13 @@ class RelatedField(Field):
         # like model_name.add_value(related_field_name, value)
         raise Exception(f"A RelatedModel field cannot resolve data directly. Use {self.model._meta.model_name}.{self.field_name}.add_value(...) for example to add a value to the related model.")
  
+ 
+# TODO: When the related field is set on the model
+# we get [{'ages': [{'age': 30}], 'name': 'Kendall'}]
+# for example. I think we should get instead
+# [{'ages': {'age': 30}, 'name': 'Kendall'}] and create
+# a many field that does the initial result that we
+# are getting
     
 class RelatedModel(RelatedField):
     """Creates a relationship between two models. Does not
