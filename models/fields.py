@@ -864,5 +864,9 @@ class RelatedModel(RelatedField):
             # model2.field_set in reverse for model1
             setattr(self.related_model, self.reverse_related_name, self.model)
         
+        # TODO: We should not be able to created a RelatedModel field
+        # for the model that is a superclass of the model that wants
+        # to create the relationship
+
         setattr(model, field_name, self.field_descriptor(self))
         model._meta.add_field(self.field_name, self)
