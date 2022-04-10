@@ -1,10 +1,12 @@
+from itertools import chain 
+
 class ValidationError(Exception):
     def __init__(self, message):
         super().__init__(message)
 
 
 class FieldError(Exception):
-    def __init__(self, field_name, available_fields):
+    def __init__(self, field_name, available_fields, model_name=None):
         msg = (f"The field '{field_name}' is not present on your model. "
         f"Available fields are: {', '.join(available_fields)}")
         super().__init__(msg)
@@ -41,8 +43,12 @@ class ModelExistsError(Exception):
 
 
 class ImproperlyConfiguredError(Exception):
-    def __init__(self):
-        super().__init__('Your project is not properly configured.')
+    def __init__(self, *args):
+        message = 'Your project is not properly configured.'
+        if args:
+            additional_errors = ' / '.join(chain(*args))
+            message = message + ' Identified the following errors: ' + additional_errors
+        super().__init__(message)
 
 
 class SpiderExistsError(Exception):
@@ -52,10 +58,11 @@ class SpiderExistsError(Exception):
 
 
 class ResponseFailedError(Exception):
-    def __init__(self):
-        super().__init__("Zineb will not be able to generate a BeautifulSoup object from the response. "
-        "This is due to a response with a fail status code or being None.")
-
+    def __init__(self, *args):
+        # FIXME: Show additional errors that
+        # would come from the HTTPRequest
+        super().__init__("The request was not sent either"
+        " due to a response with a fail status code or being None.")
 
 class RequestAborted(Exception):
     pass
@@ -64,3 +71,13 @@ class RequestAborted(Exception):
 class ModelConstrainError(Exception):
     def __init__(self, field_name, value):
         super().__init__(f"Constraint not respected on '{field_name}'. '{value}' already present in the model.")
+
+
+class RequiresProjectError(Exception):
+    def __init__(self):
+        super().__init__('Project scope is required for this command.')
+
+
+class ConstraintError(Exception):
+    def __init__(self):
+        super().__init__('A constraint error was raised on the given model')

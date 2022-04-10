@@ -7,10 +7,10 @@
         "test_*.py"
     ],
     "python.testing.pytestEnabled": false,
-    "python.testing.nosetestsEnabled": false,
     "python.testing.unittestEnabled": true,
 
-    "restructuredtext.confPath": "${workspaceFolder}\\conf.py",
-    "restructuredtext.updateOnTextChanged": "true",
-    "restructuredtext.updateDelay": 300,
+    "esbonio.sphinx.confDir": "${workspaceFolder}\\conf.py",
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/zineb/"
+    ]
 }
