@@ -1,9 +1,11 @@
 import code
 
+import zineb
 from zineb.extractors import base as base_extractors
 from zineb.http.request import HTTPRequest
 from zineb.logger import logger
 from zineb.management.base import BaseCommand
+from zineb.settings import settings
 
 
 def start_ipython_shell():
@@ -24,13 +26,14 @@ def start_ipython_shell():
 
 
 def start_standard_console():
-    def shell_wrapper(namespace: dict={}, banner=''):
+    def shell_wrapper(namespace={}, banner=''):
         code.interact(banner=banner, local=namespace)
     return shell_wrapper
 
 
 SHELLS = [
-    ('ipython', start_ipython_shell)
+    ('ipython', start_ipython_shell),
+    ('shell_wrappeer', start_standard_console)
 ]
 
 
@@ -52,11 +55,8 @@ class Shell:
             except SystemError:
                 pass
 
-    def start(self, url, use_settings=None):
-        from zineb.settings import settings
-
+    def start(self, url):
         request = HTTPRequest(url)
-        # request.project_settings = use_settings or settings
         request._send()
 
         # When the request fails, the html_response
@@ -80,7 +80,7 @@ class Shell:
             self.shell_variables.setdefault('settings', settings)
             self._start_consoles()
         else:
-            logger.instance.error("Shells failed to start because the response "
+            logger.instance.error("Shell failed to start because the response "
             "did not return a valid success code. Try pinging the url for validity.")
 
     def start_file_shell(self, filepath, use_settings=None):
@@ -100,12 +100,11 @@ class Shell:
 
 class Command(BaseCommand):
     def add_arguments(self, parser):
-        parser.add_argument('--url', type=str, help='Opens a shell with a given url request')
-        parser.add_argument('--file', type=str, help='Opens a shell with the given file')
+        parser.add_argument('--url', type=str, help='Open a shell sending a request to this specific url')
+        parser.add_argument('--file', type=str, help='Open a shell with the content of this current HTML file')
 
     def execute(self, namespace):
-        configured_settings = self.preconfigure_project()
-
+        zineb.setup()
         shell = Shell()
 
         # Allows the user to create a shell
@@ -115,10 +114,10 @@ class Command(BaseCommand):
         # none a provided, raise an error
         filepath = namespace.file
         if filepath:
-            shell.start_file_shell(filepath, use_settings=configured_settings)
+            shell.start_file_shell(filepath)
         else:
             url = namespace.url
             if url is None:
                 raise ValueError(("Did you provide a url when calling shell? "
                 "ex. python manage.py shell --url http://"))
-            shell.start(url=url, use_settings=configured_settings)
+            shell.start(url=url)

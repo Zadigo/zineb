@@ -13,6 +13,9 @@ class Command(ProjectCommand):
     def execute(self, namespace):        
         zineb.setup()
         
+        # TODO: Move the checks registry to the
+        # setup where we an run all the checks
+        # for the given project ?
         checks_registry.run()
         
         if not registry.spiders_ready:

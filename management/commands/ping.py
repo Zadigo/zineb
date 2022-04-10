@@ -1,6 +1,7 @@
 import platform
 import subprocess
 
+import zineb
 from zineb.logger import logger
 from zineb.management.base import BaseCommand
 
@@ -10,6 +11,8 @@ class Command(BaseCommand):
         parser.add_argument('host', type=str)
 
     def execute(self, namespace):
+        zineb.setup()
+        
         param = '-n' if platform.system().lower() == 'windows' else '-c'
         command = ['ping', param, '1', namespace.host]
         if subprocess.call(command) == 0:
