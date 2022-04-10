@@ -12,7 +12,7 @@ from zineb import global_logger, signals
 # from zineb.http.pipelines import CallBack
 from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse, JsonResponse, XMLResponse
-from zineb.settings import settings as global_settings
+from zineb.settings import settings as settings
 from zineb.utils.formatting import LazyFormat
 
 # from pydispatch import dispatcher
@@ -214,7 +214,7 @@ class FileCrawler:
             self.root_dir = 'media'
 
         def create_full_path(path):
-            result = os.path.join(global_settings.PROJECT_PATH, self.root_dir, path)
+            result = os.path.join(settings.PROJECT_PATH, self.root_dir, path)
 
             if not os.path.isfile(result):
                 raise ValueError(LazyFormat('Path does not point to a valid HTML file. Got {path}', path=path))

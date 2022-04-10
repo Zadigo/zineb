@@ -11,5 +11,6 @@
 
     "restructuredtext.confPath": "${workspaceFolder}\\conf.py",
     "restructuredtext.updateOnTextChanged": "true",
-    "restructuredtext.updateDelay": 300
+    "restructuredtext.updateDelay": 300,
+    "esbonio.sphinx.confDir": "${workspaceFolder}\\conf.py"
 }
