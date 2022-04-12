@@ -56,6 +56,9 @@ E009 = ('DEFAULT_DATE_FORMATS should be a tuple or a list')
 E010 = ('DEFAULT_DATE_FORMATS should be a string. Got {date_format}')
 
 
+E011 = ('{setting} should be a dict')
+
+
 @register(tag='middlewares')
 def check_middlewares():
     errors = []
@@ -152,3 +155,16 @@ def check_default_date_formats():
     for item in default_date_formats:
         if not isinstance(item, str):
             return [E010.format(date_format=item)]
+
+
+@register(tag='requires_dict')
+def check_setting_requires_dict():
+    errors = []
+    values = ['LOGGING', 'STORAGES']
+    for value in values:
+        current_value = getattr(settings, value, None)
+
+        if not isinstance(current_value, dict):
+            errors.extend([E011.format(setting=value)])
+        
+    return errors
