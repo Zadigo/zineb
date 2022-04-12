@@ -1,5 +1,4 @@
 import unittest
-from collections import namedtuple
 
 from zineb.middleware import Middleware
 from zineb.settings import settings as global_settings

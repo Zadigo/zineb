@@ -50,7 +50,9 @@ class Settings:
             if key.isupper():
                 setattr(self, key, getattr(initial_project_settings, key, None))
 
-        list_or_tuple_settings = ['RETRY_HTTP_CODES', 'MIDDLEWARES', 'DEFAULT_REQUEST_HEADERS']
+        list_or_tuple_settings = ['RETRY_HTTP_CODES', 'MIDDLEWARES',
+                                  'DEFAULT_REQUEST_HEADERS', 'DEFAULT_DATE_FORMATS', 
+                                  'DOMAINS', 'USER_AGENTS', 'LOGGING', 'USER_AGENTS', 'STORAGES']
         # This is the section that implements the settings that
         # the user modified or implemented to the global settings
         # TODO: Use a global environment variable to get this ZINEB_SPIDER_PROJECT
@@ -64,7 +66,7 @@ class Settings:
                 else:
                     # In order to ensure that both the user setting
                     # and the global setting are used simultanuously, 
-                    # when when dealing with tuples, lists [...] we have 
+                    # when dealing with tuples, lists [...] we have 
                     # to collide/extend these elements
                     user_setting = getattr(self._user_settings, key)
                     global_setting = getattr(self, key)
@@ -78,19 +80,15 @@ class Settings:
                         user_setting = user_setting | global_setting
                     setattr(self, key, user_setting)
 
-        # If the LOG_FILE setting stays at None,
-        # it breaks the whole program since the
-        # logger cannot work properly if to_file
-        # is set to true
-        LOG_FILE_NAME = getattr(self, 'LOG_FILE_NAME')
-        if LOG_FILE_NAME is None:
-            project_path = (
-                getattr(self, 'PROJECT_PATH') or 
-                getattr(self, 'GLOBAL_ZINEB_PATH')
-            )
-            log_file_path = os.path.join(project_path, LOG_FILE_NAME)
-            setattr(self, 'LOG_FILE_NAME', log_file_path)
-            
+        # If we do not have a path for the log file,
+        # still set it by using either the project
+        # path or the Zineb project - this allows
+        # us to log to a file even though we didn't
+        # have an initial path
+        logging_settings = getattr(self, 'LOGGING')
+        if logging_settings['file_path'] is None:
+            self.LOGGING.update({'file_path': os.path.join(self.PROJECT_PATH or self.GLOBAL_ZINEB_PATH, logging_settings['name'])})
+
         # TODO: Send a signal when the Settings
         # class has been modified
 

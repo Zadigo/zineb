@@ -154,8 +154,8 @@ class MasterRegistry:
     def preconfigure_project(self, dotted_path, settings):
         # Replace the log file name with the full path
         # to the project's log file 
-        # setattr(settings, 'LOG_FILE_NAME', Path.joinpath(self.absolute_path, settings.LOG_FILE_NAME))
-        setattr(settings, 'LOG_FILE_NAME', settings.PROJECT_PATH.joinpath(settings.LOG_FILE_NAME))
+        log_settings = settings.LOGGING
+        settings.LOGGING['path'] = settings.PROJECT_PATH.joinpath(log_settings['file_path'])
 
         # If the user did not explicitly set the path
         # to a MEDIA_FOLDER, we will be doing it
