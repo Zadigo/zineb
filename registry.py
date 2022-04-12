@@ -195,7 +195,7 @@ class MasterRegistry:
             except:
                 # TODO: Raise an error if we cannot get a file system
                 # storage ?
-                pass
+                raise
             else:
                 klass = getattr(storage_module, klass_name, None)
                 if klass is not None:

@@ -75,19 +75,41 @@ class BaseStorage:
         
     def prepare(self):
         pass
+    
+    def save(self, name, content=None):
+        pass
+    
+    def open_file(self, name):
+        pass
+    
+    def filename_generator(self, old_name):
+        pass
+    
+    def path(self):
+        pass
+    
+    def delete(self):
+        pass
+    
+    def exists(self):
+        pass
+    
+    def size(self):
+        pass
         
         
 class FileSystemStorage(BaseStorage):
     def __init__(self):
         super().__init__()
+        self.storage_path = settings.MEDIA_FOLDER
         self.storage = self.load_files()
         self.files = []
         
     @lru_cache(maxsize=10)
     def load_files(self):
         items = []
-        if settings.MEDIA_FOLDER is not None:
-            items = list(os.walk(settings.MEDIA_FOLDER))                
+        if self.storage_path is not None:
+            items = list(os.walk(self.storage_path))                
         return items
     
     def prepare(self):
