@@ -1,6 +1,7 @@
 import unittest
+
 from zineb.tests.models import items
-from zineb.utils.containers import SmartDict
+from zineb.utils.containers import ModelSmartDict, SmartDict
 
 
 class TestSmartDict(unittest.TestCase):
@@ -32,14 +33,6 @@ class TestSmartDict(unittest.TestCase):
         self.container.update_multiple({'name': 'Kylie', 'age': 22})
         self.assertDictEqual(self.container.as_values(), {'age': [24, 22], 'name': ['Kendall', 'Kylie']})
 
-    def test_can_save_without_commit(self):
-        self.container.update('name', 'Kendall')
-        result = self.container.execute_save(commit=False)
-        # NOTE: Technically we should receive a dict
-        # but we're also using JSON dump, this returns
-        # string
-        self.assertIsInstance(result, str)
-
     def test_can_get_csv_type_values(self):
         self.container.update('name', 'Kendall')
         self.assertIsInstance(self.container.as_csv(), list)
@@ -58,15 +51,28 @@ class TestSmartDict(unittest.TestCase):
         data = [{'name': 'Kendall', 'age': 20}, {'name': 'Candice', 'age': 26}]
         
         result = container.apply_sort(data)
-        self.assertListEqual(result, [{'name': 'Candice', 'age': 26}, {'name': 'Kendall', 'age': 20}])
+        self.assertListEqual(result, [{'name': 'Kendall', 'age': 20}, {'name': 'Candice', 'age': 26}])
         
         container.order_by = [['name', False], ['age', True]]
         result = container.apply_sort(data)
-        self.assertListEqual(result, [{'name': 'Candice', 'age': 26}, {'name': 'Kendall', 'age': 20}])
+        self.assertListEqual(result, [{'name': 'Kendall', 'age': 20}, {'name': 'Candice', 'age': 26}])
         
         container.order_by = [['age', False]]
         result = container.apply_sort(data)
         self.assertListEqual(result, [{'name': 'Kendall', 'age': 20}, {'name': 'Candice', 'age': 26}])
+
+
+class TestModelSmartDict(unittest.TestCase):
+    def setUp(self):        
+        self.container = ModelSmartDict(items.SimpleModel())
+    
+    def test_can_save_without_commit(self):
+        self.container.update('name', 'Kendall')
+        result = self.container.execute_save(commit=False)
+        # NOTE: Technically we should receive a dict
+        # but we're also using JSON dump, this returns
+        # string
+        self.assertIsInstance(result, str)
         
         
 if __name__ == '__main__':

@@ -11,7 +11,6 @@ from zineb.settings import settings
 from zineb.utils.formatting import LazyFormat, remap_to_dict
 from zineb.utils.iteration import drop_while
 
-
 # TODO: Determine how to use the SmartDict, either it has to
 # be bound to a model or either it's an independent container
 # that could be used anywhere in the application
@@ -187,7 +186,7 @@ class ModelSmartDict(SmartDict):
         else:
             has_ordering = len(self.order_by) > 0
             # For the ordering to work, we need a list
-            # of dicts as [{field_name: True}, ...].
+            # of dicts as [(field_name, True), ...].
             # The boolean determines whether the sort
             # is ascending or descending.
             for item in self.order_by:

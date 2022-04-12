@@ -14,7 +14,8 @@ class TestModel(unittest.TestCase):
 
     def test_can_add_value(self):
         self.model.add_value('date_of_birth', '1-1-2002')
-        self.assertDictEqual(self.model._data_container.as_values(), {'age': [None], 'date_of_birth': ['2002-01-01'], 'name': [None]})
+        self.assertIsInstance(self.model._data_container.as_values(), dict)
+        self.assertDictEqual(dict(self.model._data_container.as_values()), {'age': [None], 'id': [], 'date_of_birth': ['2002-01-01'], 'name': [None]})
 
     def test_model_in_iteration(self):
         for i in range(1, 4):
@@ -25,21 +26,23 @@ class TestModel(unittest.TestCase):
             'date_of_birth': [None, None, None], 
             'name': ['Kendall1', 'Kendall2', 'Kendall3']
         }
-        self.assertDictEqual(self.model._data_container.as_values(), expected)
+        self.assertDictEqual(dict(self.model._data_container.as_values()), expected)
 
     def test_model_instanciation_in_iteration(self):
-        # The model should return the last value of
+        # FIXME: The model should return the last value of
         # iteration if the user instanciates the model
         # repeteadly in a loop
         for i in range(1, 4):
             model = items.SimpleModel()
             model.add_value('name', f'Kendall{i}')
+            
         expected = {
-            'age': [None],
-            'date_of_birth': [None],
-            'name': ['Kendall3']
+            'age': [None, None, None],
+            'date_of_birth': [None, None, None],
+            'id': [],
+            'name': ['Kendall1', 'Kendall2', 'Kendall3']
         }
-        self.assertDictEqual(model._data_container.as_values(), expected)
+        self.assertDictEqual(dict(model._data_container.as_values()), expected)
 
     @unittest.expectedFailure
     def test_wrong_value_to_field(self):
@@ -153,7 +156,7 @@ class TestModelWithValidators(unittest.TestCase):
 
     def test_field_with_validation(self):
         self.model.add_value('height', 156)
-        self.assertDictEqual(self.model._data_container.as_values(), {'height': [156]})
+        self.assertDictEqual(self.model._data_container.as_values(), {'height': [156], 'id': []})
         
     
 

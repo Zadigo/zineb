@@ -8,4 +8,4 @@ class Command(BaseCommand):
     def execute(self, namespace):
         zineb.setup()
         checks_registry.run()
-        print(checks_registry)
+        logger.instance.info('Test completed!')

@@ -13,15 +13,15 @@ class Logger:
             name = self.__class__.__name__
 
         logger = logging.getLogger(name)
-        # handler = logging.StreamHandler()
+        handler = logging.StreamHandler()
 
-        # logger.addHandler(handler)
-        # logger.setLevel(getattr(settings, 'LOG_LEVEL', logging.DEBUG))
+        logger.addHandler(handler)
+        logger.setLevel(getattr(settings, 'LOG_LEVEL', logging.DEBUG))
        
         log_format = getattr(settings, 'LOG_FORMAT', '%(asctime)s - [%(name)s] %(message)s')
         formatter = logging.Formatter(log_format, datefmt='%d-%m-%Y %H:%S')
        
-        # handler.setFormatter(formatter)
+        handler.setFormatter(formatter)
         
         # if settings.LOG_TO_FILE:
         # TODO: Let the user choose if he wants
@@ -31,10 +31,6 @@ class Logger:
         file_handler.setFormatter(formatter)
             
         self.instance = logger
-
-    # def __call__(self, name=None, **kwargs):
-    #     self.__init__(name=name, **kwargs)
-    #     return self.logger
 
     @classmethod
     def create(cls, name: str=None):

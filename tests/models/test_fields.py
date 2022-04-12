@@ -45,7 +45,7 @@ class TestField(unittest.TestCase):
         constrained_field._meta_attributes['field_name'] = 'test_field'
         self.assertRaises(ValueError, constrained_field.resolve, '')
 
-    def test_get_default_instead_of_none(self):
+    def test_default_instead_of_none(self):
         constrained_field = fields.Field(default='Hailey Baldwin')
         constrained_field.resolve(None)
         self.assertEqual(constrained_field._cached_result, 'Hailey Baldwin')
@@ -200,35 +200,6 @@ def method_three(price):
     return price
 
 
-# class TestFunctionField(unittest.TestCase):
-#     def setUp(self):
-#         self.field = fields.FunctionField(method_one, method_two)
-
-#     def test_resolution(self):
-#         # Each function should be run sequentially
-#         # the result, building upon one another
-#         self.field.resolve('I love')
-#         self.assertEqual(self.field._cached_result, 'I love Kendall Jenner')
-        
-#     def test_with_output_field(self):
-#         methods = [method_one, method_two]
-#         field = fields.FunctionField(*methods, output_field=fields.CharField())
-#         field.resolve('I love')
-#         self.assertEqual(field._cached_result, 'I love Kendall Jenner')
-
-#     @unittest.expectedFailure
-#     def test_with_none_instanciated_output_field(self):
-#         methods = [method_one, method_two]
-#         field = fields.FunctionField(*methods, output_field=fields.CharField)
-#         field.resolve('I love')
-#         self.assertEqual(field._cached_result, 'I love Kendall Jenner')
-
-#     def test_special_resolution(self):
-#         field = fields.FunctionField(method_three, output_field=DecimalField())
-#         field.resolve('$456.7')
-#         self.assertEqual(field._cached_result, 456.7)
-
-
 class TestListField(unittest.TestCase):
     def setUp(self):
         self.field = fields.ListField()
@@ -368,5 +339,5 @@ class TestValueField(TestCase):
                 self.assertEqual(instance.result, 'Kendall')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()
