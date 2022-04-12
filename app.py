@@ -7,8 +7,7 @@ from zineb.settings import settings
 from zineb.utils.formatting import LazyFormat
 from zineb.utils.iteration import RequestQueue
 
-DEFAULT_META_OPTIONS = {'domains', 'base_url', 
-                        'verbose_name', 'limit_requests_to'}
+DEFAULT_META_OPTIONS = {'domains', 'verbose_name', 'limit_requests_to'}
 
 class SpiderOptions:
     def __init__(self):
@@ -221,14 +220,3 @@ class FileCrawler:
 
     def start(self, soup, **kwargs):
         pass
-
-
-class MySpider(Spider):
-    start_urls = ['http://example.com']
-    
-    class Meta:
-        domains = ['fashion.com']
-
-spider = MySpider()
-# print(spider.meta.prepared_requests.history)
-

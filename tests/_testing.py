@@ -66,12 +66,3 @@
 # model = MyModel()
 
 # print(model.checks())
-
-
-from zineb.models.datastructure import Model
-from zineb.models import fields
-from zineb.models.shortcuts import inline_model
-
-result = inline_model('Test', fields=[('name', fields.NameField())])
-result.add_value('name', 'Kendall')
-print(result)

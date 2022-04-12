@@ -218,11 +218,12 @@ class RequestQueue:
     def prepare(self, spider):
         from zineb.http.request import HTTPRequest
         from zineb.settings import settings
+        
         self.spider = spider
         self.domain_constraints = spider.meta.domains
         for i, url in enumerate(self.url_strings):
             self.request_queue[url] = HTTPRequest(
-                url, counter=i, **self.request_params
+                url, counter=i, spider=self.spider, **self.request_params
             )
             
         settings_values = ['RETRY', 'RETRY_TIMES', 'RETRY_HTTP_CODES']

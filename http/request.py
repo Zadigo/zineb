@@ -1,10 +1,9 @@
 import re
 from collections import OrderedDict
-from typing import List, Union
+from typing import Union
 from urllib import parse
 
 import requests
-from bs4 import BeautifulSoup
 from requests.sessions import Request, Session
 from w3lib.url import (is_url, safe_download_url, safe_url_string, urljoin,
                        urlparse)
@@ -13,7 +12,7 @@ from zineb.http.responses import HTMLResponse
 from zineb.http.user_agent import UserAgent
 from zineb.logger import Logger
 from zineb.settings import settings
-from zineb.tags import ImageTag, Link
+from zineb.tags import Link
 from zineb.utils.conversion import transform_to_bytes
 
 EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9-_.]+@\w+\.\w+$')
@@ -44,7 +43,7 @@ class BaseRequest:
 
         # Calling "str" on the pseudo-url allows
         # us to get the string contained in classes
-        # that represent the url such as Link or ImageTag
+        # that represent an url such as Link or ImageTag
         url = str(url)
 
         session = Session()
@@ -151,7 +150,7 @@ class BaseRequest:
         response = None
 
         if not self.can_be_sent:
-            self.local_logger.instance.logger.info(("A request was not sent for the following "
+            self.local_logger.instance.logger.info(("A request cannot be sent for the following "
             f"url {self.url} because self.can_be_sent is marked as False. Ensure that "
             "the url is not part of a restricted DOMAIN or that ENSURE_HTTPS does not"
             "force only secured requests."))
@@ -185,18 +184,17 @@ class BaseRequest:
 
     @classmethod
     def follow(cls, url: str):
-        instance = cls(url)
+        instance = cls(str(url))
         return instance._send()
 
     @classmethod
     def follow_all(cls, urls):
         for url in urls:
-            # FIXME: Calling str() on the url
+            # Calling str() on the url
             # allows Tags like Link to
             # be passed directly to the
             # request
-            instance = cls(url)
-            yield instance._send()
+            yield cls.follow(url)
 
 
 class HTTPRequest(BaseRequest):
@@ -246,32 +244,18 @@ class HTTPRequest(BaseRequest):
         else:
             self.local_logger.instance.error(f'An error occured on this request: {self.url} with status code {http_response.status_code}')
 
-    @classmethod
-    def follow(cls, url: Union[str, Link]):
-        instance = cls(url)
-        instance._send()
-        return instance.html_response
-
-    @classmethod
-    def follow_all(cls, urls: List[Union[str, Link]]):
-        for url in urls:
-            yield cls.follow(url)
-
     def urljoin(self, path: str, use_domain=False):
         """
         To compensate for relative paths not being
-        full ones, this joins the main url to the
-        relative path
+        full ones, this helper function joins a main url 
+        to a relative path
 
         Parameters
         ----------
 
             path (str): the relative path to use
             use_domain (bool, optional): Use the domain present
-            of the in the requested url. Defaults to False.
-
-        Returns:
-            str: a valid url
+            of the in the requested url. Defaults to False
         """
         if use_domain:
             return urljoin(self.root_url, str(path))
@@ -294,30 +278,30 @@ class FormRequest(BaseRequest):
                 self.prepared_request.url = f"{url_to_get}?{encoded_data}"
 
 
-class FormRequestFromResponse(FormRequest):
-    fields = []
+# class FormRequestFromResponse(FormRequest):
+#     fields = []
 
-    def __init__(self, form_or_soup: BeautifulSoup, url: Union[Link, str], 
-                 data: dict, method='POST', **attrs):
-        if form_or_soup.name != 'form':
-            form_or_soup = form_or_soup.get('form')
+#     def __init__(self, form_or_soup: BeautifulSoup, url: Union[Link, str], 
+#                  data: dict, method='POST', **attrs):
+#         if form_or_soup.name != 'form':
+#             form_or_soup = form_or_soup.get('form')
 
-        self._names = set()
+#         self._names = set()
 
-        fields = form_or_soup.find_all('input')
-        for field in fields:
-            keys = field.attrs.keys()
-            self._names.add(field.attrs['name'])
-            base = {}
-            for key in keys:
-                base.setdefault(key, field.attrs[key])
+#         fields = form_or_soup.find_all('input')
+#         for field in fields:
+#             keys = field.attrs.keys()
+#             self._names.add(field.attrs['name'])
+#             base = {}
+#             for key in keys:
+#                 base.setdefault(key, field.attrs[key])
 
-        valid_data = {}
-        for key, value in data.items():
-            if self._has_key(key):
-                valid_data.setdefault(key, value)
+#         valid_data = {}
+#         for key, value in data.items():
+#             if self._has_key(key):
+#                 valid_data.setdefault(key, value)
 
-        super().__init__(url, valid_data, method=method, **attrs)
+#         super().__init__(url, valid_data, method=method, **attrs)
 
-    def _has_key(self, key):
-        return key in self._names
+#     def _has_key(self, key):
+#         return key in self._names
