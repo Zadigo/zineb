@@ -1,6 +1,4 @@
-from ast import arg
 from collections import defaultdict
-from email.policy import default
 import weakref
 
 class Identifier:
@@ -109,7 +107,6 @@ class Signal:
         if not exists:
             self.receivers[lookup_key] = receiver
             
-            
         def something():
             print('finished')
             
@@ -122,17 +119,19 @@ class Signal:
         ]
             
             
-class A:
-    def test(self):
-        pass
+# class A:
+#     def test(self):
+#         pass
     
     
-def some_function(*args, **kwargs):
-    print(args, kwargs)
+# def some_function(*args, **kwargs):
+#     print(args, kwargs)
     
 
+# signals = Signal()
+# signals.connect(some_function)
+# # print(signals.receivers)
+# # print(signals.receivers)
+# signals.send(sender=A().test, message='I love Kendall')
+
 signals = Signal()
-signals.connect(some_function)
-# print(signals.receivers)
-# print(signals.receivers)
-signals.send(sender=A().test, message='I love Kendall')
