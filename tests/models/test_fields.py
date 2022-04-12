@@ -1,12 +1,10 @@
 import datetime
 import re
 import unittest
-from unittest.case import TestCase, expectedFailure
+from unittest.case import TestCase
 
 from zineb.exceptions import ValidationError
 from zineb.models import fields
-from zineb.models.fields import (BooleanField, CharField, DecimalField,
-                                 RegexField, Value)
 
 
 class TestField(unittest.TestCase):
@@ -72,7 +70,12 @@ class TestField(unittest.TestCase):
             return value
         self.field._default_validators = [raising_validator]
         self.assertRaises(ValidationError, self.field.resolve, 'Kendall')
-        
+    
+    def test_to_python_object(self):
+        self.assertEqual(self.field._to_python_object('Kendall'), 'Kendall')
+    
+    # def test_simpl_resolve(self):
+    #     self.assertEqual(self.field._simple_resolve('Kendall'), 'Kendall')
 
 class TestCharfields(unittest.TestCase):
     def setUp(self):
@@ -272,7 +275,7 @@ class TestImageField(unittest.TestCase):
 
 class TestBooleanField(unittest.TestCase):
     def setUp(self):
-        self.field = BooleanField()
+        self.field = fields.BooleanField()
 
     def test_resolution(self):
         booleans = ['True', 'true', True, 'on', 'On', 'off', 'Off', 'False', 'false', False, 0, 1, '0', 1]
@@ -313,7 +316,7 @@ class TestJsonField(unittest.TestCase):
 
 class TestRegexField(unittest.TestCase):
     def setUp(self):
-        self.field = RegexField(r'wing\s?spiker')
+        self.field = fields.RegexField(r'wing\s?spiker')
     
     def test_resolution(self):
         values = [
@@ -335,7 +338,7 @@ class TestValueField(TestCase):
         
         for value in values_to_test:
             with self.subTest(value=value):
-                instance = Value(value)
+                instance = fields.Value(value)
                 self.assertEqual(instance.result, 'Kendall')
 
 
