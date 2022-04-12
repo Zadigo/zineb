@@ -106,3 +106,7 @@ class FileSystemStorage(BaseStorage):
             if name == instance:
                 break
         return instance
+
+
+class AWSFileSystemStorage(BaseStorage):
+    pass
