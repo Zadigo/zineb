@@ -3,6 +3,7 @@ from importlib import import_module
 
 from zineb.logger import logger
 from zineb.settings import settings
+from zineb.utils.formatting import LazyFormat
 
 
 class Middleware:
@@ -19,14 +20,18 @@ class Middleware:
             try:
                 module = import_module(module_to_load)
             except:
-                raise ImportError('Middleware with path does not exist')
+                message = LazyFormat("Middleware with path '{path}' does not exist", path=middleware)
+                raise ImportError(message)
                                     
             for name, klass in inspect.getmembers(module, inspect.isclass):
                 try:
                     instance = klass()
                 except Exception as e:
-                    raise TypeError(f"{klass} was not loaded. {e.args[0]}")
-                else:
-                    self.middlewares[name] = instance
-                    
+                    raise TypeError(f"{klass} could not be instantiated. {e.args[0]}")
+                
+                self.middlewares[name] = instance                    
                 logger.instance.info(f"Loaded middleware: {middleware}")
+    
+    def run_middlewares(self):
+        for middleware in self.middlewares.values():
+            middleware()
