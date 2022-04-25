@@ -162,8 +162,12 @@ class MasterRegistry:
         # autmatically here
         media_folder = getattr(settings, 'MEDIA_FOLDER')
         if media_folder is None:
-            # setattr(settings, 'MEDIA_FOLDER', Path.joinpath(self.absolute_path, 'media'))
             setattr(settings, 'MEDIA_FOLDER', settings.PROJECT_PATH.joinpath('media'))
+        else:
+            path = Path(settings.MEDIA_FOLDER)
+            if not path.exists():
+                raise ValueError("MEDIA_FOLDER path does does not exist")
+            setattr(settings, 'MEDIA_FOLDER', path)
                 
         try:
             # Change TIME_ZONE to a pytz usable 
@@ -204,8 +208,7 @@ class MasterRegistry:
                         instance = klass()
                         instance.prepare()
                         self.storages.update({name: {klass_name: instance}})
-                    
-                        
+                             
     def populate(self):
         """
         Populates the registry with the spiders 
