@@ -52,7 +52,7 @@ class DefaultJsonEncoder(JSONEncoder):
             try:
                 return convert_to(obj)
             except Exception:
-                pass
+                raise
         
         if hasattr(obj, '__iter__'):
             return tuple(item for item in obj)

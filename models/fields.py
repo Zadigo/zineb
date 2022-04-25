@@ -833,7 +833,7 @@ class RelatedField(Field):
         # like model_name.add_value(related_field_name, value)
         raise Exception(f"A RelatedModel field cannot resolve data directly. Use {self.model._meta.model_name}.{self.field_name}.add_value(...) for example to add a value to the related model.")
  
- 
+
 # TODO: When the related field is set on the model
 # we get [{'ages': [{'age': 30}], 'name': 'Kendall'}]
 # for example. I think we should get instead

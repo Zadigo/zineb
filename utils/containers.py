@@ -10,6 +10,7 @@ from zineb.models.fields import Empty
 from zineb.settings import settings
 from zineb.utils.formatting import LazyFormat, remap_to_dict
 from zineb.utils.iteration import drop_while
+from zineb.utils.encoders import DefaultJsonEncoder
 
 # TODO: Determine how to use the SmartDict, either it has to
 # be bound to a model or either it's an independent container
@@ -207,30 +208,35 @@ class ModelSmartDict(SmartDict):
             return multisort(values, ordering_booleans)
         return values
         
-    def execute_save(self, commit: bool=True, filename: str=None, extension: str='json', **kwargs):
+    def execute_save(self, filename, commit=True, extension='json', **kwargs):
         # TODO: Move the file creation to the Model
         # and only make this deal with the values
         if commit:
-            filename = filename or secrets.token_hex(5)
-            filename = f'{filename}.{extension}'
-            
             try:
                 path = Path(settings.MEDIA_FOLDER)
                 if not path.exists():
                     path.mkdir()
             except:
-                path = filename
+                raise
+            else:
+                # TODO: Technically the MEDIA_FOLDER is set
+                # wih setup() and this check is not necessary.
+                # However, someone might be tempted to call 
+                # this outside of a project.
+                if settings.MEDIA_FOLDER is not None:
+                    file_path = settings.MEDIA_FOLDER.joinpath(filename)
 
-            file_path = os.path.join(settings.MEDIA_FOLDER, f'{filename}')
             if extension == 'json':
+                file_path = f"{file_path}.json"
                 data = json.loads(json.dumps(self.as_list()))
                 with open(file_path, mode='w', encoding='utf-8') as f:
-                    json.dump(data, f, indent=2, sort_keys=True)
+                    json.dump(data, f, indent=2, sort_keys=True, cls=DefaultJsonEncoder)
 
             if extension == 'csv':
+                file_path = f"{file_path}.csv"
                 with open(file_path, mode='w', newline='\n', encoding='utf-8') as f:
                     writer = csv.writer(f)
                     writer.writerows(self.as_csv())
         else:
-            data = json.loads(json.dumps(self.as_list()))
+            data = json.loads(json.dumps(self.as_list(), cls=DefaultJsonEncoder))
             return json.dumps(data, sort_keys=True)
