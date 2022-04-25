@@ -1,3 +1,4 @@
+from pathlib import Path
 import re
 
 from datetime import tzinfo
@@ -132,8 +133,12 @@ def check_proxies_valid():
 @register(tag='media_folder')
 def check_media_folder():
     media_folder = settings.MEDIA_FOLDER
-    if media_folder is not None and not isinstance(media_folder, str):
-        return [E007]
+    if media_folder is not None:
+        if isinstance(media_folder, Path):
+            return []
+        
+        if not isinstance(media_folder, str):
+            return [E007]
     return []
     
 

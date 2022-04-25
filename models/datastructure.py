@@ -8,7 +8,6 @@ from zineb.exceptions import FieldError, ModelExistsError
 from zineb.http.responses import HTMLResponse
 from zineb.models.functions import (Add, Divide, ExtractDay, ExtractMonth,
                                     ExtractYear, Multiply, Substract, When)
-from zineb.settings import settings
 from zineb.utils.containers import ModelSmartDict
 from zineb.utils.formatting import LazyFormat
 
@@ -538,9 +537,6 @@ class Model(metaclass=Base):
                 
             # TODO: Send a signal after the model
             # is saved
-    
-            if settings.MEDIA_FOLDER is not None:
-                filename = os.path.join(settings.MEDIA_FOLDER, filename)
                 
             self._data_container.execute_save(commit=commit, filename=filename, **kwargs)
         return self._cached_resolved_data    
