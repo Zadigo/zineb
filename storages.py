@@ -25,18 +25,6 @@ class FileDescriptor:
             if file_content is None:
                 self.__dict__['file_content'] = content
     
-    def choose_parser(self, extension):
-        extensions = {
-            'json': json.load,
-            'csv': csv.reader,
-            'jpg': Image,
-            'jpeg': Image,
-            'png': Image,
-            'svg': Image,
-            'mp4': None
-        }
-        return extensions[extension]
-        
         
 class File:
     content = FileDescriptor()
@@ -67,6 +55,18 @@ class File:
     @classmethod
     def create(cls, full_path):
         return cls(full_path)
+    
+    def choose_parser(self, extension):
+        extensions = {
+            'json': json.load,
+            'csv': csv.reader,
+            'jpg': Image,
+            'jpeg': Image,
+            'png': Image,
+            'svg': Image,
+            'mp4': None
+        }
+        return extensions[extension]
 
 
 class BaseStorage:
@@ -80,7 +80,9 @@ class BaseStorage:
         pass
     
     def open_file(self, name):
-        pass
+        f = self.get_file(name)
+        parser = f.choose_parser(f.extension)
+        return parser(f.content)
     
     def filename_generator(self, old_name):
         pass
@@ -123,6 +125,7 @@ class FileSystemStorage(BaseStorage):
                 self.files.append((instance.name, instance))
 
     def get_file(self, name):
+        instance = None
         for item in self.files:
             name, instance = item
             if name == instance:
