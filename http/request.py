@@ -1,3 +1,4 @@
+import json
 import re
 from collections import OrderedDict
 from typing import Union
@@ -88,6 +89,20 @@ class BaseRequest:
     def __repr__(self):
         return f"{self.__class__.__name__}(url={self.url}, resolved={self.resolved})"
 
+    @classmethod
+    def follow(cls, url: str):
+        instance = cls(str(url))
+        return instance._send()
+
+    @classmethod
+    def follow_all(cls, urls):
+        for url in urls:
+            # Calling str() on the url
+            # allows Tags like Link to
+            # be passed directly to the
+            # request
+            yield cls.follow(url)
+
     def _set_headers(self, request: Request, **extra_headers):
         headers = settings.get('DEFAULT_REQUEST_HEADERS', {})
         
@@ -98,7 +113,7 @@ class BaseRequest:
         request.headers = headers        
         return request
 
-    def _precheck_url(self, url: str):
+    def _precheck_url(self, url):
         """
         Check the url respects certain specifities from the project's
         settings and other elements
@@ -181,21 +196,7 @@ class BaseRequest:
         self.root_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
 
         return response
-
-    @classmethod
-    def follow(cls, url: str):
-        instance = cls(str(url))
-        return instance._send()
-
-    @classmethod
-    def follow_all(cls, urls):
-        for url in urls:
-            # Calling str() on the url
-            # allows Tags like Link to
-            # be passed directly to the
-            # request
-            yield cls.follow(url)
-
+    
 
 class HTTPRequest(BaseRequest):
     """
@@ -260,6 +261,16 @@ class HTTPRequest(BaseRequest):
         if use_domain:
             return urljoin(self.root_url, str(path))
         return safe_url_string(urljoin(self._http_response.url, str(path)))
+    
+    def json(self, sort_by=None, filter_func=None):
+        """If the response is not an HTML object, return
+        the JSON content via this method"""
+        if self.html_response.headers.is_json_response:
+            result = json.loads(self.html_response.cached_response.content())
+            if sort_by is not None:
+                return sorted(result, key=lambda x: x[sort_by])
+            return result
+        return {}
 
 
 class FormRequest(BaseRequest):

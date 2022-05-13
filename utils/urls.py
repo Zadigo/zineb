@@ -1,5 +1,4 @@
 import re
-from typing import Callable
 from urllib.parse import urlparse
 
 from zineb.logger import logger
