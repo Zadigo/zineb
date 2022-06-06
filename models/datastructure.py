@@ -315,6 +315,19 @@ class Model(metaclass=Base):
         self.response = response
 
         self.parser = self._choose_parser()
+        
+        # When the model is initialized, we bind it
+        # to the constraint if there are any
+        # for _, constraint in self._meta.registered_constraints.items():
+        #     constraint.model = self
+        
+        # Here we assign the model-self to 
+        # the options which as initially None
+        self._meta.model = self
+
+    @property
+    def _get_internal_data(self):
+        return dict(self._cached_result.values)
 
     def __str__(self):
         # data = self._data_container.as_list()
@@ -392,6 +405,12 @@ class Model(metaclass=Base):
         for field in self._meta.fields_map.values():
             errors.extend(field.checks())
         return errors
+    
+    def _trigger_constraints(self, value):
+        """Runs before the model tries to a add a value
+        to the underlying container by running each
+        constraints created on the model"""
+        pass
     
     def checks(self):
         # This is the main collector for all the errors

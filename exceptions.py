@@ -68,7 +68,7 @@ class RequestAborted(Exception):
     pass
 
 
-class ModelConstrainError(Exception):
+class ModelConstraintError(Exception):
     def __init__(self, field_name, value):
         super().__init__(f"Constraint not respected on '{field_name}'. '{value}' already present in the model.")
 
@@ -79,5 +79,6 @@ class RequiresProjectError(Exception):
 
 
 class ConstraintError(Exception):
-    def __init__(self):
-        super().__init__('A constraint error was raised on the given model')
+    def __init__(self, model_name, constraint):
+        message = f"Model {model_name} did no pass constraint for {constraint}"
+        super().__init__(message)

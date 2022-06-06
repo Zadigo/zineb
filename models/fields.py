@@ -867,6 +867,6 @@ class RelatedModel(RelatedField):
         # TODO: We should not be able to created a RelatedModel field
         # for the model that is a superclass of the model that wants
         # to create the relationship
-
+        
         setattr(model, field_name, self.field_descriptor(self))
         model._meta.add_field(self.field_name, self)
