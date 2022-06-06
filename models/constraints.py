@@ -13,13 +13,16 @@ class BaseConstraint:
     def __repr__(self):
         return f'<{self.__class__.__name__} for {self.model}>'
         
-    def prepare(self):
+    def prepare(self, model_meta=None):
         if len(self.constrained_fields) == 1:
             self.unique.extend(self.values[field])
         else:
             for field in self.constrained_fields:
                 container = self.values[field]
                 self.unique_together.append(container)
+                
+        if model_meta is not None:
+            model_meta.add_constraint(self.name)
 
     def check_constraint(self, value_to_check):
         # If we have a unique together, it means that
@@ -60,7 +63,10 @@ class CheckConstraint(BaseConstraint):
         return_data = {}
         if not result:
             for field in self.constrained_fields:
+                # FIXME: Return the container without the
+                # value that was constrained
                 return_data[field] = self._data_container[field]
+                # return_data[field] = self.values[field]
         return return_data
 
 
@@ -89,12 +95,11 @@ class CheckConstraint(BaseConstraint):
 #         return value
 
 
-
-
-# constraint = UniqueConstraint('name', 'surname', condition=lambda x: x == 15)
-# constraint.values = {'name': ['Kendall'], 'surname': ['Jenner']}
-# constraint.prepare()
-# constraint.check_constraint('Kendall')
+constraint = CheckConstraint(['name', 'surname'], 'unique_name', condition=lambda x: x == 15)
+# constraint = UniqueConstraint(['name', 'surname'], 'unique_name', condition=lambda x: x == 15)
+constraint.values = {'name': ['Kendall'], 'surname': ['Jenner']}
+constraint.prepare()
+print(constraint.check_constraint('Kendall'))
 # print(constraint)
 
 

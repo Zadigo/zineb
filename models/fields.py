@@ -397,6 +397,7 @@ class CharField(Field):
         ])
         return errors
 
+
 class TextField(CharField):
     def __init__(self, max_length: int=500, **kwargs):
         super().__init__(max_length=max_length, **kwargs)
@@ -472,7 +473,6 @@ class ImageField(URLField):
         # self.image_data = None
         # self.metadata = {}
         self.download_to = download_to
-
 
     @property
     def internal_name(self):

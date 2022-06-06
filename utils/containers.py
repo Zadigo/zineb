@@ -49,6 +49,12 @@ class SmartDict:
 
     def _last_value(self, name: str):
         return self.get_container(name)[-1][-1]
+    
+    def run_constraints(self, container):
+        """A convinience class that can be used
+        by subclasses to run constraint validation
+        on the inner data"""
+        pass
 
     def get_container(self, name: str):
         return self.values[name]
@@ -117,6 +123,7 @@ class SmartDict:
                     container = self.get_container(field_name)
                     container.append(self._last_created_row[i - 1])
                 self._id = self._id + 1
+            # self.run_constraints(container)
 
     def update_multiple(self, attrs: dict):
         for key, value in attrs.items():
@@ -164,9 +171,8 @@ class SmartDict:
         return base
 
 
-
 class ModelSmartDict(SmartDict):
-    """A SmartDict that can be bound to a model"""
+    """A SmartDict that is bound to a model"""
     def __init__(self, model, order_by=[], include_id_field=False):
         fields = model._meta.field_names
         super().__init__(*fields, order_by=order_by)
@@ -207,10 +213,14 @@ class ModelSmartDict(SmartDict):
                     return values
             return multisort(values, ordering_booleans)
         return values
+    
+    def run_constraints(self, container):
+        for constraint in self.model._meta.constraints:
+            constraint.check_constraint(container)
         
+    # TODO: Move the file creation to the Model directly
+    # and only make this deal with the values
     def execute_save(self, filename, commit=True, extension='json', **kwargs):
-        # TODO: Move the file creation to the Model
-        # and only make this deal with the values
         if commit:
             try:
                 path = Path(settings.MEDIA_FOLDER)
