@@ -4,7 +4,6 @@ import uuid
 from json.encoder import JSONEncoder
 from typing import Any, Type
 
-import six
 from zineb.utils.formatting import LazyFormat
 
 
