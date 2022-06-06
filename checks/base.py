@@ -1,3 +1,4 @@
+from pathlib import Path
 import re
 
 from datetime import tzinfo
@@ -54,6 +55,9 @@ E009 = ('DEFAULT_DATE_FORMATS should be a tuple or a list')
 
 
 E010 = ('DEFAULT_DATE_FORMATS should be a string. Got {date_format}')
+
+
+E011 = ('{setting} should be a dict')
 
 
 @register(tag='middlewares')
@@ -129,8 +133,12 @@ def check_proxies_valid():
 @register(tag='media_folder')
 def check_media_folder():
     media_folder = settings.MEDIA_FOLDER
-    if media_folder is not None and not isinstance(media_folder, str):
-        return [E007]
+    if media_folder is not None:
+        if isinstance(media_folder, Path):
+            return []
+        
+        if not isinstance(media_folder, str):
+            return [E007]
     return []
     
 
@@ -152,3 +160,16 @@ def check_default_date_formats():
     for item in default_date_formats:
         if not isinstance(item, str):
             return [E010.format(date_format=item)]
+
+
+@register(tag='requires_dict')
+def check_setting_requires_dict():
+    errors = []
+    values = ['LOGGING', 'STORAGES']
+    for value in values:
+        current_value = getattr(settings, value, None)
+
+        if not isinstance(current_value, dict):
+            errors.extend([E011.format(setting=value)])
+        
+    return errors

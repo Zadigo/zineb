@@ -1,8 +1,12 @@
+import pathlib
 import os
 import re
 from collections import defaultdict
-from functools import lru_cache
+from functools import lru_cache, wraps
 from typing import Callable, Iterable, OrderedDict, Union
+from urllib.parse import urlparse
+
+from collections import Counter
 
 from zineb import exceptions
 from zineb.utils.formatting import LazyFormat
@@ -75,7 +79,7 @@ def split_while(func: Callable, values: Iterable):
 
 
 @lru_cache(maxsize=0)
-def collect_files(dir_name: str, func: Callable = None):
+def collect_files(dir_name: str, func = None):
     """
     Collect all the files within specific
     directory of your project. This utility function
@@ -83,12 +87,6 @@ def collect_files(dir_name: str, func: Callable = None):
 
         class Spider(FileCrawler):
             start_files = collect_files('some/path')
-
-    Parameters
-    ----------
-
-        - path (str): relative path to the directory
-        - func (Callable): a func that can be used to filter the files
     """
     from zineb.settings import settings
     
@@ -127,22 +125,6 @@ def regex_iterator(text: str, regexes: Union[tuple, list]):
     return result
 
 
-# def create_batch(values: list, by: int=10):
-#     batches = []
-#     batch = []
-#     for i, value in enumerate(values):
-#         if i + 1 % by == 0:
-#             batches.append(batch)
-#             batch = []
-#         else:
-#             batch.append(value)
-        
-#     return batches
-
-
-# print(create_batch(list(range(0, 20))))
-
-
 class RequestQueue:
     """Class that stores and manages all the
     starting urls of a given spider"""
@@ -151,28 +133,29 @@ class RequestQueue:
     history = defaultdict(dict)
 
     def __init__(self, *urls, **request_params):
-        from zineb.http.request import HTTPRequest
-        # from zineb.settings import settings
-        # self._zineb_settings = settings
-        
+        self.spider = None
+        self.domain_constraints = []
+        self.request_params = request_params
         self.url_strings = list(urls)
-
-        for i, url in enumerate(self.url_strings):
-            self.request_queue[url] = HTTPRequest(
-                url, counter=i, **request_params
-            )
-
-        # self.retry_policies = {
-        #     'retry': self._zineb_settings.get('RETRY', False),
-        #     'retry_times': self._zineb_settings.get('RETRY_TIMES', 2),
-        #     'retry_http_codes': self._zineb_settings.get('RETRY_HTTP_CODES', [])
-        # }
-
+        self.retry_policies = {}
+        
     def __repr__(self):
-        return f"{self.__class__.__name__}(urls={len(self.request_queue)})"
+        return f"<{self.__class__.__name__}(urls={len(self.request_queue)})>"
 
     def __iter__(self):
-        return iter(self.request_queue.items())
+        from zineb.logger import logger
+        for url, request in self.request_queue.items():
+            try:
+                if not self.is_valid_domain(url):
+                    logger.instance.info(f"Skipping url '{url}' because it violates constraints on domain")
+                    continue
+                
+                request._send()
+            except:
+                self.history[url].update({'failed': True, 'request': request})
+            else:
+                self.history[url].update({'failed': False, 'request': request})
+            yield url, request
 
     def __len__(self):
         return len(self.request_queue)
@@ -195,6 +178,7 @@ class RequestQueue:
     def __add__(self, instance):
         if not isinstance(instance, RequestQueue):
             raise TypeError('Instance should be an instance of RequestQueue')
+        
         self_urls = self.urls
         self_urls.extend(instance.urls)
         return RequestQueue(self.spider, *self_urls)
@@ -205,19 +189,42 @@ class RequestQueue:
 
     @property
     def requests(self):
-        return list(self.request_queue.items())
+        return list(self.request_queue.values())
 
     @property
     def urls(self):
         return list(self.request_queue.keys())
 
     @property
-    def unresolved_requests(self):
-        return keep_while(lambda x: not x[1].resolved, self.request_queue.items())
-
-    @property
     def failed_requests(self):
         return keep_while(lambda x: x['failed'], self.history.items())
+    
+    def _iter(self):
+        from zineb.logger import logger
+        import asyncio
+        
+        async def sender(request):
+            history = {'failed': False, 'request': request}
+            try:
+                request._send()
+            except:
+                history.update({'failed': True, 'request': request})
+            finally:
+                self.history[request.url].update(history)
+                return request
+        
+        async def main():
+            tasks = []
+            for url, request in self.request_queue.items():
+                if not self.is_valid_domain(url):
+                    logger.instance.info(f"Skipping url '{url}' because it violates constraints on domain")
+                    continue
+                
+                task = asyncio.create_task(sender(request))
+                tasks.append(task)
+            return await asyncio.gather(*tasks)
+        
+        return asyncio.run(main())
 
     def _retry(self):
         successful_retries = set()
@@ -229,22 +236,75 @@ class RequestQueue:
                         if instance.request.status_code == 200:
                             successful_retries.add(instance)
         return successful_retries
+    
+    def duplicates(self):
+        duplicate_urls = []
+        counter = Counter(self.url_strings)
+        most_common = counter.most_common()
+        for item in most_common:
+            url, count = item
+            if count > 1:
+                duplicate_urls.append(url)
+        return True if duplicate_urls else False
+        
+    def prepare(self, spider):
+        from zineb.http.request import HTTPRequest
+        from zineb.settings import settings
+        
+        self.spider = spider
+        self.domain_constraints = spider.meta.domains
+        for i, url in enumerate(self.url_strings):
+            self.request_queue[url] = HTTPRequest(
+                url, counter=i, spider=self.spider, **self.request_params
+            )
+            
+        settings_values = ['RETRY', 'RETRY_TIMES', 'RETRY_HTTP_CODES']
+        for value in settings_values:
+            self.retry_policies[value] = getattr(settings, value)
 
-    def get(self, url):
+    def checks(self):
+        errors = []
+        for url in self.url_strings:
+            if not isinstance(url, str):
+                errors.extend([])
+
+    def get(self, url, parsed=False):
+        if parsed:
+            return urlparse(url)
         return self.request_queue[url]
 
     def has_url(self, url):
         return url in self.request_queue.keys()
 
-    def resolve_all(self):
-        for url, request in self.request_queue.items():
-            try:
-                request._send()
-            except:
-                self.history[url].update(
-                    {'failed': True, 'resolved': request.resolved})
-            else:
-                self.history[url].update(
-                    {'failed': False, 'resolved': request.resolved})
-            yield url, request
+    def compare(self, url, url_to_compare):
+        result = self.get(url_to_compare, parsed=True)
+        url = urlparse(url)
+        return result.netloc == url.netloc
+    
+    def is_valid_domain(self, url):
+        url = self.get(url, parsed=True)
+        if self.domain_constraints:
+            return url.netloc in self.domain_constraints
+        return True
 
+
+# def spider_function(func):
+#     @wraps(func)
+#     def wrapper(spider, **kwargs):
+#         return func(spider=spider, **kwargs)
+#     return wrapper
+
+
+# def urls_from_file(filename, **kwargs):
+#     from zineb.settings import settings
+    
+#     path = pathlib.Path(settings.PROJECT_PATH, filename)
+#     if not path.exists():
+#         return []
+
+#     with open(path, mode='r', encoding='utf-8') as f:
+#         values = f.readlines()
+#         instance = RequestQueue(*values)
+#         instance.prepare(kwargs.get('spider'))
+#         return instance
+# x = spider_function(urls_from_file('urls.txt'))

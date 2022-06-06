@@ -113,6 +113,7 @@ class MasterRegistry:
         self.project_name = None
         self.absolute_path = None
         self.middlewares = []
+        self.storages = {'default': {}}
 
     def __repr__(self):
         return f"<{self.__class__.__name__}[{dict(self.spiders)}]>"
@@ -146,19 +147,27 @@ class MasterRegistry:
             f"If you forgot to register {spider_name}, check your settings file."), stack_info=True)
             raise SpiderExistsError(spider_name)
         
+    def get_default_storage(self):
+        name, instance = list(self.storages['default'].items())[0]
+        return instance
+        
     def preconfigure_project(self, dotted_path, settings):
         # Replace the log file name with the full path
         # to the project's log file 
-        # setattr(settings, 'LOG_FILE_NAME', Path.joinpath(self.absolute_path, settings.LOG_FILE_NAME))
-        setattr(settings, 'LOG_FILE_NAME', settings.PROJECT_PATH.joinpath(settings.LOG_FILE_NAME))
+        log_settings = settings.LOGGING
+        settings.LOGGING['path'] = settings.PROJECT_PATH.joinpath(log_settings['file_path'])
 
         # If the user did not explicitly set the path
         # to a MEDIA_FOLDER, we will be doing it
         # autmatically here
         media_folder = getattr(settings, 'MEDIA_FOLDER')
         if media_folder is None:
-            # setattr(settings, 'MEDIA_FOLDER', Path.joinpath(self.absolute_path, 'media'))
             setattr(settings, 'MEDIA_FOLDER', settings.PROJECT_PATH.joinpath('media'))
+        else:
+            path = Path(settings.MEDIA_FOLDER)
+            if not path.exists():
+                raise ValueError("MEDIA_FOLDER path does does not exist")
+            setattr(settings, 'MEDIA_FOLDER', path)
                 
         try:
             # Change TIME_ZONE to a pytz usable 
@@ -179,7 +188,27 @@ class MasterRegistry:
         
         # TODO: Send a signal when the master registry
         # has completed all the initial setting up
-                        
+        
+        # Load the current storage and store it as
+        # an instance on the spider
+        storages = settings.STORAGES
+        for name, storage in storages.items():
+            try:
+                module_path, klass_name = storage.rsplit('.', maxsplit=1)
+                storage_module = import_module(module_path)
+            except:
+                # TODO: Raise an error if we cannot get a file system
+                # storage ?
+                raise
+            else:
+                klass = getattr(storage_module, klass_name, None)
+                if klass is not None:
+                    from zineb.storages import BaseStorage
+                    if inspect.isclass(klass) and BaseStorage in klass.__mro__:
+                        instance = klass()
+                        instance.prepare()
+                        self.storages.update({name: {klass_name: instance}})
+                             
     def populate(self):
         """
         Populates the registry with the spiders 

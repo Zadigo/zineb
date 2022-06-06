@@ -397,6 +397,7 @@ class CharField(Field):
         ])
         return errors
 
+
 class TextField(CharField):
     def __init__(self, max_length: int=500, **kwargs):
         super().__init__(max_length=max_length, **kwargs)
@@ -472,7 +473,6 @@ class ImageField(URLField):
         # self.image_data = None
         # self.metadata = {}
         self.download_to = download_to
-
 
     @property
     def internal_name(self):
@@ -833,7 +833,7 @@ class RelatedField(Field):
         # like model_name.add_value(related_field_name, value)
         raise Exception(f"A RelatedModel field cannot resolve data directly. Use {self.model._meta.model_name}.{self.field_name}.add_value(...) for example to add a value to the related model.")
  
- 
+
 # TODO: When the related field is set on the model
 # we get [{'ages': [{'age': 30}], 'name': 'Kendall'}]
 # for example. I think we should get instead
@@ -863,6 +863,10 @@ class RelatedModel(RelatedField):
             # RelatedModelField, then we should be able to do
             # model2.field_set in reverse for model1
             setattr(self.related_model, self.reverse_related_name, self.model)
-                
+        
+        # TODO: We should not be able to created a RelatedModel field
+        # for the model that is a superclass of the model that wants
+        # to create the relationship
+        
         setattr(model, field_name, self.field_descriptor(self))
         model._meta.add_field(self.field_name, self)

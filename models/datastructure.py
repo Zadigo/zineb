@@ -3,12 +3,12 @@ import os
 import secrets
 from collections import defaultdict, namedtuple
 from functools import cached_property, lru_cache
+from models.fields import Value
 
 from zineb.exceptions import FieldError, ModelExistsError
 from zineb.http.responses import HTMLResponse
 from zineb.models.functions import (Add, Divide, ExtractDay, ExtractMonth,
                                     ExtractYear, Multiply, Substract, When)
-from zineb.settings import settings
 from zineb.utils.containers import ModelSmartDict
 from zineb.utils.formatting import LazyFormat
 
@@ -73,9 +73,23 @@ class ModelOptions:
             if name not in self.field_names:
                 raise FieldError(name, self.field_names)
             
+    def _check_constraints(self):
+        names = set()
+        duplicates = []
+        
+        for constraint in self.constraints:
+            names.add(constraint.name)
+            
+            if constraint.name in  names:
+                duplicates.append(constraint.name)
+                
+        if duplicates:
+            raise ValueError('Constraints should have a unique name')
+            
     def _checks(self):
         return [
-            self._check_ordering_fields
+            self._check_ordering_fields,
+            self._check_constraints
         ]
         
     def _prepare(self):
@@ -88,10 +102,18 @@ class ModelOptions:
         if not self.has_field('id'):
             auto_field = AutoField(auto_created=True)
             self.add_field('id', auto_field)
+            
+        # Once the model is prepared, initialize
+        # all the constraints on the model
+        for constraint in self.constraints:
+            constraint.prepare(self)
         
     def has_field(self, name):
         return name in self.field_names
-
+    
+    def add_constraint(self, name):
+        pass
+        
     def add_field(self, name, field):
         if name in self.fields_map:
             raise ValueError(f"Field '{name}' is already present on the model '{self.model_name}'")
@@ -557,9 +579,6 @@ class Model(metaclass=Base):
                 
             # TODO: Send a signal after the model
             # is saved
-    
-            if settings.MEDIA_FOLDER is not None:
-                filename = os.path.join(settings.MEDIA_FOLDER, filename)
                 
             self._data_container.execute_save(commit=commit, filename=filename, **kwargs)
         return self._cached_resolved_data    

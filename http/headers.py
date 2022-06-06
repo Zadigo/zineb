@@ -22,6 +22,10 @@ class ResponseHeaders(OrderedDict):
             response_headers.update({'Expires': expires})
 
         super().__init__(**self._refix(response_headers))
+        
+    @property
+    def is_json_response(self):
+        return 'application/json' in self
 
     def _transform_date_to_python(self, d):
         if isinstance(d, datetime.datetime):

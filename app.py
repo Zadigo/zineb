@@ -2,16 +2,15 @@ import os
 from io import StringIO
 
 from zineb.logger import logger
+from zineb.registry import registry
 from zineb.settings import settings
 from zineb.utils.formatting import LazyFormat
 from zineb.utils.iteration import RequestQueue
 
-DEFAULT_META_OPTIONS = {'domains', 'base_url', 
-                        'verbose_name', 'limit_requests_to'}
+DEFAULT_META_OPTIONS = {'domains', 'verbose_name', 'limit_requests_to'}
 
 class SpiderOptions:
     def __init__(self):
-        self.options = {}
         self.spider = None
         self.spider_name = None
         self.verbose_name = None
@@ -23,26 +22,28 @@ class SpiderOptions:
         self.limit_requests_to = 0
         
     def __repr__(self):
-        return f'<{self.__class__.__name__} for {self.spider.__name__}>'
+        return f'<{self.__class__.__name__} for {self.spider_name}>'
         
     def update_options(self, cls, name):
         self.spider = cls
         self.spider_name = name.lower()
         self.verbose_name = name
-        self.prepared_requests = RequestQueue(*self.start_urls)
         
     def add(self, name, value):
-        if name in self.options:
-            raise ValueError('Option is already declared')
-        
         if name not in DEFAULT_META_OPTIONS:
-            raise ValueError('Meta received an illegal option')
+            raise ValueError(f"Meta received an illegal option {name}")
         
         if name == 'verbose_name':
             if self.verbose_name is not None:
-                self.verbose_name = value            
+                self.verbose_name = value     
         
-        self.options[name] = value
+        setattr(self, name, value)
+        
+    def initialize_queue(self):
+        queue = RequestQueue(*self.start_urls)
+        queue.prepare(self.spider)
+        self.prepared_requests = queue
+        self.limit_requests_to = len(queue)
 
 
 class BaseSpider(type):
@@ -53,24 +54,28 @@ class BaseSpider(type):
         if not parents:
             return create_new(cls, name, bases, attrs)
         
-        new_class = create_new(cls, name, bases, attrs)
-        
+        meta_attributes = attrs.pop('Meta', None)
         meta = SpiderOptions()
         
-        start_urls = attrs.get('start_urls', None)
+        start_urls = attrs.get('start_urls', [])
         meta.start_urls = start_urls
+        
+        new_class = create_new(cls, name, bases, attrs)
+        setattr(new_class, 'meta', meta)
+        
         meta.update_options(new_class, name)
         
-        meta_attributes = attrs.pop('Meta', None)
         if meta_attributes is not None:
             attributes_dict = meta_attributes.__dict__
         
             for name, value in attributes_dict.items():
-                meta.add(name, value)
+                if name.startswith('__'):
+                    continue
                 
-        setattr(new_class, 'meta', meta)
+                meta.add(name, value)
+        meta.initialize_queue()
         return new_class
-
+    
 
 class Spider(metaclass=BaseSpider):
     """
@@ -91,30 +96,34 @@ class Spider(metaclass=BaseSpider):
 
     def __repr__(self):
         return f"{self.__class__.__name__}(requests={len(self.meta.prepared_requests)})"
+    
+    def __getattribute__(self, name):
+        if name == 'storage':
+            return registry.get_default_storage()
+        return super().__getattribute__(name)
 
     def _resolve_requests(self):
         """
         Calls `_send` each requests and passes the response to
         the start method of the same class
         """
-        if self.meta.prepared_requests:
-            limit_requests_to = self.meta.limit_requests_to
-            if limit_requests_to == 0:
-                limit_requests_to = len(self.meta.prepared_requests)
+        limit_requests_to = self.meta.limit_requests_to
 
-            for i, items in enumerate(self.meta.prepared_requests):
-                url, request = items
-                request._send()
-
-                soup_object = request.html_response.html_page
-                self.start(
-                    request.html_response,
-                    request=request,
-                    soup=soup_object
-                )
-
-            # TODO: Send a signal after the spider
-            # has resolved all the requests
+        for i, items in enumerate(self.meta.prepared_requests):
+            if i == limit_requests_to:
+                break
+            
+            _, request = items
+                        
+            soup_object = request.html_response.html_page
+            self.start(
+                request.html_response,
+                request=request,
+                soup=soup_object
+            )
+            
+        # TODO: Send a signal after the spider
+        # has resolved all the requests
 
     def start(self, response, request, **kwargs):
         """
@@ -211,10 +220,3 @@ class FileCrawler:
 
     def start(self, soup, **kwargs):
         pass
-
-
-# class MySpider(Spider):
-#     start_urls = ['http://example.com']
-
-# spider = MySpider()
-# print(spider)

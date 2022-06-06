@@ -10,7 +10,7 @@ from zineb.models.fields import Empty
 from zineb.settings import settings
 from zineb.utils.formatting import LazyFormat, remap_to_dict
 from zineb.utils.iteration import drop_while
-
+from zineb.utils.encoders import DefaultJsonEncoder
 
 # TODO: Determine how to use the SmartDict, either it has to
 # be bound to a model or either it's an independent container
@@ -49,6 +49,12 @@ class SmartDict:
 
     def _last_value(self, name: str):
         return self.get_container(name)[-1][-1]
+    
+    def run_constraints(self, container):
+        """A convinience class that can be used
+        by subclasses to run constraint validation
+        on the inner data"""
+        pass
 
     def get_container(self, name: str):
         return self.values[name]
@@ -117,6 +123,7 @@ class SmartDict:
                     container = self.get_container(field_name)
                     container.append(self._last_created_row[i - 1])
                 self._id = self._id + 1
+            # self.run_constraints(container)
 
     def update_multiple(self, attrs: dict):
         for key, value in attrs.items():
@@ -164,9 +171,8 @@ class SmartDict:
         return base
 
 
-
 class ModelSmartDict(SmartDict):
-    """A SmartDict that can be bound to a model"""
+    """A SmartDict that is bound to a model"""
     def __init__(self, model, order_by=[], include_id_field=False):
         fields = model._meta.field_names
         super().__init__(*fields, order_by=order_by)
@@ -187,7 +193,7 @@ class ModelSmartDict(SmartDict):
         else:
             has_ordering = len(self.order_by) > 0
             # For the ordering to work, we need a list
-            # of dicts as [{field_name: True}, ...].
+            # of dicts as [(field_name, True), ...].
             # The boolean determines whether the sort
             # is ascending or descending.
             for item in self.order_by:
@@ -207,31 +213,40 @@ class ModelSmartDict(SmartDict):
                     return values
             return multisort(values, ordering_booleans)
         return values
+    
+    def run_constraints(self, container):
+        for constraint in self.model._meta.constraints:
+            constraint.check_constraint(container)
         
-    def execute_save(self, commit: bool=True, filename: str=None, extension: str='json', **kwargs):
-        # TODO: Move the file creation to the Model
-        # and only make this deal with the values
+    # TODO: Move the file creation to the Model directly
+    # and only make this deal with the values
+    def execute_save(self, filename, commit=True, extension='json', **kwargs):
         if commit:
-            filename = filename or secrets.token_hex(5)
-            filename = f'{filename}.{extension}'
-            
             try:
                 path = Path(settings.MEDIA_FOLDER)
                 if not path.exists():
                     path.mkdir()
             except:
-                path = filename
+                raise
+            else:
+                # TODO: Technically the MEDIA_FOLDER is set
+                # wih setup() and this check is not necessary.
+                # However, someone might be tempted to call 
+                # this outside of a project.
+                if settings.MEDIA_FOLDER is not None:
+                    file_path = settings.MEDIA_FOLDER.joinpath(filename)
 
-            file_path = os.path.join(settings.MEDIA_FOLDER, f'{filename}')
             if extension == 'json':
+                file_path = f"{file_path}.json"
                 data = json.loads(json.dumps(self.as_list()))
                 with open(file_path, mode='w', encoding='utf-8') as f:
-                    json.dump(data, f, indent=2, sort_keys=True)
+                    json.dump(data, f, indent=2, sort_keys=True, cls=DefaultJsonEncoder)
 
             if extension == 'csv':
+                file_path = f"{file_path}.csv"
                 with open(file_path, mode='w', newline='\n', encoding='utf-8') as f:
                     writer = csv.writer(f)
                     writer.writerows(self.as_csv())
         else:
-            data = json.loads(json.dumps(self.as_list()))
+            data = json.loads(json.dumps(self.as_list(), cls=DefaultJsonEncoder))
             return json.dumps(data, sort_keys=True)

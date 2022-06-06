@@ -60,17 +60,6 @@ class TeestBaseRequest(unittest.TestCase):
         self.assertIsInstance(response, HTMLResponse)
         self.assertEqual(response.cached_response.url, 'http://example.com/')
         self.assertEqual(response.page_title, 'Example Domain')
-                
-        # async def new_request():
-        #     request = HTTPRequest('http://example.com')
-        #     return request.follow('http://example.com')
-        
-        # async def send():
-        #     response = await new_request()
-        #     return response
-        
-        # result = asyncio.run(send())
-        # print(result)
         
     def test_multiple_link_following(self):
         request = HTTPRequest('http://example.com')
@@ -102,6 +91,11 @@ class TeestBaseRequest(unittest.TestCase):
                 with self.assertRaises(Exception):
                     request._send()
                 self.assertFalse(request.can_be_sent)
+                
+    def test_json_property(self):
+        request = HTTPRequest('https://jsonplaceholder.typicode.com/todos')
+        request._send()
+        self.assertIsInstance(request.json())
 
 
 if __name__ == '__main__':

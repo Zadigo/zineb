@@ -40,12 +40,32 @@ class BaseConstraint:
             raise ValueError(*errors)
         
         return errors
-        
-    def prepare(self):
-        try:
-            self._data_container = self.model._data_container
-        except:
-            raise ValueError('Instance is not a Model instance')
+       
+    def prepare(self, model_meta=None):
+        if len(self.constrained_fields) == 1:
+            self.unique.extend(self.values[field])
+        else:
+            for field in self.constrained_fields:
+                container = self.values[field]
+                self.unique_together.append(container)
+                
+        if model_meta is not None:
+            model_meta.add_constraint(self.name)
+
+    def check_constraint(self, value_to_check):
+        # If we have a unique together, it means that
+        # two fields have to be both unique together
+        truth_array = []
+        if self.unique_together:
+            results = map(lambda x: value_to_check in x, self.unique_together)
+            truth_array.extend(list(results))
+            
+        if self.unique:
+            result = value_to_check in self.unique
+            truth_array.append(result)
+            
+        if self.condition is not None:
+            pass
         
         for field in self.constrained_fields:
             if not self.model._meta.has_field(field):
@@ -65,12 +85,56 @@ class CheckConstraint(BaseConstraint):
     in the data container if a constraint is
     found without raising an error"""
     
-    def __call__(self):
-        errors = super().__call__()
-        for error in errors:
-            yield error[0]
-    
+    def check_constraint(self, value_to_check):
+        result = super().check_constraint(value_to_check)
+        return_data = {}
+        if not result:
+            for field in self.constrained_fields:
+                # FIXME: Return the container without the
+                # value that was constrained
+                return_data[field] = self._data_container[field]
+                # return_data[field] = self.values[field]
+        return return_data
 
+
+# @total_ordering
+# class V:
+#     def __init__(self, value):
+#         self.value = value
+
+#     def __repr__(self):
+#         return f'{self.__class__.__name__}([{self.value}])'
+
+#     def __eq__(self, obj):
+#         return obj == self.value
+
+#     def __gt__(self, obj):
+#         obj = self.convert_to_string(obj)
+#         return len(self.value) > obj
+
+#     def __contains__(self, obj):
+#         obj = self.convert_to_string(obj)
+#         return self.value in obj
+
+#     def convert_to_string(self, value):
+#         if isinstance(value, (int, float)):
+#             return str(value)
+#         return value
+
+
+constraint = CheckConstraint(['name', 'surname'], 'unique_name', condition=lambda x: x == 15)
+# constraint = UniqueConstraint(['name', 'surname'], 'unique_name', condition=lambda x: x == 15)
+constraint.values = {'name': ['Kendall'], 'surname': ['Jenner']}
+constraint.prepare()
+print(constraint.check_constraint('Kendall'))
+# print(constraint)
+
+
+
+# class BaseConditions:
+#     pass
+
+  
 
 # from zineb.models.datastructure import Model
 # from zineb.models import fields

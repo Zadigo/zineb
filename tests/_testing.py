@@ -68,20 +68,13 @@
 # print(model.checks())
 
 
-from zineb.models.datastructure import Model
-from zineb.models import fields
+# from zineb.utils.iteration import RequestQueue
 
-class ModelA(Model):
-    name = fields.CharField()
-    surname = fields.CharField()
-    
 
-class ModelB(ModelA):
-    name = fields.CharField()
-    
-    
-model = ModelB()
-model.add_value('name', 'Kendall')
-model.add_value('surname', 'Jenner')
-model.add_value('name', 'Kylie')
-print(model)
+# q = RequestQueue('http://example.com', 'https://jsonplaceholder.typicode.com/todos',
+#                  'https://jsonplaceholder.typicode.com/posts', 'https://data.opendatasoft.com/api/records/1.0/search/?dataset=fr-esr-principaux-etablissements-enseignement-superieur%40mesr&q=&facet=type_d_etablissement&facet=siren', 'https://data.opendatasoft.com/api/records/1.0/search/?dataset=reseau-hta%40enedis&q=')
+# q.prepare(type('Spider', (), {'meta': type('SpiderOptions', (), {'domains': []})}))
+# print(q._iter())
+
+a = [{'name': 'Pauline'}, {'name': 'Kendall'}, {'name': 'Aurélie'}]
+print(sorted(a, key=lambda x: x['name']))
