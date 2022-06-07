@@ -91,8 +91,8 @@ class ConstrainedModel(Model):
     
     class Meta:
         constraints = [
-            UniqueConstraint(['surname'], 'unique_for_name'),
-            CheckConstraint(['name'], 'unique_name')
+            UniqueConstraint(['name', 'surname'], 'unique_name_and_surname'),
+            CheckConstraint(['name'], 'unique_for_name')
         ]
 
 
