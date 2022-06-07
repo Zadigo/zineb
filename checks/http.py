@@ -67,9 +67,11 @@ def check_user_agent():
 def check_randomize_user_agent():
     if not isinstance(settings.RANDOMIZE_USER_AGENTS, bool):
         return [E004.format(setting_name='RANDOMIZE_USER_AGENTS')]
+    return []
     
     
 @register(tag='ensure_https')
-def check_randomize_user_agent():
+def ensure_https_agent():
     if not isinstance(settings.ENSURE_HTTPS, bool):
         return [E004.format(setting_name='ENSURE_HTTPS')]
+    return []

@@ -3,6 +3,8 @@ import re
 
 from datetime import tzinfo
 
+import pytz
+
 from zineb.checks.core import register
 from zineb.settings import settings
 
@@ -39,25 +41,26 @@ E003 = ('IP address in proxy cannot be empty')
 E004 = ("Middleware should be string pointing to a module in your project. Got '{middleware}'")
 
 
-E005 = ('DEFAULT_REQUEST_HEADERS should be a dictionnary')
+# E005 = ('DEFAULT_REQUEST_HEADERS should be a dictionnary')
 
 
-E006 = ('IP address in PROXIES is not valid. Got {proxy}.')
+E006 = ("IP address in PROXIES is not valid. Got '{proxy}'")
 
 
 E007 = ('MEDIA_FOLDER should either be None or a string representing a relative or absolute path')
 
 
-E008 = ('TIME_ZONE should be a string. Got {timezone}')
+# E008 = ("TIME_ZONE should be a pytz.tzinfo instance. Got '{timezone}'")
+E008 = ("TIME_ZONE is not valid. Got '{timezone}'. See https://gist.github.com/heyalexej/8bf688fd67d7199be4a1682b3eec7568#file-pytz-time-zones-py for valid timezones.")
 
 
 E009 = ('DEFAULT_DATE_FORMATS should be a tuple or a list')
 
 
-E010 = ('DEFAULT_DATE_FORMATS should be a string. Got {date_format}')
+E010 = ("DEFAULT_DATE_FORMATS should be a string. Got '{date_format}'")
 
 
-E011 = ('{setting} should be a dict')
+# E011 = ('{setting} should be a dict')
 
 
 @register(tag='middlewares')
@@ -76,12 +79,12 @@ def check_middlewares():
     return errors
 
 
-@register(tag='headers')
-def check_default_request_headers():
-    default_request_headers = settings.get('DEFAULT_REQUEST_HEADERS', False)
-    if not isinstance(default_request_headers, dict):
-        return [E005]
-    return [] if not default_request_headers else []
+# @register(tag='headers')
+# def check_default_request_headers():
+#     default_request_headers = settings.get('DEFAULT_REQUEST_HEADERS', False)
+#     if not isinstance(default_request_headers, dict):
+#         return [E005]
+#     return [] if not default_request_headers else []
 
 
 @register(tag='proxies')
@@ -143,33 +146,35 @@ def check_media_folder():
     
 
 @register(tag='timezone')
-def check_test_timzone():
+def check_test_timezone():
     if settings.TIME_ZONE is None:
         return []
 
-    if not isinstance(settings.TIME_ZONE, tzinfo):
+    if not settings.TIME_ZONE in pytz.all_timezones:
         return [E008.format(timezone=settings.TIME_ZONE)]
+    # if not isinstance(settings.TIME_ZONE, tzinfo):
+    #     return [E008.format(timezone=settings.TIME_ZONE)]
 
 
 @register(tag='date_format')
 def check_default_date_formats():
     default_date_formats = settings.DEFAULT_DATE_FORMATS
-    if not isinstance(default_date_formats, (list, tuple)):
-        return [E009]
+    # if not isinstance(default_date_formats, (list, tuple)):
+    #     return [E009]
     
     for item in default_date_formats:
         if not isinstance(item, str):
             return [E010.format(date_format=item)]
 
 
-@register(tag='requires_dict')
-def check_setting_requires_dict():
-    errors = []
-    values = ['LOGGING', 'STORAGES']
-    for value in values:
-        current_value = getattr(settings, value, None)
+# @register(tag='requires_dict')
+# def check_setting_requires_dict():
+#     errors = []
+#     values = ['LOGGING', 'STORAGES']
+#     for value in values:
+#         current_value = getattr(settings, value, None)
 
-        if not isinstance(current_value, dict):
-            errors.extend([E011.format(setting=value)])
+#         if not isinstance(current_value, dict):
+#             errors.extend([E011.format(setting=value)])
         
-    return errors
+#     return errors

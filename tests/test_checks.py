@@ -7,7 +7,7 @@ from zineb.settings import settings
 
 # Since checks require a project scope, set this
 # be default to avoid and error
-os.environ.setdefault('ZINEB_SPIDER_PROJECT', 'zineb.tests.testproject.settings')
+os.environ.setdefault('ZINEB_SPIDER_PROJECT', 'zineb.tests.testproject')
 
 
 # Reload the settings file in order to
@@ -23,21 +23,36 @@ class TestApplicationChecks(unittest.TestCase):
 
         settings(SPIDERS='Spider')
         self.assertRaises(ValueError, checks_registry.run)
-
-    def test_middlewares_is_not_a_list(self):
-        settings(MIDDLEWARES='Some middleware')
+        
+    def test_date_formats_is_invalid(self):
+        # TODO: Content checks generate a ValueError
+        # while integrity checks ImproperlyConfiguredError
+        settings(DEFAULT_DATE_FORMATS='some dates')
         self.assertRaises(ValueError, checks_registry.run)
-
-    def test_user_agents_is_not_a_list(self):
-        settings(USER_AGENTS='User agent')
-        self.assertRaises(ValueError, checks_registry.run)
+        
+        settings(DEFAULT_DATE_FORMATS=[1])
+        self.assertRaises(ImproperlyConfiguredError, checks_registry.run)
+        
+    def test_requires_dict(self):
+        items = ['LOGGING', 'STORAGES', 'DEFAULT_REQUEST_HEADERS']
+        
+        for item in items:
+            with self.subTest(item=item):
+                settings(item='some invalid value')
+                self.assertRaises(ImproperlyConfiguredError, checks_registry.run)
+        
+    def test_requires_list(self):
+        items = ['SPIDERS', 'DOMAINS', 'MIDDLEWARES',
+                 'USER_AGENTS', 'PROXIES', 'RETRY_HTTP_CODES',
+                 'DEFAULT_DATE_FORMATS']
+        
+        for item in items:
+            with self.subTest(item=item):
+                settings(item='some invalid value')
+                self.assertRaises(ImproperlyConfiguredError, checks_registry.run)
 
     def test_object_in_list_is_not_string(self):
-        settings(MIDDLEWARES=[1, 2, 3])
-        self.assertRaises(ImproperlyConfiguredError, checks_registry.run)
-
-    def test_default_request_haders(self):
-        settings(DEFAULT_REQUEST_HEADERS=[])
+        settings(MIDDLEWARES=[1, 2])
         self.assertRaises(ImproperlyConfiguredError, checks_registry.run)
 
     def test_proxies_are_not_valid(self):
@@ -45,6 +60,10 @@ class TestApplicationChecks(unittest.TestCase):
         self.assertRaises(ImproperlyConfiguredError, checks_registry.run)
 
         settings(PROXIES=[('http', 'who said that')])
+        self.assertRaises(ImproperlyConfiguredError, checks_registry.run)
+    
+    def test_media_folder_is_not_string(self):
+        settings(MEDIA_FOLDER=2)
         self.assertRaises(ImproperlyConfiguredError, checks_registry.run)
 
 

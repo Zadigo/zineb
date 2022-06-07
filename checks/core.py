@@ -8,6 +8,12 @@ from zineb.exceptions import ImproperlyConfiguredError, ProjectExistsError
 from zineb.settings import settings
 
 
+def warning_formatter(msg, category, filename, lineno,   line=None):
+    return f"{filename}:{lineno}: {msg}\n"
+
+warnings.formatwarning = warning_formatter
+
+
 DEFAULT_CHECKS_MODULES = (
     'base',
     'http'
@@ -33,8 +39,8 @@ class ApplicationChecks(GlobalMixins):
                 self._errors.extend(new_errors)
 
         for error in self._errors:
-            # warnings.warn(error, stacklevel=1)
-            logger.instance.exception(error)
+            warnings.warn(error, stacklevel=1)
+            # logger.instance.exception(error)
             
         if self._errors:
             raise ImproperlyConfiguredError(self._errors)
@@ -53,12 +59,18 @@ class ApplicationChecks(GlobalMixins):
                 raise ValueError(f"The following settings '{value}' are required in your settings file.")
 
         requires_list_or_tuple = ['SPIDERS', 'DOMAINS', 'MIDDLEWARES',
-                                  'USER_AGENTS', 'PROXIES', 'RETRY_HTTP_CODES', 
-                                  'DEFAULT_DATE_FORMATS']
+                                    'USER_AGENTS', 'PROXIES', 'RETRY_HTTP_CODES', 
+                                        'DEFAULT_DATE_FORMATS']
         for item in requires_list_or_tuple:
             value = getattr(settings, item)
             if not isinstance(value, (list, tuple)):
-                raise ValueError(f"{item} in settings.py should contain a list or a tuple ex. {item} = []")
+                raise ValueError(f"{item} in settings.py should be a list or a tuple ex. {item} = []")
+            
+        requires_dictionnary = ['LOGGING', 'STORAGES', 'DEFAULT_REQUEST_HEADERS']
+        for item in requires_dictionnary:
+            value = getattr(settings, item)
+            if not isinstance(value, dict):
+                raise ValueError(f'{item} in settings.py should be a dictionnary')
 
         # If Zineb is called from a project configuration
         # we should automatically assume that it is a path
