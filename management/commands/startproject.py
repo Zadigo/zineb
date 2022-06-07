@@ -2,7 +2,7 @@ import os
 import re
 
 from zineb.management.base import BaseCommand
-from zineb.settings import settings as global_settings
+from zineb.settings import settings
 
 
 class Command(BaseCommand):
@@ -32,13 +32,13 @@ class Command(BaseCommand):
         if project_name is None:
             raise ValueError('Project does not have a name.')
 
-        # Construct a full path the project's
-        # root directory
+        # Construct a full path to the 
+        # project's root directory
         current_dir = os.path.abspath(os.curdir)
         full_project_path_dir = os.path.join(current_dir, project_name)
 
         zineb_templates_dir_path = os.path.join(
-            global_settings.GLOBAL_ZINEB_PATH,
+            settings.GLOBAL_ZINEB_PATH,
             'templates/project'
         )
         zineb_template_items = list(os.walk(zineb_templates_dir_path))

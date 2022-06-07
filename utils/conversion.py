@@ -1,6 +1,8 @@
-from typing import Any, Union
 import ast
+from typing import Any, Union
+
 from zineb.utils.formatting import LazyFormat
+
 
 def string_to_number(value: str, strict: bool=False):
     """
@@ -129,10 +131,12 @@ def transform_to_bytes(content: str):
 
 def detect_object_in_string(value: Any):
     """
-    Detects if a list, a tuple or a dict is embeded in a 
+    Detects if a list or a dict is embeded in a 
     string and returns the true representation 
     of that element
     """
+    if isinstance(value, (list, dict)):
+        return value
     return ast.literal_eval(value)
 
 
@@ -142,11 +146,12 @@ def convert_to_dataframe(data: Union[list, dict], columns: list=[]):
 
 
 def convert_if_number(value: str):
+    from zineb.models.fields import Value
+    
+    if isinstance(value, Value):
+        value = str(value)
+        
     try:
         return int(value)
     except:
         return float(value)
-    else:
-        raise ValueError(
-            LazyFormat('Cannot convert {value} to number.', value=value)
-        )

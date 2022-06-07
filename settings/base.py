@@ -16,6 +16,12 @@ PROJECT_PATH = None
 SPIDERS = []
 
 
+# Specifies whether the models should
+# loaded on project startup
+
+LOAD_MODELS = False
+
+
 # Limit scrapping to certain specific amount of
 # domains by requiring that each requests needs
 # to respect the domains in this list before
@@ -33,13 +39,13 @@ ENSURE_HTTPS = False
 # It is however possible to log to a file by
 # specifying the LOG_TO_FILE parameter
 
-LOG_TO_FILE = True
-
-LOG_FILE = 'zineb.log'
-
-LOG_FORMAT = '%(asctime)s [%(name)s] %(levelname)s: %(message)s'
-
-LOG_LEVEL = logging.DEBUG
+LOGGING = {
+    'name': 'zineb.log',
+    'file_path': None,
+    'format': '%(asctime)s [%(name)s] %(levelname)s: %(message)s',
+    'level': logging.DEBUG,
+    'log_to_file': False
+}
 
 
 # A set of codes that will be executed before or after
@@ -111,13 +117,13 @@ RETRY_HTTP_CODES = [500, 502, 503, 504, 522, 524, 408, 429]
 MEDIA_FOLDER = None
 
 
-# Specify a default storage area for content
-# that is downloaded from the internet or files
+# Specify a default storage class for managing content
+# that was downloaded from the internet or files
 # that were created with the model
 
-# STORAGE = 'zineb.storages.core.LocalStorage'
-
-# STORAGES = []
+STORAGES = {
+    'default': 'zineb.storages.FileSystemStorage'
+}
 
 
 # Default date formats used for resolving
