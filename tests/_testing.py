@@ -76,5 +76,14 @@
 # q.prepare(type('Spider', (), {'meta': type('SpiderOptions', (), {'domains': []})}))
 # print(q._iter())
 
-a = [{'name': 'Pauline'}, {'name': 'Kendall'}, {'name': 'Aurélie'}]
-print(sorted(a, key=lambda x: x['name']))
+# a = [{'name': 'Pauline'}, {'name': 'Kendall'}, {'name': 'Aurélie'}]
+# print(sorted(a, key=lambda x: x['name']))
+
+from collections import namedtuple
+from zineb.management.commands.startproject import Command
+
+
+c = Command()
+namespace = namedtuple('namespace', ['project'])
+w = namespace('tests/creation')
+c.execute(w)

@@ -1,10 +1,11 @@
 import datetime
 import re
 from typing import Any, List
-from zineb.checks import messages
+
 from bs4.element import Tag as beautiful_soup_tag
 from w3lib import html
 from w3lib.url import canonicalize_url, safe_download_url
+from zineb.checks import messages
 from zineb.exceptions import ValidationError
 from zineb.models import validators as model_validators
 from zineb.settings import settings

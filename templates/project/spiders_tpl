@@ -6,7 +6,7 @@ To start using Zineb:
         class MySpider(Zineb):
             start_urls = []
 
-            def start(self, response, **kwargs):
+            def start(self, response, request, **kwargs):
                 pass
 
     2. Register your spider in the SPIDERS parameter
@@ -21,7 +21,7 @@ To start using Zineb:
     3. Call `python manage.py start`
 
 You can configure the way your project works by modifying the 
-relevant sections of your settings.py file.
+relevant sections of your settings file.
 
 For any other pieces of information on how to use Zineb
 efficiently, please read https://github.com/Zadigo/zineb
