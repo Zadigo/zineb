@@ -328,10 +328,6 @@ class Model(metaclass=Base):
         # to the constraint if there are any
         # for _, constraint in self._meta.registered_constraints.items():
         #     constraint.model = self
-        
-        # Here we assign the model-self to 
-        # the options which as initially None
-        self._meta.model = self
 
     def __str__(self):
         # data = self._data_container.as_list()

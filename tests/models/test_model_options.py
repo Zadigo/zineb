@@ -19,6 +19,10 @@ class TestModelOptions(unittest.TestCase):
         self.assertTrue(self.model._meta.has_field('id'))
         self.assertIsInstance(self.model._meta.get_field('id'), fields.AutoField)
         self.assertListEqual(self.model._meta.field_names, ['age', 'date_of_birth', 'id', 'name'])
+        
+        # Fields
+        self.assertIsNotNone(self.model._meta.get_field('name'))
+        self.assertIsInstance(self.model._meta.get_field('name'), fields.Field)
 
     def test_model_ordering(self):
         model = items.ModelWithInvalidMeta()
@@ -29,6 +33,7 @@ class TestModelOptions(unittest.TestCase):
     @unittest.expectedFailure
     def test_cannot_add_existing_field(self):
         self.model._meta.add_field('name', fields.BooleanField())
+
 
 if __name__ == '__main__':
     unittest.main()
