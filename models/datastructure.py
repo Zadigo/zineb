@@ -602,7 +602,7 @@ class Model(metaclass=Base):
                 if extension == 'json':
                     data = json.loads(json.dumps(self._data_container.as_list()))
                     with open(full_path, mode='w', encoding='utf-8') as f:
-                        json.dumps(data, f, indent=2, sort_keys=2, cls=DefaultJsonEncoder)
+                        json.dump(data, f, indent=2, sort_keys=2, cls=DefaultJsonEncoder)
                 
                 if extension == 'csv':
                     with open(full_path, mode='w', newline='\n', encoding='utf-8') as f:

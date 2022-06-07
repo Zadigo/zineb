@@ -519,7 +519,7 @@ class IntegerField(Field):
                     'value': value,
                     't': self.__class__.__name__,
                     'type1': type(value),
-                    'type2': self._dtype,
+                    'type2': self.internal_type,
                     'name': self.field_name
                 }
                 raise ValidationError(LazyFormat(self._validation_error_message, **attrs))
@@ -640,7 +640,7 @@ class MappingFieldMixin:
                 'value': value,
                 't': self.__class__.__name__,
                 'type1': type(value),
-                'type2': self._dtype,
+                'type2': self.internal_type,
                 'name': self.field_name
             }
             raise ValidationError(LazyFormat(self._validation_error_message, **attrs))
@@ -766,11 +766,11 @@ class BooleanField(Field):
                 'value': value,
                 't': self.__class__.__name__,
                 'type1': type(value),
-                'type2': self._dtype,
+                'type2': self.internal_type,
                 'name': self.field_name
             }
             raise ValidationError(LazyFormat(self._validation_error_message, **attrs))
-        return self._dtype(value)
+        return self.internal_type(value)
 
     def resolve(self, value: Any):
         if value in self.REP_TRUE:
@@ -833,7 +833,7 @@ class RelatedField(Field):
         # an error if the user tries something
         # like model_name.add_value(related_field_name, value)
         raise Exception(f"A RelatedModel field cannot resolve data directly. Use {self.model._meta.model_name}.{self.field_name}.add_value(...) for example to add a value to the related model.")
- 
+
 
 # TODO: When the related field is set on the model
 # we get [{'ages': [{'age': 30}], 'name': 'Kendall'}]

@@ -16,14 +16,16 @@
 
 
 # from models.functions import Add, ExtractDay, ExtractYear, Substract
-# from zineb.models import fields
-# from zineb.models.datastructure import Model
+from zineb.models import fields
+from zineb.models.datastructure import Model
 # from zineb.models.functions import When
 
 # class TestModel(Model):
 #     age = fields.CharField()
 
 # model = TestModel()
+# model.add_value('age', 14)
+# print(vars(model))
 
 # print(model)
 
@@ -79,11 +81,11 @@
 # a = [{'name': 'Pauline'}, {'name': 'Kendall'}, {'name': 'Aurélie'}]
 # print(sorted(a, key=lambda x: x['name']))
 
-from collections import namedtuple
-from zineb.management.commands.startproject import Command
+# from collections import namedtuple
+# from zineb.management.commands.startproject import Command
 
 
-c = Command()
-namespace = namedtuple('namespace', ['project'])
-w = namespace('tests/creation')
-c.execute(w)
+# c = Command()
+# namespace = namedtuple('namespace', ['project'])
+# w = namespace('tests/creation')
+# c.execute(w)
