@@ -10,7 +10,7 @@ class Command(ProjectCommand):
         parser.add_argument('--name', help='A name of a specific spider to start', type=str)
         parser.add_argument('--settings', help='A settings module to use e.g. myproject.settings', action='store_true')
 
-    def execute(self, namespace):        
+    def execute(self, namespace): 
         zineb.setup()
         
         # TODO: Move the checks registry to the

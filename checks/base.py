@@ -1,3 +1,4 @@
+import inspect
 from pathlib import Path
 import re
 
@@ -149,9 +150,19 @@ def check_media_folder():
 def check_test_timezone():
     if settings.TIME_ZONE is None:
         return []
-
-    if not settings.TIME_ZONE in pytz.all_timezones:
-        return [E008.format(timezone=settings.TIME_ZONE)]
+    
+    # FIXME: There's a problem with check on this
+    # when the pytz.timezone is passed here after
+    # being transformed from a string -- rewrite
+    # this section to fit this correctly
+    is_class = inspect.isclass(settings.TIME_ZONE)
+    if is_class:
+        object_name = settings.TIME_ZONE.__class__.__name__
+        if object_name == 'timezone':
+            return []
+    if isinstance(settings.TIME_ZONE, str):
+        if not settings.TIME_ZONE in pytz.all_timezones:
+            return [E008.format(timezone=settings.TIME_ZONE)]
     # if not isinstance(settings.TIME_ZONE, tzinfo):
     #     return [E008.format(timezone=settings.TIME_ZONE)]
 

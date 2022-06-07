@@ -64,6 +64,7 @@ class ResponseFailedError(Exception):
         super().__init__("The request was not sent either"
         " due to a response with a fail status code or being None.")
 
+
 class RequestAborted(Exception):
     pass
 

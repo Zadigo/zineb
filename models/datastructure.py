@@ -573,7 +573,7 @@ class Model(metaclass=Base):
         to a file within your project.
         """
         # TODO: Send a signal before the model
-        # is saved
+        # is saved - pre_save
         
         self.full_clean()
 
@@ -605,13 +605,13 @@ class Model(metaclass=Base):
                         json.dumps(data, f, indent=2, sort_keys=2, cls=DefaultJsonEncoder)
                 
                 if extension == 'csv':
-                    with open(full_path, modee='w', newline='\n', encoding='utf-8') as f:
+                    with open(full_path, mode='w', newline='\n', encoding='utf-8') as f:
                         writer = csv.writer(f)
                         writer.writerows(self._data_container.as_csv())    
             
                 
             # TODO: Send a signal after the model
-            # is saved
+            # is saved - post_save
                 
             # self._data_container.execute_save(commit=commit, filename=filename, **kwargs)
         return self._cached_resolved_data    
