@@ -840,6 +840,9 @@ class RelatedField(Field):
 # [{'ages': {'age': 30}, 'name': 'Kendall'}] and create
 # a many field that does the initial result that we
 # are getting
+
+# FIXME: Maybe find a better name for this field
+# so that we know explicitly what it does
     
 class RelatedModel(RelatedField):
     """Creates a relationship between two models. Does not
@@ -864,7 +867,7 @@ class RelatedModel(RelatedField):
             # model2.field_set in reverse for model1
             setattr(self.related_model, self.reverse_related_name, self.model)
         
-        # TODO: We should not be able to created a RelatedModel field
+        # TODO: We should not be able to create a RelatedModel field
         # for the model that is a superclass of the model that wants
         # to create the relationship
         
