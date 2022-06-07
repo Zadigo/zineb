@@ -2,13 +2,17 @@ from zineb.exceptions import FieldError
 from zineb.exceptions import ConstraintError
 from collections import Counter, defaultdict
 
+
 class BaseConstraint:
     def __init__(self, fields, name, condition=None):
         self.name = name
         self.model = None
         self._data_container = None
         self.constrained_fields = list(fields)
-        # self.condition = condition
+        self.condition = condition
+        self.values = defaultdict(list)
+        self.unique = []
+        self.unique_together = []
         
     def __repr__(self):
         return f'<{self.__class__.__name__}[{self.model._meta.model_name}{self.constrained_fields}]>'
@@ -41,7 +45,12 @@ class BaseConstraint:
         
         return errors
        
-    def prepare(self, model_meta=None):
+    def prepare(self, model):
+        # FIXME: Don't know what self.values serves to.
+        # Apparently it implements the values for each
+        # field on a dict
+        self._data_container = model._data_container
+        
         if len(self.constrained_fields) == 1:
             self.unique.extend(self.values[field])
         else:
@@ -49,8 +58,7 @@ class BaseConstraint:
                 container = self.values[field]
                 self.unique_together.append(container)
                 
-        if model_meta is not None:
-            model_meta.add_constraint(self.name)
+        model._meta.add_constraint(self.name)
 
     def check_constraint(self, value_to_check):
         # If we have a unique together, it means that
@@ -67,11 +75,7 @@ class BaseConstraint:
         if self.condition is not None:
             pass
         
-        for field in self.constrained_fields:
-            if not self.model._meta.has_field(field):
-                raise ValueError('Field is not on model')
-
-                
+        
 class UniqueConstraint(BaseConstraint):
     """Raises an error when a constraint is found
     on a given model"""
@@ -122,11 +126,11 @@ class CheckConstraint(BaseConstraint):
 #         return value
 
 
-constraint = CheckConstraint(['name', 'surname'], 'unique_name', condition=lambda x: x == 15)
+# constraint = CheckConstraint(['name', 'surname'], 'unique_name', condition=lambda x: x == 15)
 # constraint = UniqueConstraint(['name', 'surname'], 'unique_name', condition=lambda x: x == 15)
-constraint.values = {'name': ['Kendall'], 'surname': ['Jenner']}
-constraint.prepare()
-print(constraint.check_constraint('Kendall'))
+# constraint.values = {'name': ['Kendall'], 'surname': ['Jenner']}
+# constraint.prepare()
+# print(constraint.check_constraint('Kendall'))
 # print(constraint)
 
 
