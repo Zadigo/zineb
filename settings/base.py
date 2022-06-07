@@ -175,7 +175,8 @@ SERVER = {
     'default': 'utils.servers.DefaultServer',
     'options': {
         'cron': {
-            'minutes': 45
+            'minutes': 1
+            # 'minutes': 45
         },
         'execute_spiders_on_reload': [],
         'sleeping_time': 10

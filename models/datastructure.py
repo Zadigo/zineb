@@ -575,8 +575,8 @@ class Model(metaclass=Base):
         otherwise, the default behaviour will be to output
         to a file within your project.
         """
-        # TODO: Send a signal before the model
-        # is saved
+        # NOTE: Send a signal before the model
+        # is saved - pre_save
         
         self.full_clean()
 
@@ -613,8 +613,8 @@ class Model(metaclass=Base):
                         writer.writerows(self._data_container.as_csv())    
             
                 
-            # TODO: Send a signal after the model
-            # is saved
+            # NOTE: Send a signal after the model
+            # is saved - post_save
                 
             # self._data_container.execute_save(commit=commit, filename=filename, **kwargs)
         return self._cached_resolved_data    

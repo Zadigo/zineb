@@ -2,6 +2,7 @@ import threading
 import time
 
 from zineb.utils.servers import DefaultServer
+from zineb.logger import logger
 
 
 class BaseReloader:
@@ -15,7 +16,7 @@ class BaseReloader:
 
 class StatReloader(BaseReloader):
     def run(self, main_thread, *args, **kwargs):
-        print('reloading')
+        logger.instance.info('Reloading')
         time.sleep(5)
 
 
@@ -30,12 +31,11 @@ def start_application(start_func, reloader=None, *args, **kwargs):
     
 
 def run_with_reloader(start_func, *args, **kwargs):
-    reloader = StatReloader()
     try:
+        reloader = StatReloader()
         start_application(start_func, reloader=reloader, *args, **kwargs)
-        time.sleep(1) 
     except KeyboardInterrupt:
-        print('Stopped')
+        logger.instance.info('Stopped')
 
 
 def run_simple(start_func, *args, **kwargs):
@@ -45,10 +45,15 @@ def run_simple(start_func, *args, **kwargs):
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print('Stopped')
+        logger.instance.info('Stopped')
 
 server = DefaultServer()
+# run_simple(server.run)
 run_with_reloader(server.run)
+
+
+
+
 
 # @lru_cache(maxsize=1)
 # def iter_modules_and_files():
