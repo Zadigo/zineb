@@ -89,8 +89,8 @@ class Spider(metaclass=BaseSpider):
         logger.instance.info(f'Starting {self.__class__.__name__}')
         logger.instance.info(f"{self.__class__.__name__} contains {len(self.meta.prepared_requests)} request(s)")
 
-        # TODO: Send signal when the spider is
-        # initialized
+        # NOTE: Send signal before the spider 
+        # sends requests - pre_requests
             
         self._resolve_requests()
 
@@ -122,8 +122,8 @@ class Spider(metaclass=BaseSpider):
                 soup=soup_object
             )
             
-        # TODO: Send a signal after the spider
-        # has resolved all the requests
+        # NOTE: Send a signal after the spider
+        # has resolved all the requests - post_requests
 
     def start(self, response, request, **kwargs):
         """

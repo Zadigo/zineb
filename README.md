@@ -12,10 +12,10 @@ Most of your interactions with the HTML page will be done through the ``HTMLResp
 
 When the spider starts crawling the page, each response and request in past through the start function:
 
-```
+```python
 def start(self, response, **kwargs):
-     request = kwargs.get('request')
-     images = response.images
+    request = kwargs.get('request')
+    images = response.images
 ```
 
 # Getting started
@@ -86,8 +86,8 @@ Meta options allows you to customize certain very specific behaviours [not found
  class Celerities(Zineb):
     start_urls = ['http://example.com']
   
-     class Meta:
-         domains = []
+    class Meta:
+        domains = []
 ```
 
 #### Domains
@@ -991,6 +991,14 @@ Specificies the amount of times the the request is sent before eventually failin
 ## RETRY_HTTP_CODES
 
 Indicates which status codes should trigger a retry. By default, the following codes: 500, 502, 503, 504, 522, 524, 408 and 429 will trigger it.
+
+## SERVER_CRON
+
+The periods at which to execute the spiders when a server is set.
+
+## SERVER_EXECUTE_SPIDERS_ON_RELOAD
+
+Limit the amount of spiders that are executed within a server process.
 
 ## TIME_ZONE
 

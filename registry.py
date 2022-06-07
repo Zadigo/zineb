@@ -75,6 +75,10 @@ class SpiderConfig:
         spider via the __init__ method"""
         if self.spider_class is None:
             raise ValueError(f'Could not start spider in project: {self.dotted_path}')
+        
+        # NOTE: Send a signal just before the
+        # spider is executed - pre_init
+        
         self.spider_class()
         
     # def load_models(self):
@@ -186,8 +190,9 @@ class MasterRegistry:
         middlewares = Middleware()
         self.middlewares = middlewares
         
-        # TODO: Send a signal when the master registry
-        # has completed all the initial setting up
+        # NOTE: Send a signal when the master registry
+        # has completed all the initial 
+        # setting up - post_setup
         
         # Load the current storage and store it as
         # an instance on the spider
@@ -204,6 +209,7 @@ class MasterRegistry:
                 klass = getattr(storage_module, klass_name, None)
                 if klass is not None:
                     from zineb.storages import BaseStorage
+                    
                     if inspect.isclass(klass) and BaseStorage in klass.__mro__:
                         instance = klass()
                         instance.prepare()
@@ -269,8 +275,9 @@ class MasterRegistry:
         # file for performance reasons
         settings['REGISTRY'] = self
         
-        # TODO: Send a signal when the spider
-        # registry has been populated
+        # NOTE: Send a signal when the spider
+        # registry has been 
+        # populated - post_populate
 
         self.preconfigure_project(dotted_path, settings)
 
@@ -282,17 +289,16 @@ class MasterRegistry:
         else:
             for config in self.get_spiders():
                 try:
-                    # TODO: Send a signal before the spider has
-                    # starting parsing
+                    # NOTE: Send a signal before the spider has
+                    # starting parsing - pre_parsing
                     config.run()
                 except Exception:
                     logger.instance.critical((f"Could not start {config}. "
                     "Did you use the correct class name?"), stack_info=True)
                     raise
                 else:
-                    # TODO: Send a signal once the spider has
-                    # terminated the parsing
-                    # signal.send(dispatcher.Any, self)
+                    # NOTE: Send a signal once the spider has
+                    # terminated the parsing - post_parsing
                     pass
 
 

@@ -160,3 +160,25 @@ DEFAULT_DATE_FORMATS = (
 # found at https://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 
 TIME_ZONE = 'America/Chicago'
+
+
+# Default settings to use for the servers.
+# It includes a cron parameter for indicating when
+# to run the spiders that uses the server loop.
+
+# 'execute_spiders_on_reload' allows you to either 
+# execute a single spider or all the spiders present
+# in your application. By default, if empty,
+# all spiders are run by default
+
+SERVER = {
+    'default': 'utils.servers.DefaultServer',
+    'options': {
+        'cron': {
+            'minutes': 1
+            # 'minutes': 45
+        },
+        'execute_spiders_on_reload': [],
+        'sleeping_time': 10
+    }
+}

@@ -171,8 +171,8 @@ class BaseRequest:
             "force only secured requests."))
             return None
 
-        # TODO: Send signal before the request
-        # is sent by the class
+        # NOTE: Send signal before the request
+        # is sent by the class - pre_request
         
         try:
             response = self.session.send(self.prepared_request)
@@ -189,8 +189,8 @@ class BaseRequest:
         if response.status_code == 200:
             self.resolved = True
 
-        # TODO: Send signal after the request
-        # was sent by the class
+        # NOTE: Send signal after the request
+        # was sent by the class - post_request
 
         parsed_url = urlparse(response.url)
         self.root_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
