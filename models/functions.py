@@ -1,14 +1,10 @@
 import datetime
-from typing import Any, Union
-
-from zineb.settings import settings
-from zineb.utils.conversion import string_to_number
-
 import math
 from typing import Any, Callable, Union
 
 from zineb.exceptions import ModelNotImplementedError
 from zineb.models.fields import Value
+from zineb.settings import settings
 from zineb.utils.conversion import string_to_number
 from zineb.utils.formatting import LazyFormat
 
