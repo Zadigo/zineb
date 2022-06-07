@@ -12,10 +12,10 @@ Most of your interactions with the HTML page will be done through the ``HTMLResp
 
 When the spider starts crawling the page, each response and request in past through the start function:
 
-```
+```python
 def start(self, response, **kwargs):
-     request = kwargs.get('request')
-     images = response.images
+    request = kwargs.get('request')
+    images = response.images
 ```
 
 # Getting started
@@ -86,8 +86,8 @@ Meta options allows you to customize certain very specific behaviours [not found
  class Celerities(Zineb):
     start_urls = ['http://example.com']
   
-     class Meta:
-         domains = []
+    class Meta:
+        domains = []
 ```
 
 #### Domains
