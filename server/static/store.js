@@ -4,6 +4,7 @@ var store = new Vuex.Store({
     state: () => ({
         settings: {}
     }),
+
     mutations: {
         setSettings (state, data) {
             state.settings = data
@@ -14,6 +15,7 @@ var store = new Vuex.Store({
             })
         }
     },
+    
     getters: {
         getSpiders (state) {
             return state.settings.SPIDERS

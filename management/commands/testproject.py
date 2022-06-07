@@ -1,9 +1,11 @@
+import zineb
+from zineb.logger import logger
+from zineb.checks.core import checks_registry
 from zineb.management.base import BaseCommand
-from zineb.checks.base import checks_registry
+
 
 class Command(BaseCommand):
     def execute(self, namespace):
-        # Check that the user's project
-        # is correctly set
-        self.preconfigure_project()
+        zineb.setup()
         checks_registry.run()
+        logger.instance.info('Test completed!')

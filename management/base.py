@@ -3,12 +3,6 @@ from argparse import ArgumentParser, Namespace
 from collections import OrderedDict
 from typing import Any
 
-
-class RequiresProjectError(Exception):
-    def __init__(self):
-        super().__init__('Project scope is required for this command.')
-
-
 class BaseCommand:
     """
     Represents a base Zineb command. Each command
@@ -33,63 +27,7 @@ class BaseCommand:
         # by the Command subclasses
         self.add_arguments(parser)
         return parser
-
-    def preconfigure_project(self, **extra_settings):
-        """
-        A method to use in order to configure the settings
-        files and other main variables in the settings
-        files when a project command is called.
-        """
-        project = os.environ.get('ZINEB_SPIDER_PROJECT')
-        if project is None:
-            raise RequiresProjectError()
-
-        project_name, _ = project.rsplit('.', maxsplit=1)
-        # In order to load the correct settings
-        # as per what the user has entered, we
-        # have to reinstantiate the class which
-        # will force an update --; the problem is
-        # the settings file is loaded before the command
-        # (since it is placed in the __init__) and in that
-        # situation, only the global settings are loaded.
-        # By forcing a reinstantiation, the command has
-        # the time to place the project's settings in the
-        # Windows environment and therefore load the settings
-        # file of the project
-        from zineb.settings import settings
-        attrs = {
-            'project_name': project_name, 
-            'python_path': project,
-            'spiders_path': f'{project_name}.spiders'
-        }
-        settings(_project_meta=attrs, **extra_settings)
-
-        # Update the settings with a REGISTRY
-        # that will contain the fully loaded 
-        # spiders which is the Registry class 
-        # itself
-        setattr(settings, 'REGISTRY', None)
-
-        project_path = getattr(settings, 'PROJECT_PATH')
-        zineb_path = getattr(settings, 'GLOBAL_ZINEB_PATH')
-
-        setattr(
-            settings, 'LOG_FILE', 
-            os.path.join(project_path or zineb_path, 'zineb.log'),
-        )
-
-        # If the user did not explicitly set the path
-        # to a MEDIA_FOLDER, we will be doing it
-        # autmatically here
-        media_folder = getattr(settings, 'MEDIA_FOLDER')
-        if media_folder is None and project_path is not None:
-            setattr(settings, 'MEDIA_FOLDER', os.path.join(project_path, 'media'))
-
-        if self.requires_system_checks:
-            pass
-        
-        return project_name, settings
-
+    
     def add_arguments(self, parser: ArgumentParser):
         """
         Adds additional arguments in addition with

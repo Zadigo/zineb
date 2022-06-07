@@ -1,10 +1,10 @@
+import six
 import datetime
 import decimal
 import uuid
 from json.encoder import JSONEncoder
 from typing import Any, Type
 
-import six
 from zineb.utils.formatting import LazyFormat
 
 
@@ -52,7 +52,7 @@ class DefaultJsonEncoder(JSONEncoder):
             try:
                 return convert_to(obj)
             except Exception:
-                pass
+                raise
         
         if hasattr(obj, '__iter__'):
             return tuple(item for item in obj)

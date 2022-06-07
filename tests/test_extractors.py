@@ -65,7 +65,7 @@ from zineb.tags import ImageTag
 #         self.assertTrue(len(result) > 1)
 
 
-with open('tests/html/tables3.html', mode='r') as f:
+with open('tests/html/tables.html', mode='r') as f:
     tables = BeautifulSoup(f, 'html.parser')
 
 

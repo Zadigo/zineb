@@ -1,12 +1,15 @@
+# from html.parser import HTMLParser
+import random
 from typing import Any
 
 from zineb.utils.encoders import convert_to_unicode
 from zineb.utils.iteration import drop_while
 
-
 ESCAPE_CHARACTERS = ('\n', '\t', '\r')
 
 HTML5_WHITESPACE = ' \t\n\r\x0c'
+
+RANDOM_STRING_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 
 
 def replace_escape_chars(value: str, replace_by: Any=u'', encoding: str=None):
@@ -24,7 +27,9 @@ def replace_escape_chars(value: str, replace_by: Any=u'', encoding: str=None):
 def strip_white_space(text: str):
     """
     Strips the leading and trailing white space
-    from a sting 
+    from a string. This does not affect space within
+    an the string e.g. Kendall\rJenner, the \\r will
+    not be affected
 
     Parameters
     ----------
@@ -37,19 +42,47 @@ def strip_white_space(text: str):
 def deep_clean(value: str):
     """
     Special helper for cleaning words that have a
-    spaces values between them and for which the 
+    special characters between them and for which the 
     normal `replace_escape_chars` does not modify
-
-    Parameters
-    ----------
-
-        value (str): value to clean
-
-    Returns
-    -------
-
-        str: words in clean form
     """
-    value = replace_escape_chars(strip_white_space(value))
+    value = replace_escape_chars(strip_white_space(value), replace_by=' ')
     cleaned_words = drop_while(lambda x: x == '', value.split(' '))
-    return ' '.join(cleaned_words).strip()
+    return ' '.join(cleaned_words)
+
+
+def create_random_string(length: int=5, lowercased: bool=False):
+    """Return a random string"""
+    result = ''.join(random.choice(RANDOM_STRING_CHARS) for _ in range(length))
+    if lowercased:
+        return result.lower()
+    return lowercased
+
+
+# class CustomStripper(HTMLParser):
+#     def __init__(self):
+#         super().__init__(convert_charrefs=False)
+#         self.results = []
+
+#     def handle_data(self, data: str):
+#         self.results.append(data)
+    
+#     def handle_entityref(self, name: str):
+#         self.results.append(f'&{name}')
+
+#     def handle_charref(self, name: str):
+#         self.results.append(f'&#{name}')
+
+#     @property
+#     def data(self):
+#         return ''.join(self.results)
+
+
+# def strip_html_tags(value: str):
+#     instance = CustomStripper()
+#     instance.feed(value)
+#     instance.close()
+#     result = instance.data
+#     return result
+
+# a = strip_html_tags('</adf>a')
+# print(a)

@@ -33,10 +33,10 @@ class TestRegistry(unittest.TestCase):
         self.registry = Registry()
 
     def test_can_populate(self):
-        self.registry.populate(
-            import_module('zineb.tests.testproject.spiders')
-        )
+        self.registry.populate(import_module('zineb.tests.testproject.spiders'))
         self.assertTrue(self.registry.has_spiders)
+        self.assertTrue(self.registry.is_ready)
+        self.assertTrue(self.registry.has_spider('MySpider'))
 
 
 if __name__ == '__main__':

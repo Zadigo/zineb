@@ -1,4 +1,4 @@
-from collections import defaultdict
+from typing import List
 
 
 class LazyFormat:
@@ -13,6 +13,7 @@ class LazyFormat:
         >> str(message)
         >> Kendall Jenner
     """
+    
     __slots__ = ('_cached_result', '_string_to_format', '_args', '_kwargs')
 
     def __init__(self, string_to_format: str, *args, **kwargs):
@@ -34,7 +35,7 @@ class LazyFormat:
         return str(self) % value
 
 
-def remap_to_dict(data: dict):
+def remap_to_dict(data: dict, include_index: bool=False) -> List[dict]:
     """
     From a dictionnary of values, remap the different
     items to create a list of dictionnaries
@@ -42,13 +43,7 @@ def remap_to_dict(data: dict):
     Example
     -------
         
-        > {'a': [1, 2], 'b': 1} becomes
-          [{'a': 1}, {'a': 2}, {'b': 1}] 
-
-    Yields
-    ------
-
-        list:  list of dictionnaries
+        {'a': [1, 2], 'b': 1} becomes [{'a': 1}, {'a': 2}, {'b': 1}]
     """
     items = []
     base_keys = list(data.keys())
@@ -58,7 +53,10 @@ def remap_to_dict(data: dict):
             try:
                 items[i][key] = item
             except:
-                items.append({key: item})
+                row = {key: item}
+                # if include_index:
+                #     row['id'] = i
+                items.append(row)
     return items
 
 

@@ -41,11 +41,11 @@ class TestCommandCollection(unittest.TestCase):
 
         sample_path = commands_paths[0]
         self.assertTrue(sample_path.endswith('.py'))
-        self.assertIn('\\create_spider.py', sample_path)
+        self.assertIn('\\createspider.py', sample_path)
 
 
 class TestLoadCommands(unittest.TestCase):        
-    def test_can_get_command(self):
+    def test_can_load_command(self):
         command = load_command_class('start')
         self.assertTrue(isinstance(command, BaseCommand))
 
@@ -55,28 +55,22 @@ class TestUtility(unittest.TestCase):
         self.utility = Utility()
 
     def test_registry_is_not_empty(self):
-        self.assertTrue(len(self.utility.commands_registry.values()) > 0)
+        self.assertGreater(len(self.utility.commands_registry), 0)
 
-    def test_can_call_command(self):
-        pass
-        # command = self.utility.call_command(['manage.py', 'start'])
-        # subprocess.call(['python', 'tests/testproject/manage.py'], stderr=subprocess.STDOUT)
+# ARGUMENTS = ['python', os.path.join(os.path.dirname(__file__), 'testproject/manage.py')]
 
+# COMMANDS = ['create_spider']
 
-ARGUMENTS = ['python', os.path.join(os.path.dirname(__file__), 'testproject/manage.py')]
-
-COMMANDS = ['create_spider']
-
-class TestCommands(unittest.TestCase):
-    def test_create_spider(self):
-        ARGUMENTS.extend(['create_spider', 'Google'])
-        subprocess.call(ARGUMENTS, stderr=subprocess.STDOUT)
+# class TestCommands(unittest.TestCase):
+#     def test_create_spider(self):
+#         ARGUMENTS.extend(['create_spider', 'Google'])
+#         subprocess.call(ARGUMENTS, stderr=subprocess.STDOUT)
 
 
 if __name__ == '__main__':
-    # unittest.main()
+    unittest.main()
 
-    runner = unittest.TextTestRunner()
-    suite = unittest.TestSuite()
-    suite.addTest(TestCommands('test_create_spider'))
-    runner.run(suite)
+    # runner = unittest.TextTestRunner()
+    # suite = unittest.TestSuite()
+    # suite.addTest(TestCommands('test_create_spider'))
+    # runner.run(suite)
