@@ -5,12 +5,11 @@ import zineb
 from zineb.registry import registry
 from zineb.settings import settings
 
+os.environ.setdefault('ZINEB_SPIDER_PROJECT', 'zineb.tests.testproject')
 
-class TestSetup(unittest.TestCase):
-    def setUp(self):
-        os.environ.setdefault('ZINEB_SPIDER_PROJECT', 'tests.testproject')
-        zineb.setup()
-        
+zineb.setup()
+
+class TestSetup(unittest.TestCase):        
     def test_settings(self):
         self.assertIsNotNone(settings.PROJECT_PATH)
     

@@ -29,7 +29,7 @@ class ModelsDescriptor:
 class SpiderConfig:
     """
     Class that represents a spider and 
-    its overall difference
+    its overall different configurations
     """
 
     def __init__(self, name, spiders_module):
@@ -168,16 +168,17 @@ class MasterRegistry:
             if not path.exists():
                 raise ValueError("MEDIA_FOLDER path does does not exist")
             setattr(settings, 'MEDIA_FOLDER', path)
-                
-        try:
-            # Change TIME_ZONE to a pytz usable 
-            # instance for the project
-            instance = pytz.timezone(settings.TIME_ZONE)
-        except pytz.exceptions.UnknownTimeZoneError:
-            raise ValueError(f'Timezone specified in TIME_ZONE '
-                'does not exist. Got: {settings.TIME_ZONE}')
-        else:
-            settings.TIME_ZONE = instance
+
+        if isinstance(settings.TIME_ZONE, str):
+            try:
+                # Change TIME_ZONE to a pytz usable 
+                # instance for the project
+                instance = pytz.timezone(settings.TIME_ZONE)
+            except pytz.exceptions.UnknownTimeZoneError:
+                raise ValueError('Timezone specified in TIME_ZONE '
+                    f'does not exist. Got: {settings.TIME_ZONE}')
+            else:
+                settings.TIME_ZONE = instance
                     
         self.is_ready = True
         
@@ -214,7 +215,14 @@ class MasterRegistry:
         Populates the registry with the spiders 
         that were registered in the `SPIDERS` variable 
         in the settings.py file
-        """        
+        """
+        # If the registry is already populated,
+        # calling populate once again will raise
+        # errors on certain items e.g. TIME_ZONE
+        # configuration. If populated, skip
+        if self.is_ready:
+            return
+        
         dotted_path = os.environ.get(ENVIRONMENT_VARIABLE, None)
         
         if dotted_path is None:
@@ -228,7 +236,7 @@ class MasterRegistry:
         try:
             project_module = import_module(dotted_path)
         except ImportError:
-            raise ImportError('Could not find the related module')
+            raise ImportError(f"Could not load the project's related module: '{dotted_path}'")
         
         from zineb.app import Spider
         from zineb.settings import settings
