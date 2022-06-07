@@ -1,5 +1,8 @@
 import bisect
+import csv
+import json
 import os
+from pathlib import Path
 import secrets
 from collections import defaultdict, namedtuple
 from functools import cached_property, lru_cache
@@ -104,9 +107,13 @@ class ModelOptions:
             self.add_field('id', auto_field)
             
         # Once the model is prepared, initialize
-        # all the constraints on the model
-        for constraint in self.constraints:
-            constraint.prepare(self)
+        # all the constraints
+        # TODO: Check this. Some models do not
+        # _data_container when trying to set
+        # the models data container on the 
+        # constraint
+        # for constraint in self.constraints:
+        #     constraint.prepare(self.model)
         
     def has_field(self, name):
         return name in self.field_names
@@ -325,10 +332,6 @@ class Model(metaclass=Base):
         # the options which as initially None
         self._meta.model = self
 
-    @property
-    def _get_internal_data(self):
-        return dict(self._cached_result.values)
-
     def __str__(self):
         # data = self._data_container.as_list()
         return str(self.resolve_all_related_fields())
@@ -356,6 +359,10 @@ class Model(metaclass=Base):
             self._meta.model_name == obj._meta.model_name,
             self._meta.field_names == obj._meta.field_names
         ])
+        
+    @property
+    def _get_internal_data(self):
+        return dict(self._cached_result.values)
         
     @lru_cache(maxsize=10)
     def resolve_all_related_fields(self):
@@ -558,7 +565,7 @@ class Model(metaclass=Base):
         function on your model
         """
         
-    def save(self, commit=True, filename=None, **kwargs):
+    def save(self, commit=True, filename=None, extension='json', **kwargs):
         """
         Transform the collected data to a DataFrame which
         in turn will be saved to a JSON file.
@@ -574,11 +581,40 @@ class Model(metaclass=Base):
         self.full_clean()
 
         if commit:
+            from zineb.settings import settings
+            from zineb.utils.encoders import DefaultJsonEncoder
+            
             if filename is None:
                 filename = f'{secrets.token_hex(nbytes=5)}'
+                
+            try:
+                path = Path(settings.MEDIA_FOLDER)
+                if not path.exists():
+                    path.mkdir()
+            except:
+                raise Exception('Could not find media folder')
+            else:
+                full_path = path.joinpath(filename)
+                
+                acceptable_extensions = ['json', 'csv']
+                if extension not in acceptable_extensions:
+                    raise ValueError('Extension should b one of csv or json')
+                
+                full_path = f"{full_path}.{extension}"
+                
+                if extension == 'json':
+                    data = json.loads(json.dumps(self._data_container.as_list()))
+                    with open(full_path, mode='w', encoding='utf-8') as f:
+                        json.dumps(data, f, indent=2, sort_keys=2, cls=DefaultJsonEncoder)
+                
+                if extension == 'csv':
+                    with open(full_path, modee='w', newline='\n', encoding='utf-8') as f:
+                        writer = csv.writer(f)
+                        writer.writerows(self._data_container.as_csv())    
+            
                 
             # TODO: Send a signal after the model
             # is saved
                 
-            self._data_container.execute_save(commit=commit, filename=filename, **kwargs)
+            # self._data_container.execute_save(commit=commit, filename=filename, **kwargs)
         return self._cached_resolved_data    
