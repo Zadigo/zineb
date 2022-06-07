@@ -6,7 +6,8 @@ from pathlib import Path
 import secrets
 from collections import defaultdict, namedtuple
 from functools import cached_property, lru_cache
-from models.fields import Value
+# FIXME: This raises a circular import error
+# from zineb.models.fields import Value
 
 from zineb.exceptions import FieldError, ModelExistsError
 from zineb.http.responses import HTMLResponse
