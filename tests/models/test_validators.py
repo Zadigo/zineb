@@ -7,8 +7,9 @@ from zineb.models import fields, validators
 
 def my_custom_validator(value):
     if value == 'Kendall Jenner':
-        raise ValueError("Do not implement Kendall Jenner")
+        raise ValueError('Do not implement Kendall Jenner')
     return value
+
 
 class WithBaseField(unittest.TestCase):
     def setUp(self):
@@ -55,5 +56,6 @@ class TestValidators(TestCase):
         with self.assertRaises(TypeError):
             print('Value is None')
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     unittest.main()
