@@ -88,7 +88,7 @@ class TestBaseRequest(unittest.TestCase):
     def test_json_property(self):
         request = HTTPRequest('https://jsonplaceholder.typicode.com/todos')
         request._send()
-        self.assertIsInstance(request.json(), dict)
+        self.assertIsInstance(request.json(), (dict, list))
 
 
 if __name__ == '__main__':

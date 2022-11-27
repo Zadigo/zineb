@@ -25,7 +25,8 @@ class ResponseHeaders(OrderedDict):
         
     @property
     def is_json_response(self):
-        return 'application/json' in self
+        content_type = self.get('content-type', None)
+        return 'application/json' in content_type
 
     def _transform_date_to_python(self, d):
         if isinstance(d, datetime.datetime):
@@ -39,6 +40,8 @@ class ResponseHeaders(OrderedDict):
             return None
 
     def _refix(self, headers: dict):
+        """Normalizes the header names by transforming
+        them to lower case"""
         intital_keys = headers.keys()
         keys = sorted(intital_keys)
 

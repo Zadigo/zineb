@@ -44,6 +44,7 @@ class HTMLResponse(BaseResponse):
         ... instance.html_page
         ... link_object = instance.find("a")
     """
+
     def __init__(self, response, **kwargs):
         # PERFORMANCE: Import this module during
         # the __init__ because this takes a little

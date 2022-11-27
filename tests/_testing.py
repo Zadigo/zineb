@@ -95,6 +95,3 @@ from zineb.http.request import HTTPRequest
 r = HTTPRequest('https://jsonplaceholder.typicode.com/todos')
 r._send()
 print(r.json())
-
-
-from collections import Counter

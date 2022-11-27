@@ -1,4 +1,3 @@
-import json
 import re
 from collections import OrderedDict
 from typing import Union
@@ -206,7 +205,8 @@ class BaseRequest:
 class HTTPRequest(BaseRequest):
     """
     Represents a basic HTTP request which wraps
-    an HTMLResponse and base HTTP request
+    an HTMLResponse and requests.Request instance
+    request
 
     Parameters
     ----------
@@ -214,6 +214,24 @@ class HTTPRequest(BaseRequest):
         - url (str): the url to which to send the request
         - is_download_url (bool, optional): the url is going to be
           used for a download. Defaults to False.
+
+    Example
+    -------
+            Sending a basic request can be done in the followin way:
+
+            >>> instance = HttpRequest('http://example.com')
+            ... instance._send()
+
+            You can also follow additional links using these methods:
+
+            >>> new_instance = instance.follow('http://example.com/1')
+            >>> new_instance = instance.follow_all(['http://example.com/2'])
+
+            Finally, you can also join a relative path to the url's domain
+
+            >>> new_url = instance.urljoin('kendall')
+            ... 'http://example.com/kendall'
+            ... instance.follow(new_url)
     """
     referer = None
 
@@ -272,7 +290,7 @@ class HTTPRequest(BaseRequest):
         """If the expected response is not an HTML object, 
         return the JSON content via this method"""
         if self.html_response.headers.is_json_response:
-            result = json.loads(self.html_response.cached_response.content())
+            result = self.html_response.cached_response.json()
             if sort_by is not None:
                 return sorted(result, key=lambda x: x[sort_by])
             return result
