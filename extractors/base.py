@@ -9,7 +9,8 @@ from typing import List, NoReturn, Union
 from bs4 import BeautifulSoup
 from bs4.element import ResultSet, Tag
 from w3lib.html import safe_url_string
-from w3lib.url import is_url, urljoin
+from w3lib.url import is_url
+from urllib.parse import urljoin
 from zineb.extractors._mixins import MultipleRowsMixin
 from zineb.settings import settings
 from zineb.utils.characters import deep_clean

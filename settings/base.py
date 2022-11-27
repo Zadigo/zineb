@@ -23,9 +23,8 @@ LOAD_MODELS = False
 
 
 # Limit scrapping to certain specific amount of
-# domains by requiring that each requests needs
-# to respect the domains in this list before
-# they are sent
+# domains by invalidating those that do not respect
+# the given list
 
 DOMAINS = []
 

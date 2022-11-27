@@ -14,10 +14,9 @@
 # print(namespace)
 
 
-
 # from models.functions import Add, ExtractDay, ExtractYear, Substract
-from zineb.models import fields
-from zineb.models.datastructure import Model
+# from zineb.models import fields
+# from zineb.models.datastructure import Model
 # from zineb.models.functions import When
 
 # class TestModel(Model):
@@ -45,7 +44,7 @@ from zineb.models.datastructure import Model
 
 # class TestModel(Model):
 #     age = CharField()
-    
+
 # m = TestModel()
 # # m.add_calculated_value('age', 15, Substract(3))
 # # m.add_case(15, When('age__gt=10', 15, 10))
@@ -64,7 +63,7 @@ from zineb.models.datastructure import Model
 #     pk = fields.IntegerField()
 #     surname__ = fields.CharField()
 #     created_on = fields.DateField(date_format=True)
-    
+
 # model = MyModel()
 
 # print(model.checks())
@@ -89,3 +88,13 @@ from zineb.models.datastructure import Model
 # namespace = namedtuple('namespace', ['project'])
 # w = namespace('tests/creation')
 # c.execute(w)
+
+
+from zineb.http.request import HTTPRequest
+
+r = HTTPRequest('https://jsonplaceholder.typicode.com/todos')
+r._send()
+print(r.json())
+
+
+from collections import Counter

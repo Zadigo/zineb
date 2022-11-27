@@ -6,8 +6,8 @@ from urllib import parse
 
 import requests
 from requests.sessions import Request, Session
-from w3lib.url import (is_url, safe_download_url, safe_url_string, urljoin,
-                       urlparse)
+from w3lib.url import is_url, safe_download_url, safe_url_string, urlparse
+
 from zineb.exceptions import ResponseFailedError
 from zineb.http.responses import HTMLResponse
 from zineb.http.user_agent import UserAgent
@@ -90,9 +90,10 @@ class BaseRequest:
         return f"{self.__class__.__name__}(url={self.url}, resolved={self.resolved})"
 
     @classmethod
-    def follow(cls, url: str):
+    def follow(cls, url):
         instance = cls(str(url))
-        return instance._send()
+        instance._send()
+        return instance
 
     @classmethod
     def follow_all(cls, urls):
@@ -103,7 +104,7 @@ class BaseRequest:
             # request
             yield cls.follow(url)
 
-    def _set_headers(self, request: Request, **extra_headers):
+    def _set_headers(self, request, **extra_headers):
         headers = settings.get('DEFAULT_REQUEST_HEADERS', {})
         
         user_agent = USER_AGENT.get_random_agent()
@@ -134,7 +135,7 @@ class BaseRequest:
         parsed_url = urlparse(url)
         self._url_meta = parsed_url
 
-        # INFO: By default, all urls are marked as
+        # NOTE: By default, all urls are marked as
         # can be sent UNLESS they do not meet two
         # criterium present in the settings files.
         # The url is part of a restricted domain
@@ -148,14 +149,15 @@ class BaseRequest:
             #     parsed_url.scheme != 'ftps'
             # ]
             # if not all(logic):
+
             if 'https' not in parsed_url.scheme:
                 self.local_logger.instance.critical(f"{url} is not secured. No HTTPS scheme is present.")
                 self.can_be_sent = False
 
         if self.only_domains:
             if parsed_url.netloc not in self.only_domains:
-                self.local_logger.instance.critical((f"{url} is part of the restricted domains "
-                "settings list and will not be sent. Adjust your settings if you "
+                self.local_logger.instance.critical((f"{url} is not a memeber of the allowed "
+                "domains settings list and will not be sent. Adjust your settings if you "
                 "want to prevent this security check on his domain."))
                 self.can_be_sent = False
             
@@ -193,6 +195,9 @@ class BaseRequest:
         # was sent by the class
 
         parsed_url = urlparse(response.url)
+        # Factually this represents the domain. This
+        # is done afterwards because we know by then
+        # that the url was valid
         self.root_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
 
         return response
@@ -241,11 +246,12 @@ class HTTPRequest(BaseRequest):
                 )
                 self.session.close()
             else:
-                self.local_logger.instance.error('Response failed.')
+                response_code = http_response.status_code
+                self.local_logger.instance.error(f'Response failed with code {response_code}.')
         else:
             self.local_logger.instance.error(f'An error occured on this request: {self.url} with status code {http_response.status_code}')
 
-    def urljoin(self, path: str, use_domain=False):
+    def urljoin(self, path, use_domain=False):
         """
         To compensate for relative paths not being
         full ones, this helper function joins a main url 
@@ -254,17 +260,17 @@ class HTTPRequest(BaseRequest):
         Parameters
         ----------
 
-            path (str): the relative path to use
-            use_domain (bool, optional): Use the domain present
-            of the in the requested url. Defaults to False
+            - path (str): the relative path to use
+            - use_domain (bool, optional): Use the domain present 
+              of the in the requested url. Defaults to False
         """
         if use_domain:
-            return urljoin(self.root_url, str(path))
-        return safe_url_string(urljoin(self._http_response.url, str(path)))
+            return parse.urljoin(self.root_url, str(path))
+        return safe_url_string(parse.urljoin(self._http_response.url, str(path)))
     
     def json(self, sort_by=None, filter_func=None):
-        """If the response is not an HTML object, return
-        the JSON content via this method"""
+        """If the expected response is not an HTML object, 
+        return the JSON content via this method"""
         if self.html_response.headers.is_json_response:
             result = json.loads(self.html_response.cached_response.content())
             if sort_by is not None:
