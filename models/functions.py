@@ -60,6 +60,9 @@ class Math(FunctionsMixin):
 class Substract(Math):
     """
     Substracts an incoming value to another
+
+    >>> model.add_calculated_value('age', 21, Substract(3))
+    ... 18
     """
     def resolve(self):
         source_field = super().resolve()
@@ -69,6 +72,8 @@ class Substract(Math):
 class Add(Math):
     """
     Adds an incoming element to a value
+    >>> model.add_calculated_value('age', 21, Add(3))
+    ... 24
     """
     def resolve(self):
         source_field = super().resolve()
@@ -78,6 +83,9 @@ class Add(Math):
 class Multiply(Math):
     """
     Multiplies an incoming element to a value
+    
+    >>> model.add_calculated_value('age', 21, Multiply(1))
+    ... 21
     """
 
     def resolve(self):
@@ -88,6 +96,9 @@ class Multiply(Math):
 class Divide(Math):
     """
     Divides the incoming value by another
+
+    >>> model.add_calculated_value('age', 21, Divide(1))
+    ... 21
     """
 
     def resolve(self):
@@ -124,8 +135,10 @@ class Divide(Math):
         
 
 class When:
-    """Returns a parsed value if a condition is
-    respected otherwise, implements the default"""
+    """Checks if a condition is met. If True, returns
+    a value from the then_condition else, returns
+    the default one/else_condition
+    """
     
     _cached_data = None
     model = None
@@ -265,11 +278,12 @@ class DateExtractorMixin:
                 
         source_field = self.model._meta.get_field(self.field_name)
         
-        # TODO: Technically, it makes no sense to use
-        # a date extractor on the DateField 
+        # NOTE: It makes no sense to use
+        # a date extractor on a DateField 
         from zineb.models.fields import DateField
         if isinstance(source_field, DateField):
-            raise TypeError(LazyFormat("Cannot use {function} with DateField", function=self.__class__.__name__))
+            raise TypeError(LazyFormat("Cannot use '{function}' "
+            "with a DateField bbject", function=self.__class__.__name__))
         
         # We have already resolved the date and for these
         # specific two fields, we want to implement the
@@ -279,14 +293,26 @@ class DateExtractorMixin:
         
         
 class ExtractYear(DateExtractorMixin, FunctionsMixin):
+    """
+    >>> model.add_value("year", ExtractYear("1569-1-1"))
+    ... 1569
+    """
     lookup_name = 'year'
 
 
 class ExtractMonth(DateExtractorMixin, FunctionsMixin):
+    """
+    >>> model.add_value("month", ExtractMonth("1569-1-1"))
+    ... 1
+    """
     lookup_name = 'month'
 
 
 class ExtractDay(DateExtractorMixin, FunctionsMixin):
+    """
+    >>> model.add_value("day", ExtractDay("1569-1-1"))
+    ... 1
+    """
     lookup_name = 'day'
     
     
@@ -320,7 +346,10 @@ class ComparisionMixin(FunctionsMixin):
 
 class Greatest(ComparisionMixin):
     """Takes a list of values and returns the greatest
-    one. Each values should be of the same type"""
+    one. Each values should be of the same type
+    
+    >>> model.add_value("age", Greatest(15, 31, 21))
+    """
         
     def resolve(self):
         self._cached_data = max(self.values)
@@ -328,7 +357,10 @@ class Greatest(ComparisionMixin):
         
 class Smallest(ComparisionMixin):
     """Takes a list of values and returns the smallest
-    one. Each values should be of the same type"""
+    one. Each values should be of the same type
+    
+    >>> model.add_value("age", Smallest(15, 31, 21))
+    """
     
     def resolve(self):
         self._cached_data = min(self.values)

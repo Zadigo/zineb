@@ -443,6 +443,12 @@ class Model(metaclass=Base):
         field.resolve()
     
     def add_calculated_value(self, name, value, *funcs):
+        """Adds a value to the model after running an 
+        arithmetic operation
+        
+        >>> model.add_calculated_value("age", 21, Add(3), Substract(1))
+        ... 23
+        """
         funcs = list(funcs)
 
         # TODO: Quick fix because the funcs is an optional
@@ -489,7 +495,10 @@ class Model(metaclass=Base):
     def add_case(self, value, case):
         """
         Add a value to the model based on a specific
-        conditions determined by a When-function.
+        conditions determined by a When-function
+
+        >>> model.add_case("kendall", When("name_eq=kendall", "Kendall"))
+        ... "Kendall"
         """
         if not isinstance(case, When):
             raise TypeError('Case should be a When class.')
@@ -520,9 +529,11 @@ class Model(metaclass=Base):
 
     def add_values(self, **attrs):
         """
-        Add a single row at once on your model
-        using either a dictionnary or keyword
-        arguments
+        Add a single row at once on the model
+        using either a dictionnary or keywords
+
+        >>> model.add_values(name="Kendall")
+        >>> model.add_values({"name": "Kendall"})
         """
         self._fields.has_fields(list(attrs.keys()), raise_exception=True)
         self._data_container.update_multiple(**attrs)
@@ -530,7 +541,9 @@ class Model(metaclass=Base):
 
     def add_value(self, name, value):
         """
-        Adds a value to the Model object
+        Adds a value to the model
+
+        >>> model.add_value("name", "Kendall")
         """
         # FIXME: Due the way the mixins are ordered
         # on the ExtractYear, ExtractDay... classes,

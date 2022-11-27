@@ -718,15 +718,15 @@ Functions a built-in elements that can modify the incoming value in some kind of
 
 ### Add, Substract, Divide, Multiply
 
-Allows you to run a on an incoming value.
+Allows you to run an arithmetic operation on an incoming value.
 
 ```python
 from zineb.models.functions import Add, Substract, Divide, Multiply
 
-player.add_calculated_field('height', Add(175, 5))
-player.add_calculated_field('height', Substract(175, 5))
-player.add_calculated_field('height', Divide(175, 1))
-player.add_calculated_field('height', Multiply(175, 1))
+player.add_calculated_value('height', 175, Add(5))
+player.add_calculated_value('height', 175, Substract(5))
+player.add_calculated_value('height', 175, Divide(1))
+player.add_calculated_value('height', 175, Multiply(1))
 
 # -> {'height': [180]}
 # -> {'height': [170]}
