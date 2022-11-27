@@ -220,33 +220,33 @@ class ModelSmartDict(SmartDict):
         
     # TODO: Move the file creation to the Model directly
     # and only make this deal with the values
-    def execute_save(self, filename, commit=True, extension='json', **kwargs):
-        if commit:
-            try:
-                path = Path(settings.MEDIA_FOLDER)
-                if not path.exists():
-                    path.mkdir()
-            except:
-                raise
-            else:
-                # TODO: Technically the MEDIA_FOLDER is set
-                # wih setup() and this check is not necessary.
-                # However, someone might be tempted to call 
-                # this outside of a project.
-                if settings.MEDIA_FOLDER is not None:
-                    file_path = settings.MEDIA_FOLDER.joinpath(filename)
+    # def execute_save(self, filename, commit=True, extension='json', **kwargs):
+    #     if commit:
+    #         try:
+    #             path = Path(settings.MEDIA_FOLDER)
+    #             if not path.exists():
+    #                 path.mkdir()
+    #         except:
+    #             raise
+    #         else:
+    #             # TODO: Technically the MEDIA_FOLDER is set
+    #             # wih setup() and this check is not necessary.
+    #             # However, someone might be tempted to call 
+    #             # this outside of a project.
+    #             if settings.MEDIA_FOLDER is not None:
+    #                 file_path = settings.MEDIA_FOLDER.joinpath(filename)
 
-            if extension == 'json':
-                file_path = f"{file_path}.json"
-                data = json.loads(json.dumps(self.as_list()))
-                with open(file_path, mode='w', encoding='utf-8') as f:
-                    json.dump(data, f, indent=2, sort_keys=True, cls=DefaultJsonEncoder)
+    #         if extension == 'json':
+    #             file_path = f"{file_path}.json"
+    #             data = json.loads(json.dumps(self.as_list()))
+    #             with open(file_path, mode='w', encoding='utf-8') as f:
+    #                 json.dump(data, f, indent=2, sort_keys=True, cls=DefaultJsonEncoder)
 
-            if extension == 'csv':
-                file_path = f"{file_path}.csv"
-                with open(file_path, mode='w', newline='\n', encoding='utf-8') as f:
-                    writer = csv.writer(f)
-                    writer.writerows(self.as_csv())
-        else:
-            data = json.loads(json.dumps(self.as_list(), cls=DefaultJsonEncoder))
-            return json.dumps(data, sort_keys=True)
+    #         if extension == 'csv':
+    #             file_path = f"{file_path}.csv"
+    #             with open(file_path, mode='w', newline='\n', encoding='utf-8') as f:
+    #                 writer = csv.writer(f)
+    #                 writer.writerows(self.as_csv())
+    #     else:
+    #         data = json.loads(json.dumps(self.as_list(), cls=DefaultJsonEncoder))
+    #         return json.dumps(data, sort_keys=True)

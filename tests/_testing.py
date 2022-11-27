@@ -89,13 +89,57 @@
 # w = namespace('tests/creation')
 # c.execute(w)
 
+# @total_ordering
+# class V:
+#     def __init__(self, value):
+#         self.value = value
+
+#     def __repr__(self):
+#         return f'{self.__class__.__name__}([{self.value}])'
+
+#     def __eq__(self, obj):
+#         return obj == self.value
+
+#     def __gt__(self, obj):
+#         obj = self.convert_to_string(obj)
+#         return len(self.value) > obj
+
+#     def __contains__(self, obj):
+#         obj = self.convert_to_string(obj)
+#         return self.value in obj
+
+#     def convert_to_string(self, value):
+#         if isinstance(value, (int, float)):
+#             return str(value)
+#         return value
+
+# class BaseConditions:
+#     pass
+
+
+# from zineb.models.datastructure import Model
+# from zineb.models import fields
+# class TestModel(Model):
+#     name = fields.CharField()
+#     surname = fields.NameField()
+
+# model = TestModel()
+# model.add_value('name', 'Kendall')
+# model.add_value('name', 'Kendall')
+# constraint = UniqueConstraint(['name', 'surname'], 'unique_name_and_surname')
+# constraint.model = model
+# constraint.prepare()
+# print(constraint())
+
+
 
 from zineb.models.datastructure import Model
 from zineb.models import fields
-from zineb.models.constraints import UniqueConstraint
+from zineb.models.constraints import UniqueConstraint, CheckConstraint
 
 class MyModel(Model):
     name = fields.NameField()
+    surname = fields.NameField()
 
     class Meta:
         constraints = [
@@ -103,5 +147,12 @@ class MyModel(Model):
         ]
 
 m = MyModel()
-m.add_value('name', 'Kendall')
-m.add_value('name', 'Kendall')
+# m.add_value('name', 'Kendall')
+
+
+# constraint = CheckConstraint(['name', 'surname'], 'unique_name', condition=lambda x: x == 15)
+# constraint = UniqueConstraint(['name', 'surname'], 'unique_name', condition=lambda x: x == 15)
+# constraint.values = {'name': ['Kendall'], 'surname': ['Jenner']}
+# constraint.prepare(m)
+# # print(constraint.check_constraint('Kendall'))
+# print(constraint)

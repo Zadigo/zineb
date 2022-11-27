@@ -15,7 +15,7 @@ class BaseConstraint:
         self.unique_together = []
         
     def __repr__(self):
-        return f'<{self.__class__.__name__}[{self.model._meta.model_name}{self.constrained_fields}]>'
+        return f'<{self.__class__.__name__}[{self.model}{self.constrained_fields}]>'
     
     def __call__(self, raise_exception=False):
         errors = []
@@ -46,9 +46,12 @@ class BaseConstraint:
         return errors
        
     def prepare(self, model):
+        # FIXME: Name this "update_model_options" to
+        # be consitent with the rest
         # FIXME: Don't know what self.values serves to.
         # Apparently it implements the values for each
         # field on a dict
+        self.model = model
         self._data_container = model._data_container
         
         if len(self.constrained_fields) == 1:
@@ -119,57 +122,3 @@ class CheckConstraint(BaseConstraint):
                 return_data[field] = self._data_container[field]
                 # return_data[field] = self.values[field]
         return return_data
-
-
-# @total_ordering
-# class V:
-#     def __init__(self, value):
-#         self.value = value
-
-#     def __repr__(self):
-#         return f'{self.__class__.__name__}([{self.value}])'
-
-#     def __eq__(self, obj):
-#         return obj == self.value
-
-#     def __gt__(self, obj):
-#         obj = self.convert_to_string(obj)
-#         return len(self.value) > obj
-
-#     def __contains__(self, obj):
-#         obj = self.convert_to_string(obj)
-#         return self.value in obj
-
-#     def convert_to_string(self, value):
-#         if isinstance(value, (int, float)):
-#             return str(value)
-#         return value
-
-
-# constraint = CheckConstraint(['name', 'surname'], 'unique_name', condition=lambda x: x == 15)
-# constraint = UniqueConstraint(['name', 'surname'], 'unique_name', condition=lambda x: x == 15)
-# constraint.values = {'name': ['Kendall'], 'surname': ['Jenner']}
-# constraint.prepare()
-# print(constraint.check_constraint('Kendall'))
-# print(constraint)
-
-
-
-# class BaseConditions:
-#     pass
-
-  
-
-# from zineb.models.datastructure import Model
-# from zineb.models import fields
-# class TestModel(Model):
-#     name = fields.CharField()
-#     surname = fields.NameField()
-
-# model = TestModel()
-# model.add_value('name', 'Kendall')
-# model.add_value('name', 'Kendall')
-# constraint = UniqueConstraint(['name', 'surname'], 'unique_name_and_surname')
-# constraint.model = model
-# constraint.prepare()
-# print(constraint())

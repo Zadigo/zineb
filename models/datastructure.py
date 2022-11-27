@@ -2,12 +2,10 @@ import bisect
 import csv
 import json
 import os
-from pathlib import Path
 import secrets
 from collections import defaultdict, namedtuple
 from functools import cached_property, lru_cache
-# FIXME: This raises a circular import error
-# from zineb.models.fields import Value
+from pathlib import Path
 
 from zineb.exceptions import FieldError, ModelExistsError
 from zineb.http.responses import HTMLResponse
@@ -15,6 +13,10 @@ from zineb.models.functions import (Add, Divide, ExtractDay, ExtractMonth,
                                     ExtractYear, Multiply, Substract, When)
 from zineb.utils.containers import ModelSmartDict
 from zineb.utils.formatting import LazyFormat
+
+# FIXME: This raises a circular import error
+# from zineb.models.fields import Value
+
 
 DEFAULT_META_OPTIONS = {
     'constraints', 'ordering', 'verbose_name'
@@ -49,8 +51,8 @@ model_registry = ModelRegistry()
 class ModelOptions:
     """
     A container that stores the options
-    of a given model including both the 
-    fields and the Meta options
+    for a given model such as fields,
+    constraints...
     """
     def __init__(self, model, model_name):
         self.model = model
@@ -62,6 +64,8 @@ class ModelOptions:
         self.related_model_fields = {}
         self.parents = set()
         self.ordering = []
+        # NOTE: These are the initial constraints.
+        # We might need to create another variable.
         self.constraints = []
         self.initial_model_meta = None
         
@@ -97,6 +101,8 @@ class ModelOptions:
         ]
         
     def _prepare(self):
+        """Final step to prepare the model for
+        final use in a project"""
         # Include the ID field by default for functions
         # or definitions that might require using this.
         # If we have not inherited from an ID field
@@ -107,18 +113,20 @@ class ModelOptions:
             auto_field = AutoField(auto_created=True)
             self.add_field('id', auto_field)
             
-        # Once the model is prepared, initialize
-        # all the constraints
+        # Initialize all the eventual constraints
+        # that were provided on the model
         # TODO: Check this. Some models do not
         # _data_container when trying to set
         # the models data container on the 
         # constraint
         # for constraint in self.constraints:
+        #     constraint.update_model_options(self.model)
         #     constraint.prepare(self.model)
         
     def has_field(self, name):
         return name in self.field_names
     
+    # TODO: Is this useful ??
     def add_constraint(self, name):
         pass
         
@@ -130,7 +138,7 @@ class ModelOptions:
             # We have to keep track of a two way relationship:
             # one from model1 -> model2 and the reverse from
             # model1 <- model2 where model1.field accesses
-            # model1 and model2.field_set accesses model2
+            # model2 and model2.field_set accesses model1
             self.related_model_fields[name] = field
         self.fields_map[name] = field
         self.field_names.append(name)
@@ -211,6 +219,11 @@ class Base(type):
         # from the data container
         new_attrs = {}
         for item_name, value in attrs.items():
+            # "update_model_options" is a method that
+            # explicitly tells the Meta class that 
+            # the ModelOptions should reference the
+            # object that requires it to be bound
+            # to the given model
             if not hasattr(value, 'update_model_options'):
                 new_attrs[item_name] = value
                 
@@ -256,15 +269,15 @@ class Base(type):
                 meta.fields_map[field_name] = field
                 
             # If the superclass has a Meta that the user
-            # has configured on the superclass, we have to
-            # inherit from it and copy the values in the
-            # subclass's meta
+            # has configured, we have to inherit from it 
+            # and copy the values in the subclass's meta
             if parent._meta.initial_model_meta is not None:
                 meta_attributes_to_update = {'ordering', 'constraints', 'initial_model_meta'}
                 for attribute in meta_attributes_to_update:
                     setattr(meta, attribute, getattr(parent, attribute))
             
-        # Get the Meta options class
+        # Deal with all the options on 
+        # the "Meta" of the given model
         if meta_attributes is not None:
             meta_dict = meta_attributes.__dict__
             
@@ -287,21 +300,19 @@ class Model(metaclass=Base):
         
     """
     A Model is a class that helps you structure
-    your scrapped data efficiently for later use
+    your scrapped data efficiently for later use. It has to 
+    inherit from this base Model class and implement fields.
 
-    Your custom models have to inherit from this
-    base Model class and implement a set of fields
-    from zineb.models.fields. For example:
-
-            class MyModel(Model):
-                name = CharField()
+    >>> class MyModel(Model):
+            name = CharField()
 
     Once you've created the model, you can then use
     it within your project like so:
 
-            custom_model = MyModel()
-            custom_model.add_value('name', 'p')
-            custom_model.save()
+        >>> model = MyModel()
+        ... model.add_value('name', 'Kendall')
+        ... model.save()
+        ... [{"name": "Kendall"}]
     """
     
     _cached_resolved_data = None
