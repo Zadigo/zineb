@@ -1,6 +1,6 @@
-from zineb.exceptions import FieldError
-from zineb.exceptions import ConstraintError
 from collections import Counter, defaultdict
+
+from zineb.exceptions import ConstraintError
 
 
 class BaseConstraint:
@@ -78,7 +78,17 @@ class BaseConstraint:
         
 class UniqueConstraint(BaseConstraint):
     """Raises an error when a constraint is found
-    on a given model"""
+    on a given model
+    
+    Example
+    -------
+
+    >>> Class MyModel(Model):
+            class Meta:
+                constraints = [
+                    UniqueConstraint(fields=[...], name=...)
+                ]
+    """
     
     def __call__(self, raise_exception=True):
         return super().__call__(raise_exception=raise_exception)
@@ -87,7 +97,17 @@ class UniqueConstraint(BaseConstraint):
 class CheckConstraint(BaseConstraint):
     """Prevents the addition of a given value
     in the data container if a constraint is
-    found without raising an error"""
+    found. Does not raise an error if a constraint
+    is found.
+    
+    Example
+    -------
+
+    >>> Class MyModel(Model):
+            class Meta:
+                constraints = [
+                    CheckConstraint(fields=[...], name=...)
+    """
     
     def check_constraint(self, value_to_check):
         result = super().check_constraint(value_to_check)
