@@ -363,8 +363,9 @@ class Model(metaclass=Base):
         
     @lru_cache(maxsize=10)
     def resolve_all_related_fields(self):
-        # When return the data, we have to map all
+        # When returning the data, we have to map all
         # the related fields in order to return their
+        # own values
         new_data = self._data_container.as_list()
         related_model_fields = self._meta.related_model_fields
         if related_model_fields:
@@ -540,10 +541,9 @@ class Model(metaclass=Base):
         if obj.internal_name == 'DateField':
             # Some fields such as the DateField does not
             # store a string but a function. For example,
-            # in this case, a datetime.datetime object is
-            # stored. In that case, we have to resolve to
-            # the true value of the field. Otherwise the
-            # user might get something unexpected
+            # in this case, a datetime.datetime objec.
+            # Therefore we have to resolve the true value of the field
+            # otherwise the user might get something unexpected
             resolved_value = str(obj._cached_result)
         
         self._data_container.update(name, resolved_value)
@@ -565,7 +565,7 @@ class Model(metaclass=Base):
     def save(self, commit=True, filename=None, extension='json', **kwargs):
         """
         Transform the collected data to a DataFrame which
-        in turn will be saved to a JSON file.
+        in turn can be saved to a JSON file.
 
         By setting commit to False, you will get a copy of the
         dataframe in order to run additional actions on it

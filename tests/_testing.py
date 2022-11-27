@@ -90,8 +90,18 @@
 # c.execute(w)
 
 
-from zineb.http.request import HTTPRequest
+from zineb.models.datastructure import Model
+from zineb.models import fields
+from zineb.models.constraints import UniqueConstraint
 
-r = HTTPRequest('https://jsonplaceholder.typicode.com/todos')
-r._send()
-print(r.json())
+class MyModel(Model):
+    name = fields.NameField()
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['name'], name='one_name')
+        ]
+
+m = MyModel()
+m.add_value('name', 'Kendall')
+m.add_value('name', 'Kendall')
