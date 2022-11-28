@@ -1,9 +1,9 @@
 """
 To start using Zineb:
 
-    1. Create a class that derives from `zineb.app.Zineb`:
+    1. Create a class that derives from `zineb.app.Spider`:
 
-        class MySpider(Zineb):
+        class MySpider(Spider):
             start_urls = []
 
             def start(self, response, request, **kwargs):
@@ -27,6 +27,6 @@ For any other pieces of information on how to use Zineb
 efficiently, please read https://github.com/Zadigo/zineb
 """
 
-from zineb.app import Zineb
+from zineb.app import Spider
 
 # Create your spiders here
