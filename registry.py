@@ -251,7 +251,7 @@ class MasterRegistry:
             spiders_module = import_module(f'{dotted_path}.{SPIDERS_MODULE}')
         except Exception as e:
             raise ExceptionGroup(
-                "Project fail",
+                "Project loading fail",
                 [
                     Exception(e.args),
                     ImportError("Failed to load the project's spiders submodule")
