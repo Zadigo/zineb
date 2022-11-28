@@ -40,8 +40,10 @@ class Command(BaseCommand):
         current_dir = os.path.abspath(os.curdir)
         full_project_path_dir = os.path.join(current_dir, project_name)
         
-        if not os.path.exists(full_project_path_dir):
-            raise FileExistsError('Project directory does not exist')
+        # FIXME: This blocks the creation of new project
+        # directory. What's the necessity?
+        # if not os.path.exists(full_project_path_dir):
+        #     raise FileExistsError('Project directory does not exist')
 
         zineb_templates_dir_path = os.path.join(settings.GLOBAL_ZINEB_PATH, 'templates/project')
         zineb_template_items = list(os.walk(zineb_templates_dir_path))
@@ -53,7 +55,11 @@ class Command(BaseCommand):
             os.makedirs(os.path.join(full_project_path_dir, folder))
 
         for file in root_files:
-            self._create_new_file(os.path.join(root_path, file), full_project_path_dir, project_name=project_name)
+            self._create_new_file(
+                os.path.join(root_path, file),
+                full_project_path_dir,
+                project_name=project_name
+            )
 
         # Now once the main root elements were
         # created, create the sub elements
