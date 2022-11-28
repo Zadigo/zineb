@@ -22,7 +22,7 @@ def start(self, response, **kwargs):
 
 ## Creating a project
 
-To create a project do `python -m zineb start_project <project name>` which will create a directory which will have the following structure.
+To create a project do `python -m zineb startproject <project name>` which will create a directory which will have the following structure.
 
 .myproject
 |
