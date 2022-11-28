@@ -249,8 +249,14 @@ class MasterRegistry:
             # Try to load the spiders submodule specifically
             # to ensure that this is a zineb project
             spiders_module = import_module(f'{dotted_path}.{SPIDERS_MODULE}')
-        except:
-            raise ImportError("Failed to load the project's spiders submodule")
+        except Exception as e:
+            raise ExceptionGroup(
+                "Project fail",
+                [
+                    Exception(e.args),
+                    ImportError("Failed to load the project's spiders submodule")
+                ]
+            )
         
         # Check that there are class elements that we can used
         # and that ar subclassed by Spider that we can use
