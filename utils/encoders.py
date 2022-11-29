@@ -60,10 +60,12 @@ class DefaultJsonEncoder(JSONEncoder):
         return super().default(obj)
 
 
-def convert_to_unicode(value: Any, encoding='utf-8', errors='strict'):
+def convert_to_unicode(value, encoding='utf-8', errors='strict'):
     """
-    Return the unicode representation of a bytes object `text`.
-    If the value is already a text, return it.
+    Return the unicode representation of a bytes object `text`
+
+    >>> convert_to_unicode(b'Kendall Jenner')
+    ... "Kendall Jenner"
     """
     if isinstance(value, six.text_type):
         return value

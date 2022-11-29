@@ -1,5 +1,9 @@
+import datetime
 import unittest
 
+from zineb.utils.characters import (create_random_string, deep_clean,
+                                    replace_escape_chars, strip_white_space)
+from zineb.utils.dateformating import extract_date_from_string
 from zineb.utils.formatting import (LazyFormat, remap_to_dict,
                                     reverse_remap_to_dict)
 from zineb.utils.functionnal import LazyObject
@@ -41,47 +45,53 @@ class TestIterationUtilities(unittest.TestCase):
     #     self.assertTrue(len(files) > 0)
 
 
-# from zineb.utils.characters import replace_escape_chars, strip_white_space, deep_clean
-# from zineb.utils.images import download_image
-# from zineb.utils.urls import replace_urls_suffix
-
-# class TestReplaceEscapeCharacters(unittest.TestCase):
-#     def test_replacement(self):
-#         values = [
-#             'Kendall Jenner',
-#             '\n\n\n\n\nKendall Jenner',
-#             '\n\n\t\n\nKendall Jenner',
-#             '\n\r\r\n\nKendall Jenner\r\n',
-#         ]
-#         for value in values:
-#             with self.subTest(value=value):
-#                 self.assertEqual(replace_escape_chars(value), 'Kendall Jenner')
+class TestExtractDateFormattingUtilities(unittest.TestCase):
+    def test_extraction(self):
+        d = extract_date_from_string('2022-1-1', 'date')
+        self.assertIsInstance(d, datetime.date)
+        self.assertEqual(d.year, 2022)
 
 
-# class TestStripWhitespace(unittest.TestCase):
-#     def test_replacement(self):
-#         values = [
-#             '\t\nKendall\rJenner',
-#             '\x0c\x0c\tKendall\rJenner\r\n'
-#         ]
-#         for value in values:
-#             with self.subTest(value=value):
-#                 self.assertEqual(strip_white_space(value), 'Kendall\rJenner')
+class TestCharactersUtilities(unittest.TestCase):
+    def test_replace_escape_chars(self):
+        values = [
+            'Kendall Jenner',
+            '\n\n\n\n\nKendall Jenner',
+            '\n\n\t\n\nKendall Jenner',
+            '\n\r\r\n\nKendall Jenner\r\n',
+        ]
+        for value in values:
+            with self.subTest(value=value):
+                self.assertEqual(replace_escape_chars(value), 'Kendall Jenner')
 
+    def test_strip_white_space(self):
+        # result = strip_white_space('Kendall  \rJenner')
+        # self.assertEqual(result, 'Kendall  \rJenner')
 
-# class TestDeepCleaning(unittest.TestCase):
-#     def test_replacement(self):
-#         values = [
-#             '\t\nKendall\rJenner',
-#             '\x0c\x0c\tKendall\rJenner\r\n'
-#         ]
-#         for value in values:
-#             with self.subTest(value=value):
-#                 self.assertEqual(deep_clean(value), 'Kendall Jenner')
+        values = [
+            '\t\nKendall\rJenner',
+            '\x0c\x0c\tKendall\rJenner\r\n'
+        ]
+        for value in values:
+            with self.subTest(value=value):
+                self.assertEqual(strip_white_space(value), 'Kendall\rJenner')
 
+    def test_deep_clean(self):
+        result = deep_clean('\rKendall\nJenner')
+        self.assertEqual(result, 'Kendall Jenner')
 
-# class TestStripHtlmTags(unittest.TestCase):
-#     pass
+        values = [
+            '\t\nKendall\rJenner',
+            '\x0c\x0c\tKendall\rJenner\r\n'
+        ]
+        for value in values:
+            with self.subTest(value=value):
+                self.assertEqual(deep_clean(value), 'Kendall Jenner')
+
+    def test_create_random_string(self):
+        value = create_random_string(10)
+        self.assertIsNotNone(value)
+
 
 # class TestProcessUrls(unittest.TestCase):
 #     def test_url_processor(self):
