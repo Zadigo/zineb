@@ -47,7 +47,7 @@ class SmartDict:
     def new_instance(cls, *fields):
         return cls(*fields)
 
-    def _last_value(self, name: str):
+    def _last_value(self, name):
         return self.get_container(name)[-1][-1]
     
     def run_constraints(self, container):

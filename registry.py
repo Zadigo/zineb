@@ -66,6 +66,8 @@ class SpiderConfig:
         return instance
     
     def check_ready(self):
+        """Marks the spider as configured and
+        ready to be used"""
         if self.spider_class is not None and self.name is not None:
             self.is_ready = True
 
@@ -171,8 +173,7 @@ class MasterRegistry:
 
         if isinstance(settings.TIME_ZONE, str):
             try:
-                # Change TIME_ZONE to a pytz usable 
-                # instance for the project
+                # Change TIME_ZONE to a python pytz object
                 instance = pytz.timezone(settings.TIME_ZONE)
             except pytz.exceptions.UnknownTimeZoneError:
                 raise ValueError('Timezone specified in TIME_ZONE '
@@ -191,7 +192,10 @@ class MasterRegistry:
         # has completed all the initial setting up
         
         # Load the current storage and store it as
-        # an instance on the spider
+        # an instance on the spider. NOTE: Storages
+        # represent the folder that stores the media
+        # resources that were downloaded from the
+        # scrapping
         storages = settings.STORAGES
         for name, storage in storages.items():
             try:
@@ -214,7 +218,7 @@ class MasterRegistry:
         """
         Populates the registry with the spiders 
         that were registered in the `SPIDERS` variable 
-        in the settings.py file
+        from the settings.py file
         """
         # If the registry is already populated,
         # calling populate once again will raise
@@ -258,8 +262,8 @@ class MasterRegistry:
                 ]
             )
         
-        # Check that there are class elements that we can used
-        # and that ar subclassed by Spider that we can use
+        # Check that there are class objects that can be used
+        # and are subclasses of the main Spider class object
         elements = inspect.getmembers(spiders_module, predicate=inspect.isclass)
         
         valid_spiders = list(filter(lambda x: issubclass(x[1], Spider), elements))

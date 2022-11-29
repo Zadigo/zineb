@@ -12,7 +12,7 @@ from zineb import exceptions
 from zineb.utils.formatting import LazyFormat
 
 
-def keep_while(func: Callable, values: Iterable):
+def keep_while(func, values):
     """
     A custom keep_while function that does not stop
     on False but completes all the list
@@ -27,6 +27,9 @@ def keep_while(func: Callable, values: Iterable):
     ------
 
         Any: value to return
+
+    >>> items = keep_while(lambda x: x == 1, [1, 2])
+    ... [1]
     """
     for value in values:
         result = func(value)
@@ -34,7 +37,7 @@ def keep_while(func: Callable, values: Iterable):
             yield value
 
 
-def drop_while(func: Callable, values: Iterable):
+def drop_while(func, values):
     """
     A custom drop_while function that does not stop
     on True but completes all the list
@@ -49,6 +52,9 @@ def drop_while(func: Callable, values: Iterable):
     ------
     
         Any: value to return
+
+    >>> items = drop_while(lambda x: x == 1, [1, 2])
+    ... [2]
     """
     for value in values:
         result = func(value)
@@ -56,7 +62,7 @@ def drop_while(func: Callable, values: Iterable):
             yield value
 
 
-def split_while(func: Callable, values: Iterable):
+def split_while(func, values):
     """
     Splits a set of values in seperate lists
     depending on whether the result of the function
@@ -65,13 +71,16 @@ def split_while(func: Callable, values: Iterable):
     Parameters
     ----------
 
-        func (Callable): [description]
-        values (Iterable): [description]
+        - func (Callable): [description]
+        - values (Iterable): [description]
 
     Returns
     -------
 
         tuple: ([true values], [false values])
+
+    >>> items = split_while(lambda x: x == 1, [1, 2])
+    ... [[1], [2]]
     """
     a = [value for value in values if func(value)]
     b = [value for value in values if not func(value)]
@@ -79,13 +88,13 @@ def split_while(func: Callable, values: Iterable):
 
 
 @lru_cache(maxsize=0)
-def collect_files(dir_name: str, func = None):
+def collect_files(dir_name, filter_func = None):
     """
-    Collect all the files within specific
+    Collect all the files within a specific
     directory of your project. This utility function
     is very useful with the FileCrawler:
 
-        class Spider(FileCrawler):
+    >>> class Spider(FileCrawler):
             start_files = collect_files('some/path')
     """
     from zineb.settings import settings
@@ -101,13 +110,13 @@ def collect_files(dir_name: str, func = None):
     if full_path:
         files = map(lambda x: os.path.join(root, x), files)
 
-    if func is not None:
-        return filter(func, files)
+    if filter_func is not None:
+        return filter(filter_func, files)
 
     return files
 
 
-def regex_iterator(text: str, regexes: Union[tuple, list]):
+def regex_iterator(text, regexes):
     """
     Check a text string against a set of regex values
 
@@ -127,7 +136,10 @@ def regex_iterator(text: str, regexes: Union[tuple, list]):
 
 class RequestQueue:
     """Class that stores and manages all the
-    starting urls of a given spider"""
+    starting urls for a given spider
+    
+    >>> queue = RequestQueue(*urls)
+    """
 
     request_queue = OrderedDict()
     history = defaultdict(dict)
@@ -255,7 +267,10 @@ class RequestQueue:
         self.domain_constraints = spider.meta.domains
         for i, url in enumerate(self.url_strings):
             self.request_queue[url] = HTTPRequest(
-                url, counter=i, spider=self.spider, **self.request_params
+                url,
+                counter=i,
+                spider=self.spider,
+                **self.request_params
             )
             
         settings_values = ['RETRY', 'RETRY_TIMES', 'RETRY_HTTP_CODES']
