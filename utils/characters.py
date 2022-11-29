@@ -59,33 +59,3 @@ def create_random_string(length: int=5, lowercased: bool=False):
     if lowercased:
         return result.lower()
     return lowercased
-
-
-# class CustomStripper(HTMLParser):
-#     def __init__(self):
-#         super().__init__(convert_charrefs=False)
-#         self.results = []
-
-#     def handle_data(self, data: str):
-#         self.results.append(data)
-    
-#     def handle_entityref(self, name: str):
-#         self.results.append(f'&{name}')
-
-#     def handle_charref(self, name: str):
-#         self.results.append(f'&#{name}')
-
-#     @property
-#     def data(self):
-#         return ''.join(self.results)
-
-
-# def strip_html_tags(value: str):
-#     instance = CustomStripper()
-#     instance.feed(value)
-#     instance.close()
-#     result = instance.data
-#     return result
-
-# a = strip_html_tags('</adf>a')
-# print(a)
