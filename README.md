@@ -265,9 +265,9 @@ Read more on `collect_files` [here](#-File-collection).
 
 # Models
 
-Models are a simple way to structure your scrapped data before saving them to a file. They are an interface to a container called `SmartDict` that actually does contain all the data that was scrapped during the process.
+Models are a simple way to structure your scrapped data before eventually saving them to a file (generally JSON or CSV). The Model class is an interface to an internal container called `SmartDict` that actually does contain the data and fields which purpose is to clean and normalize the incoming values.
 
-Models implement a set of functionnalities such as adding new values to the `SmartDict` but also play as an intermediary between the fields [which purpose is to normalize incoming data] and the container that actually does store the transformed data.
+By using models, you are then assured to have clean usable data for data analysis.
 
 ## Creating a custom Model
 
@@ -283,9 +283,9 @@ class Player(Model):
     height = fields.IntegerField()
 ```
 
-On its own however, a model does nothing. In order to make it work, you have to add values to it and then resolve the fields [or data]. There are multiple ways to add values to a model.
+On its own however, a model does nothing. In order to make it work, you have to add values to it and then resolve the fields [or data]. There are multiple ways to do this.
 
-Adding a new value to the model generally requires two main parameters: _the name of the field to use and the incoming data to be added._
+Adding a new value generally requires two main parameters: _the name of the field to use and the incoming data to be added._
 
 ## Adding values to the model
 
@@ -293,14 +293,15 @@ Each model gets instantiated with a underlying container that does the heavy wor
 
 ### Understanding SmartDict
 
-The `SmartDict` container ensures that each row is well balanced and with the same amount of fields when values are added to the model.
+The `SmartDict` container ensures that each row is well balanced with the same amount of fields when values are added.
 
 For instance, if your model has two fields `name` and `surname`, suppose you add `name` but not `surname`, the final result should be `{"name": ['Kendall'], "surname": [None]}` which in return will be saved as `[{"name": "Kendall", "surname": null}]`.
 
-In the same manner, if you supply values for both fields then your final result should be `{"name": ['Kendall'], "surname": ["Jenner"]}` which in return will be saved as `[{"name": "Kendall", "surname": "Jenner"}]`.
+In the same manner, if you supply values for both fields your final result would be `{"name": ['Kendall'], "surname": ["Jenner"]}` which in return will be saved as `[{"name": "Kendall", "surname": "Jenner"}]`.
 
-In other words, whichever fields are supplied, the finale result will always be a well balanced data with no missing fields. That's the benefit that `SmartDict` provides.
+In other words, whichever fields are supplied, the final result will always be a well balanced list of dictionnaries with no missing fields.
 
+__deprecated__
 This class does the following process:
 
 * Before the data is added, it runs any field constraint present on the model
@@ -309,7 +310,7 @@ This class does the following process:
 
 ### Adding a free custom value
 
-The first one consists using the `add_value` method.
+The first method consists of using `add_value`.
 
 ```python
 player.add_value('name', 'Kendall Jenner')
@@ -342,7 +343,13 @@ If you wish to operate a calculation on a field before passing the data to your 
 ```python
 from zineb.models.expressions import Add
 
-my_model.add_calculatd_value('price', Add(25, 5))
+my_model.add_calculatd_value('price', 25, Add(5))
+```
+
+You can also run multiple arithmetic operations on on the field:
+
+```python
+my_model.add_calculatd_value('price', 25, Add(5), Substract(1))
 ```
 
 ## Saving the model
@@ -368,7 +375,7 @@ By adding a Meta to your model, you can pass custom behaviours.
 
 ### Template model
 
-If a model only purpose is to implement additional fields to a child model, use the `template_model` option to indicate this state.
+If a model's only purpose is to implement additional fields to a child model, use the `template_model` option to indicate this state.
 
 ```python
 class TemplateModel(Model):
@@ -382,13 +389,15 @@ class MainModel(TemplateModel):
     surname = fields.CharField()
 ```
 
+This technique is useful when you need to implement common fields to multiple models at a time.
+
 ### Ordering
 
 Order your data in a specific way based on certain fields before saving your model.
 
 ### Constraints
 
-You an ensiure that the data on your model is unique using `UniqueConstraint` and `CheckConstraint` classes in the `Meta` of your model.
+You an ensure that the data on your model is unique using `UniqueConstraint` and `CheckConstraint` classes. These constraints are executed before the data is saved to the `SmartDict`.
 
 ## Fields
 
@@ -414,19 +423,19 @@ Zineb comes with number of preset fields that you can use out of the box:
 
 ### How they work
 
-Each fields comes with a `resolve` function whiche gets called by the model. The resulting data is then passed unto the model's data store (`SmartDict`\).
+Each fields comes with a `resolve` function whiche gets called by the model. The resulting data is then passed unto the model's data store.
 
-The resolve function will do the following things.
+The resolve function will then do the following things.
 
 First, it will run all cleaning functions on the original value for example by stripping tags like "<" or ">" which normalizes the value before additional processing.
 
-Second, a `deep_clean` method is run on the result by taking out out any useless spaces, removing escape characters and finally reconstructing the value to ensure that any none-detected white space be eliminated.
+Second, a `deep_clean` function is run on the result by removing any useless spaces, escape characters and finally reconstructing the value to ensure that any none-detected white space be eliminated.
 
-Finally, all the registered validators (default and custom) are called on the final value.
+Finally, all the registered validators (default and custom) are called.
 
 ### Accessing data from the field instance
 
-You can access the data of a declared field directly on the model by calling the field's name. Suppose you have the following model:
+You can access the data of a declared field directly on the model by calling the field's name.
 
 ```python
 class PlayerModel(Model):
@@ -441,7 +450,7 @@ model.add_value('surname', 'Fraiser')
 # -> model.surname -> ["Fraiser"]
 ```
 
-By calling `model.name` you will receive an array containing all the values that were registered on in the data container e.g. `["Shelly-Ann"]`.
+By calling `model.name` you will receive an array containing all the values that were registered on in the data container e.g. `["Shelly-Ann"]`. Each field has a descriptor `FieldDescriptor`
 
 ### CharField
 
