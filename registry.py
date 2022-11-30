@@ -154,6 +154,8 @@ class MasterRegistry:
         return instance
         
     def preconfigure_project(self, dotted_path, settings):
+        """Runs additional actions before marking the
+        spider as ready to use"""
         # Replace the log file name with the full path
         # to the project's log file 
         log_settings = settings.LOGGING
@@ -242,7 +244,7 @@ class MasterRegistry:
         except ImportError:
             raise ImportError(f"Could not load the project's related module: '{dotted_path}'")
         
-        from zineb.app import Spider, FileCrawler
+        from zineb.app import FileCrawler, Spider
         from zineb.settings import settings
         
         self.absolute_path = Path(project_module.__path__[0])
