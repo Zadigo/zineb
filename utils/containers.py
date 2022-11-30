@@ -1,20 +1,10 @@
-import csv
-import json
-import os
-import secrets
 from collections import defaultdict
 from operator import itemgetter
-from pathlib import Path
 
 from zineb.models.fields import Empty
-from zineb.settings import settings
 from zineb.utils.formatting import LazyFormat, remap_to_dict
 from zineb.utils.iteration import drop_while
-from zineb.utils.encoders import DefaultJsonEncoder
 
-# TODO: Determine how to use the SmartDict, either it has to
-# be bound to a model or either it's an independent container
-# that could be used anywhere in the application
 
 class SmartDict:
     """
@@ -26,7 +16,6 @@ class SmartDict:
     current_updated_fields = set()
 
     def __init__(self, *fields, order_by=[]):
-        self.model = None
         self.values = defaultdict(list)
         self.fields = fields
         for field in fields:
@@ -50,12 +39,6 @@ class SmartDict:
     def _last_value(self, name):
         return self.get_container(name)[-1][-1]
     
-    def run_constraints(self, container):
-        """A convinience class that can be used
-        by subclasses to run constraint validation
-        on the inner data"""
-        pass
-
     def get_container(self, name: str):
         return self.values[name]
 
@@ -213,40 +196,3 @@ class ModelSmartDict(SmartDict):
                     return values
             return multisort(values, ordering_booleans)
         return values
-    
-    def run_constraints(self, container):
-        for constraint in self.model._meta.constraints:
-            constraint.check_constraint(container)
-        
-    # TODO: Move the file creation to the Model directly
-    # and only make this deal with the values
-    # def execute_save(self, filename, commit=True, extension='json', **kwargs):
-    #     if commit:
-    #         try:
-    #             path = Path(settings.MEDIA_FOLDER)
-    #             if not path.exists():
-    #                 path.mkdir()
-    #         except:
-    #             raise
-    #         else:
-    #             # TODO: Technically the MEDIA_FOLDER is set
-    #             # wih setup() and this check is not necessary.
-    #             # However, someone might be tempted to call 
-    #             # this outside of a project.
-    #             if settings.MEDIA_FOLDER is not None:
-    #                 file_path = settings.MEDIA_FOLDER.joinpath(filename)
-
-    #         if extension == 'json':
-    #             file_path = f"{file_path}.json"
-    #             data = json.loads(json.dumps(self.as_list()))
-    #             with open(file_path, mode='w', encoding='utf-8') as f:
-    #                 json.dump(data, f, indent=2, sort_keys=True, cls=DefaultJsonEncoder)
-
-    #         if extension == 'csv':
-    #             file_path = f"{file_path}.csv"
-    #             with open(file_path, mode='w', newline='\n', encoding='utf-8') as f:
-    #                 writer = csv.writer(f)
-    #                 writer.writerows(self.as_csv())
-    #     else:
-    #         data = json.loads(json.dumps(self.as_list(), cls=DefaultJsonEncoder))
-    #         return json.dumps(data, sort_keys=True)

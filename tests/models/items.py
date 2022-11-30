@@ -1,5 +1,5 @@
 from zineb.models import fields
-from zineb.models.constraints import CheckConstraint, UniqueConstraint
+from zineb.models.constraints import UniqueConstraint
 from zineb.models.datastructure import Model
 
 
@@ -92,7 +92,6 @@ class ConstrainedModel(Model):
     class Meta:
         constraints = [
             UniqueConstraint(['name', 'surname'], 'unique_name_and_surname'),
-            CheckConstraint(['name'], 'unique_for_name')
         ]
 
 

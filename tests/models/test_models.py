@@ -1,3 +1,14 @@
+"""
+Models are a simple way to store and output data that
+was scrapped from the internet. They are composed of three
+main items:
+
+    Fields: which main purpose is to clean, normalize the incoming values
+    Internal container: which stores the incoming data
+    Model class: which is the central point for organizing all these elements
+                 to work together
+"""
+
 import unittest
 
 from zineb.exceptions import FieldError, ModelExistsError, ValidationError

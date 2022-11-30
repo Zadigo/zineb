@@ -132,23 +132,26 @@
 # print(constraint())
 
 
-
 from zineb.models.datastructure import Model
 from zineb.models import fields
-from zineb.models.constraints import UniqueConstraint, CheckConstraint
+from zineb.models.constraints import UniqueConstraint
+
 
 class MyModel(Model):
     name = fields.NameField()
     surname = fields.NameField()
 
-    class Meta:
-        constraints = [
-            UniqueConstraint(fields=['name'], name='one_name')
-        ]
+    # class Meta:
+    #     constraints = [
+    #         UniqueConstraint(fields=['name'], name='one_name'),
+    #         UniqueConstraint(fields=['name', 'surname'], name='two_name')
+    #     ]
 
-m = MyModel()
-# m.add_value('name', 'Kendall')
 
+model = MyModel()
+model.add_value('name', 'Kendall')
+model.add_value('surname', 'Kendall')
+print(model)
 
 # constraint = CheckConstraint(['name', 'surname'], 'unique_name', condition=lambda x: x == 15)
 # constraint = UniqueConstraint(['name', 'surname'], 'unique_name', condition=lambda x: x == 15)

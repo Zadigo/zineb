@@ -82,6 +82,9 @@ class Spider(metaclass=BaseSpider):
     To run a spider, you first need to inherit
     from this class. You also need to implement
     a list of starting urls
+
+    >>> class MySpider(Spider):
+            start_urls = ["http://example.com"]
     """
     start_urls = []
 
@@ -104,8 +107,8 @@ class Spider(metaclass=BaseSpider):
 
     def _resolve_requests(self):
         """
-        Calls `_send` each requests and passes the response to
-        the start method of the same class
+        Calls `_send` on each requests and passes the response to
+        the `start` method
         """
         limit_requests_to = self.meta.limit_requests_to
 
@@ -146,7 +149,15 @@ class Spider(metaclass=BaseSpider):
             - soup (BeautifulSoup): the beautiful soup object
 
         >>> def start(self, response, request=None, soup=None):
-                pass
+                link = response.find("a")
+
+        You can use your models to save and output your data:
+
+        >>> def start(self, response, request=None, soup=None):
+                model = MyModel()
+                link = response.find("a")
+                model.add_value("link", link.text)
+                model.save("my_file")
         """
         pass
 
@@ -160,12 +171,11 @@ class Spider(metaclass=BaseSpider):
 
 class FileCrawler:
     """
-    This is a kind of spider that can crawl files locally and then eventually
-    perform requests to the web in order to implement additional data.
+    This spider can crawl files locally and then eventually
+    perform requests to the web in order to implement additional data
 
-    In order to use this spider efficiently, you need a have local HTML
-    files that will be be opened sequentially and then parsed according to
-    the logic provided in the `start` function
+    In order to use this spider efficiently, you need have local HTML
+    files that will be be opened sequentially and then parsed accordingly
     """
     start_files = []
     root_dir = None

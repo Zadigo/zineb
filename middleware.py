@@ -8,8 +8,8 @@ from zineb.utils.formatting import LazyFormat
 
 class Middleware:
     """
-    Loads every middleware present in the project's
-    settings file and in the user's settings file
+    Loads every middleware present in the
+    settings file
     """
     
     def __init__(self):

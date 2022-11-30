@@ -242,7 +242,7 @@ class MasterRegistry:
         except ImportError:
             raise ImportError(f"Could not load the project's related module: '{dotted_path}'")
         
-        from zineb.app import Spider
+        from zineb.app import Spider, FileCrawler
         from zineb.settings import settings
         
         self.absolute_path = Path(project_module.__path__[0])
@@ -266,7 +266,7 @@ class MasterRegistry:
         # and are subclasses of the main Spider class object
         elements = inspect.getmembers(spiders_module, predicate=inspect.isclass)
         
-        valid_spiders = list(filter(lambda x: issubclass(x[1], Spider), elements))
+        valid_spiders = list(filter(lambda x: issubclass(x[1], (Spider, FileCrawler)), elements))
         valid_spider_names = list(map(lambda x: x[0], valid_spiders))
         
         for name in settings.SPIDERS:
@@ -277,7 +277,7 @@ class MasterRegistry:
             instance = SpiderConfig.create(name, spiders_module)
             self.spiders[name] = instance
             instance.regitry = self
-        
+
         for config in self.spiders.values():
             config.check_ready()
 

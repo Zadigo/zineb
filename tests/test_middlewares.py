@@ -1,3 +1,4 @@
+# TODO:
 import unittest
 
 from zineb.middleware import Middleware
@@ -28,25 +29,5 @@ class TestMiddleware(unittest.TestCase):
         self.assertTrue(len(middlewares.MODULES.keys()) > 0)
 
 
-# TODO: DELETE
-# class TestHistoryMiddleware(unittest.TestCase):
-#     def setUp(self):
-#         self.middleware = middlewares.get_middleware('History')
-#         self.middleware(self, url='http://example.com', tag='request')
-    
-#     def test_compiled_statistics(self):
-#         result = self.middleware.compile_statistics()
-#         self.assertEqual(result.count, 1)
-
-#         requests = list(result.requests)
-#         self.assertGreaterEqual(len(requests), 1)
-
-#         # Result should be [('request', timestamp, url, token)]
-#         request_information = requests[0]
-#         self.assertIsInstance(request_information, (list, tuple ))
-#         self.assertEqual(len(request_information), 4)
-#         self.assertIn('request', request_information)
-
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()
