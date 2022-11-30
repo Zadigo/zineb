@@ -67,24 +67,23 @@ class TableExtractor(Extractor):
         Example
         -------
 
-            extractor = TableExtractor()
-            extractor.resolve(BeautifulSoup Object)
+        >>> extractor = TableExtractor()
+        ... extractor.resolve(BeautifulSoup Object)
+        ... [[a, b, c], [d, ...]]
 
-                [[a, b, c], [d, ...]]
+        By indicating if the table has a header, the header values 
+        which generally corresponds to the first row will be dropped
+        from the final result.
 
-            By indicating if the table has a header, the header values 
-            which generally corresponds to the first row will be dropped
-            from the final result.
+        Finally, you can also pass a set of processors that will modifiy the values
+        of each rows according to the logic you would have implemented.
 
-            Finally, you can also pass a set of processors that will modifiy the values
-            of each rows according to the logic you would have implemented.
-
-            def drop_empty_values(value):
+        >>> def drop_empty_values(value):
                 if value != '':
                     return value
 
-            extractor = TableExtractor(processors=[drop_empty_values])
-            extractor.resolve(BeautifulSoup Object)
+        >>> extractor = TableExtractor(processors=[drop_empty_values])
+        ... extractor.resolve(BeautifulSoup Object)
     """
 
     def __init__(self, class_or_id_name=None, header_position: int=None, 
