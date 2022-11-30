@@ -1,4 +1,4 @@
-from collections import Counter, defaultdict
+from collections import Counter
 
 from zineb.exceptions import ConstraintError
 
@@ -10,79 +10,54 @@ class BaseConstraint:
         self._data_container = None
         self.constrained_fields = list(fields)
         self.condition = condition
-        self.values = defaultdict(list)
-        self.unique = []
-        self.unique_together = []
-        
+
     def __repr__(self):
-        return f'<{self.__class__.__name__}[{self.model}{self.constrained_fields}]>'
-    
-    def __call__(self, raise_exception=False):
+        return f'<{self.__class__.__name__}[{self.model._meta.name}{self.constrained_fields}]>'
+
+    def __call__(self, value_to_check):
+        if self.model is None:
+            raise ValueError('Constraint is not attached to any model')
+
         errors = []
-        # Create a counter for all the values
-        # present in a field on the database
-        most_common = defaultdict(list)
-        for field in self.constrained_fields:
-            values = self._data_container.get_container(field)
-            counter = Counter(values)
-            most_common[field] = counter
-            
-        for field, counter in most_common.items():
-            count = counter.most_common()
-            for item in    count:
-                value, count = item
-                # Since we're creating new rows in the SmartDict
-                # that could be None, we have to skip None which
-                # would obviously mean a common value
-                if value is None:
-                    continue
-                
-                if count > 1:
-                    errors.extend([(field, ConstraintError(self.model._meta.model_name, self.name))])
-                
-        if errors and raise_exception:
-            raise ValueError(*errors)
-        
-        return errors
-       
-    def prepare(self, model):
-        # FIXME: Name this "update_model_options" to
-        # be consitent with the rest
-        # FIXME: Don't know what self.values serves to.
-        # Apparently it implements the values for each
-        # field on a dict
-        self.model = model
-        self._data_container = model._data_container
-        
+        counter = Counter()
         if len(self.constrained_fields) == 1:
-            self.unique.extend(self.values[field])
+            field = self.constrained_fields[-1]
+            counter.update(self._data_container.get_container(field))
+            
+            element_count = counter.get(value_to_check, 0)
+            if element_count == 1:
+                errors.extend(
+                    [(field, ConstraintError(self.model._meta.model_name, self.name))]
+                )
         else:
             for field in self.constrained_fields:
-                container = self.values[field]
-                self.unique_together.append(container)
-                
-        model._meta.add_constraint(self.name)
+                counter.update(self._data_container.get_container(field))
 
-    def check_constraint(self, value_to_check):
-        # If we have a unique together, it means that
-        # two fields have to be both unique together
-        truth_array = []
-        if self.unique_together:
-            results = map(lambda x: value_to_check in x, self.unique_together)
-            truth_array.extend(list(results))
-            
-        if self.unique:
-            result = value_to_check in self.unique
-            truth_array.append(result)
-            
+            element_count = counter.get(value_to_check, 0)
+            if element_count == 1:
+                errors.extend(
+                    [(self.constrained_fields, ConstraintError(self.model._meta.model_name, self.name))]
+                )
+
         if self.condition is not None:
-            pass
-        
-        
+            result = self.condition(value_to_check)
+            if not result:
+                errors.extend(
+                    [(field, ConstraintError(self.model._meta.model_name, self.name))]
+                )
+
+        return errors
+
+    def update_model_options(self, model):
+        self.model = model
+        self._data_container = model._data_container
+
+
 class UniqueConstraint(BaseConstraint):
-    """Raises an error when a constraint is found
-    on a given model
-    
+    """Forces the model to skip the
+    saving process when a value is found in
+    the existing dataset
+
     Example
     -------
 
@@ -92,33 +67,3 @@ class UniqueConstraint(BaseConstraint):
                     UniqueConstraint(fields=[...], name=...)
                 ]
     """
-    
-    def __call__(self, raise_exception=True):
-        return super().__call__(raise_exception=raise_exception)
-    
-        
-class CheckConstraint(BaseConstraint):
-    """Prevents the addition of a given value
-    in the data container if a constraint is
-    found. Does not raise an error if a constraint
-    is found.
-    
-    Example
-    -------
-
-    >>> Class MyModel(Model):
-            class Meta:
-                constraints = [
-                    CheckConstraint(fields=[...], name=...)
-    """
-    
-    def check_constraint(self, value_to_check):
-        result = super().check_constraint(value_to_check)
-        return_data = {}
-        if not result:
-            for field in self.constrained_fields:
-                # FIXME: Return the container without the
-                # value that was constrained
-                return_data[field] = self._data_container[field]
-                # return_data[field] = self.values[field]
-        return return_data

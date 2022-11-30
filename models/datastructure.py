@@ -115,20 +115,21 @@ class ModelOptions:
             
         # Initialize all the eventual constraints
         # that were provided on the model
-        # TODO: Check this. Some models do not
-        # _data_container when trying to set
-        # the models data container on the 
-        # constraint
+        # TODO: The big problem with setting the constraints
+        # here is we get the Class as a type as opposed to
+        # the instance which makes that we cannot access
+        # the _data_container. Maybe it does not make sense
+        # to init the constraints model option here but
+        # do it on the __init__
         # for constraint in self.constraints:
         #     constraint.update_model_options(self.model)
-        #     constraint.prepare(self.model)
         
     def has_field(self, name):
         return name in self.field_names
     
     # TODO: Is this useful ??
-    def add_constraint(self, name):
-        pass
+    # def add_constraint(self, name):
+    #     pass
         
     def add_field(self, name, field):
         if name in self.fields_map:
@@ -309,10 +310,10 @@ class Model(metaclass=Base):
     Once you've created the model, you can then use
     it within your project like so:
 
-        >>> model = MyModel()
-        ... model.add_value('name', 'Kendall')
-        ... model.save()
-        ... [{"name": "Kendall"}]
+    >>> model = MyModel()
+    ... model.add_value('name', 'Kendall')
+    ... model.save()
+    ... [{"name": "Kendall"}]
     """
     
     _cached_resolved_data = None
@@ -337,8 +338,12 @@ class Model(metaclass=Base):
         
         # When the model is initialized, we bind it
         # to the constraint if there are any
-        # for _, constraint in self._meta.registered_constraints.items():
-        #     constraint.model = self
+        for constraint in self._meta.constraints:
+            constraint.update_model_options(self)
+
+        # Errors aggregated from the different
+        # other pieces that compose the model
+        self.global_errors = []
 
     def __str__(self):
         # data = self._data_container.as_list()
@@ -569,9 +574,22 @@ class Model(metaclass=Base):
             # Therefore we have to resolve the true value of the field
             # otherwise the user might get something unexpected
             resolved_value = str(obj._cached_result)
-        
-        self._data_container.update(name, resolved_value)
-        self.update_id_field()
+
+        # Before saving the value to the model, check
+        # constraints aka existing values if the user
+        # has required this step
+        result = self.check_constraints(resolved_value)
+        if result:
+            self._data_container.update(name, resolved_value)
+            self.update_id_field()
+
+    def check_constraints(self, clean_value):
+        constraint_errors = []
+        for constraint in self._meta.constraints:
+            constraint_result = constraint(clean_value)
+            constraint_errors.extend(constraint_result)
+        self.global_errors.extend(constraint_errors)
+        return False if constraint_errors else True
 
     def full_clean(self, **kwargs):
         # data = self._data_container.as_list()

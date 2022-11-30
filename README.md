@@ -397,7 +397,44 @@ Order your data in a specific way based on certain fields before saving your mod
 
 ### Constraints
 
-You an ensure that the data on your model is unique using `UniqueConstraint` and `CheckConstraint` classes. These constraints are executed before the data is saved to the `SmartDict`.
+You an ensure that the data on your model is unique using the `UniqueConstraint` class. These constraint check is done before the data is saved by skipping the saving process if a similar value was found.
+
+```python
+class UserModel(Model):
+    name = fields.CharField()
+    email = fields.EmailField()
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['name'], name='unique_name')
+        ]
+```
+
+Multiple fields can be constrained creating a unique together directive. In the example below, both name and email have to be unique in order to be saved.
+
+```python
+class UserModel(Model):
+    name = fields.CharField()
+    email = fields.EmailField()
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['name', 'email'], name='unique_name')
+        ]
+```
+
+You can also implement a constraint function on the fields:
+
+```python
+class UserModel(Model):
+    name = fields.CharField()
+    email = fields.EmailField()
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['name', 'email'], name='unique_name', condition=lambda x: x != 'Kendall')
+        ]
+```
 
 ## Fields
 
