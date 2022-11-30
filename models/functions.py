@@ -4,36 +4,30 @@ from typing import Any, Callable, Union
 
 from zineb.exceptions import ModelNotImplementedError
 from zineb.models.fields import Value
-from zineb.utils.conversion import convert_if_number, string_to_number
+from zineb.settings import settings
+from zineb.utils.conversion import string_to_number
 from zineb.utils.formatting import LazyFormat
 
 
-class ExpressionMixin:
-    model = None
+class FunctionsMixin:
     _cached_data = None
     field_name = None
-
-    def get_field_object(self):
-        try:
-            return self.model._get_field_by_name(self.field_name)
-        except:
-            class_name = self.__class__.__name__
-            text= "{class_name} could not retrieve the field object for '{field_name}'"
-            raise ModelNotImplementedError(
-                LazyFormat(text, class_name=class_name, field_name=self.field_name)
-            )
+    model = None
+    
+    def _to_python_object(self, value):
+        return value
 
     def resolve(self):
         raise NotImplementedError('Expression resolution should be implement by child classes')
 
 
-class Math(ExpressionMixin):
+class Math(FunctionsMixin):
     ADD = '+'
     SUBSTRACT = '-'
     DIVIDE = '/'
     MULTIPLY = '*'
 
-    def __init__(self, by: Union[int, float]):
+    def __init__(self, by):
         self.by = by
 
     def __repr__(self):
@@ -53,70 +47,65 @@ class Math(ExpressionMixin):
         return f"{class_name}(< {result} >)"
 
     def resolve(self):
-        field = self.get_field_object()
+        source_field = self.model._meta.get_field(self.field_name)
 
         if self._cached_data is None:
             raise ValueError(LazyFormat("{func} requires a value. Got: '{value}'",
             func=self.__class__.__name__, value=self._cached_data))
 
-        field.resolve(self._cached_data)
-        return field
+        source_field.resolve(self._cached_data)
+        return source_field
         
 
 class Substract(Math):
     """
     Substracts an incoming value to another
+
+    >>> model.add_calculated_value('age', 21, Substract(3))
+    ... 18
     """
     def resolve(self):
-        field = super().resolve()
-        self._cached_data = field._cached_result - self.by
-        return self._cached_data
+        source_field = super().resolve()
+        self._cached_data = source_field._cached_result - self.by
 
 
 class Add(Math):
     """
     Adds an incoming element to a value
+    >>> model.add_calculated_value('age', 21, Add(3))
+    ... 24
     """
     def resolve(self):
-        field = super().resolve()
-        self._cached_data = field._cached_result + self.by
-        return self._cached_data
+        source_field = super().resolve()
+        self._cached_data = source_field._cached_result + self.by
 
 
 class Multiply(Math):
     """
     Multiplies an incoming element to a value
+    
+    >>> model.add_calculated_value('age', 21, Multiply(1))
+    ... 21
     """
 
     def resolve(self):
-        field = super().resolve()
-        self._cached_data = field._cached_result * self.by
-        return self._cached_data
+        source_field = super().resolve()
+        self._cached_data = source_field._cached_result * self.by
 
 
 class Divide(Math):
     """
     Divides the incoming value by another
+
+    >>> model.add_calculated_value('age', 21, Divide(1))
+    ... 21
     """
 
     def resolve(self):
-        field = super().resolve()
-        self._cached_data = field._cached_result / self.by
-        return self._cached_data
-    
-    
-# class StatisticsMixin(ExpressionMixin):
-#     def __init__(self, *values: Union[int, float]):
-#         clean_values = []
-#         for value in values:
-#             clean_values.append(Value(value))
-#         self.values = clean_values
-    
-#     def resolve(self):
-#         numerical_values = map(lambda x: convert_if_number(x), self.values)
-#         return list(numerical_values)
-    
+        source_field = super().resolve()
+        self._cached_data = source_field._cached_result / self.by
 
+        
 # class Mean(StatisticsMixin):
 #     """
 #     Returns the mean value from a list of
@@ -146,8 +135,10 @@ class Divide(Math):
         
 
 class When:
-    """Returns a parsed value if a condition is
-    respected otherwise, implements the default"""
+    """Checks if a condition is met. If True, returns
+    a value from the then_condition else, returns
+    the default one/else_condition
+    """
     
     _cached_data = None
     model = None
@@ -169,7 +160,7 @@ class When:
 
     def resolve(self):
         field_name, exp, value_to_compare = self.parse_expression(self.if_condition)
-        field_object = self.model._get_field_by_name(field_name)
+        field_object = self.model._meta.get_field(field_name)
         
         result = self.compare(exp, value_to_compare)
         if result:
@@ -255,54 +246,121 @@ class When:
 class DateExtractorMixin:
     lookup_name = None
 
-    def __init__(self, value: Any, output_field: Callable=None, date_format: str=None):
+    def __init__(self, value: Any, date_format: str=None):
         self.value = value
-        self.date = None
-        self.output_field = output_field
-        self.date_format = date_format
+        self._datetime_object = None
+        
+        self.date_parser = datetime.datetime.strptime
+        
+        formats = set(getattr(settings, 'DEFAULT_DATE_FORMATS'))
+        formats.add(date_format)
+        self.date_formats = formats
+        
+    def _to_python_object(self, value):
+        for date_format in self.date_formats:
+            try:
+                d = self.date_parser(value, date_format)
+            except:
+                d = None
+            else:
+                if d:
+                    break
 
-    def resolve(self):
+        if d is None:
+            message = LazyFormat("Could not find a valid format for "
+            "date '{d}' on field '{name}'.", d=value, name=self._meta_attributes.get('field_name'))
+            raise ValueError(message)
+        return d.date()
+
+    def resolve(self):        
+        self._datetime_object = self._to_python_object(self.value)
+        self._cached_data = getattr(self._datetime_object, self.lookup_name)
+                
+        source_field = self.model._meta.get_field(self.field_name)
+        
+        # NOTE: It makes no sense to use
+        # a date extractor on a DateField 
         from zineb.models.fields import DateField
-
-        # IMPORTANT: In order to extract a year, a month
-        # a day... from the incoming value, we logically 
-        # should only get to deal with a DateField
-        source_field = super().get_field_object()
-        if not isinstance(source_field, DateField):
-            attrs = {
-                'field_name':self.field_name,
-                'field':source_field.__class__.__name__
-            }
-            raise TypeError(LazyFormat("Field object for '{field_name}' should be "
-            "an instance of DateField. Got: {field}", **attrs))
-
-        if self.output_field is None:
-            self.output_field = source_field
-
-        if self.date_format is not None:
-            source_field.date_formats.add(self.date_format)
-        source_field.resolve(self.value)
-
-        self._cached_data = source_field._cached_result
-        result = getattr(self._cached_data, self.lookup_name)
-        if isinstance(self.output_field, DateField):
-            return result
-        else:
-            self.output_field._simple_resolve(result, convert=True)
-            return self.output_field._cached_result
-
-
-class ExtractYear(DateExtractorMixin, ExpressionMixin):
+        if isinstance(source_field, DateField):
+            raise TypeError(LazyFormat("Cannot use '{function}' "
+            "with a DateField bbject", function=self.__class__.__name__))
+        
+        # We have already resolved the date and for these
+        # specific two fields, we want to implement the
+        # resolved value without passing through the whole
+        # resolution process of these field
+        source_field._simple_resolve(self._cached_data)
+        
+        
+class ExtractYear(DateExtractorMixin, FunctionsMixin):
+    """
+    >>> model.add_value("year", ExtractYear("1569-1-1"))
+    ... 1569
+    """
     lookup_name = 'year'
 
 
-class ExtractMonth(DateExtractorMixin, ExpressionMixin):
+class ExtractMonth(DateExtractorMixin, FunctionsMixin):
+    """
+    >>> model.add_value("month", ExtractMonth("1569-1-1"))
+    ... 1
+    """
     lookup_name = 'month'
 
 
-class ExtractDay(DateExtractorMixin, ExpressionMixin):
+class ExtractDay(DateExtractorMixin, FunctionsMixin):
+    """
+    >>> model.add_value("day", ExtractDay("1569-1-1"))
+    ... 1
+    """
     lookup_name = 'day'
+    
+    
+class ComparisionMixin(FunctionsMixin):
+    def __init__(self, *values):
+        values = list(values)
+        types = []
+        values_length = len(values)
+        
+        # Make sure that each value is of the same
+        # type by comparing the previous one to the one
+        # ahead of it. If one comparision fails,
+        # does not matter, everything fails
+        
+        for value in values:
+            types.append(type(value).__name__)
+        
+        results = []
+        for i, name in enumerate(types):
+            if i == values_length - 1:
+                break
+            results.append(name == types[i + 1])
+            
+        if not all(results):
+            raise ValueError('All the values should be of the same type')
+        self.values = values 
+    
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.values})"
 
 
-m = Mean('1', '3')
-print(m.resolve())
+class Greatest(ComparisionMixin):
+    """Takes a list of values and returns the greatest
+    one. Each values should be of the same type
+    
+    >>> model.add_value("age", Greatest(15, 31, 21))
+    """
+        
+    def resolve(self):
+        self._cached_data = max(self.values)
+        
+        
+class Smallest(ComparisionMixin):
+    """Takes a list of values and returns the smallest
+    one. Each values should be of the same type
+    
+    >>> model.add_value("age", Smallest(15, 31, 21))
+    """
+    
+    def resolve(self):
+        self._cached_data = min(self.values)

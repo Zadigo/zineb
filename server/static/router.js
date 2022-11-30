@@ -1,38 +1,27 @@
-Vue.use(VueRouter)
-
-var router = new VueRouter({
-    mode: 'history',
+const router = VueRouter.createRouter({
+    history: VueRouter.createWebHistory(),
     routes: [
         {
             path: '/',
-            components: {
-                default: baseLayout,
-                nav: navigationDrawer
-            },
+            component: BaseLayout,
             children: [
                 {
-                    name: 'home',
                     path: '',
-                    components: {
-                        left: spidersPage,
-                        right: null
-                    }
+                    name: 'home_view',
+                    component: SpidersView
                 },
                 {
-                    name: 'create',
-                    path: 'create',
-                    components: {
-                        left: createPage,
-                        right: null
-                    }
+                    path: 'spider/:id(\d+)',
+                    name: 'spider_view',
+                    component: SpiderView
+                },
+                {
+                    path: 'settings',
+                    name: 'settings_view',
+                    component: SettingsView
                 }
             ]
-            // components: {
-            //     default: indexPage
-            // },
-            // beforeRouteEnter (to, from, next) {
 
-            // }
         }
     ]
 })

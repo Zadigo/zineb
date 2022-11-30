@@ -22,8 +22,8 @@ def collect_commands():
 
         Iterator [Iterator]: the paths of each commands in the directory
     """
-    from zineb.settings import settings as global_settings
-    commands_path = list(os.walk(os.path.join(global_settings.GLOBAL_ZINEB_PATH, 'management', 'commands')))
+    from zineb.settings import settings
+    commands_path = list(os.walk(os.path.join(settings.GLOBAL_ZINEB_PATH, 'management', 'commands')))
     files = commands_path[0][-1]
     complete_paths = map(lambda filename: os.path.join(commands_path[0][0], filename), files)
     return complete_paths
@@ -129,4 +129,8 @@ def execute_command_inline(argv):
         argv (list): [file, command, ...]
     """
     utility = Utility()
-    utility.call_command(argv)
+    try:
+        utility.call_command(argv)
+    except KeyboardInterrupt:
+        from zineb.logger import logger
+        logger.instance.info('Zineb was stopped')

@@ -61,6 +61,13 @@ class Field:
             result = self._to_python_object(value)
             self._cached_result = self._run_validators(result)
 
+    def _simple_resolve(self, value):
+        if value == Empty or value is None:
+            self._cached_result = self._run_validators(value)
+        else:
+            result = self._to_python_object(value)
+            self._cached_result = self._run_validators(result)
+
     def resolve(self, value):
         value_or_empty = self._check_emptiness(value)
         self._simple_resolve(value_or_empty)

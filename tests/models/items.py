@@ -1,9 +1,10 @@
-from zineb.models.datastructure import Model
 from zineb.models import fields
+from zineb.models.constraints import UniqueConstraint
+from zineb.models.datastructure import Model
 
 
 def simple_validator(value):
-    return value
+    return value    
 
 
 class BareModel(Model):
@@ -49,8 +50,54 @@ class CalculatedModel(Model):
 
 
 class ExampleModel(Model):
-    url = fields.UrlField()
+    url = fields.URLField()
 
 
 class ExampleModel2(Model):
     value = fields.CharField()
+
+
+class BasicModel(Model):
+    name = fields.NameField()
+    age = fields.IntegerField()
+
+
+class SortedModel(Model):
+    name = fields.NameField()
+    age = fields.IntegerField()
+    height = fields.EmailField()
+    
+    
+class ComplicatedModel(Model):
+    name = fields.NameField()
+    year_of_birth = fields.IntegerField()
+    zip_code = fields.IntegerField()
+    current_balance = fields.IntegerField()
+
+
+class RelatedModel2(Model):
+    surname = fields.CharField()
+    
+    
+class RelatedModel1(Model):
+    surname = fields.RelatedModel(RelatedModel2)
+    age = fields.IntegerField()
+    
+
+
+class ConstrainedModel(Model):
+    name = fields.CharField()
+    surname = fields.CharField()
+    
+    class Meta:
+        constraints = [
+            UniqueConstraint(['name', 'surname'], 'unique_name_and_surname'),
+        ]
+
+
+class SuperModel(Model):
+    name = fields.NameField()
+    
+    
+class SubModel(SuperModel):
+    surname = fields.NameField()
