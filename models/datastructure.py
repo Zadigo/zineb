@@ -446,7 +446,7 @@ class Model(metaclass=Base):
         # options class
         field = self._meta.get_field('id')
         field.resolve()
-    
+
     def check_special_function(self, name, value):
         """Checks if the incoming value is a special function
         e.g. ExtractYear, ExtractMonth and resolves it to
@@ -493,6 +493,8 @@ class Model(metaclass=Base):
             # if the field actually exists on the
             # model before passing to the func
             setattr(func, 'field_name', name)
+        
+        # value = self.check_special_function(name, value)
 
         if len(funcs) == 1:
             func._cached_data = value
