@@ -447,6 +447,26 @@ class Model(metaclass=Base):
         field = self._meta.get_field('id')
         field.resolve()
     
+    def check_special_function(self, name, value):
+        """Checks if the incoming value is a special function
+        e.g. ExtractYear, ExtractMonth and resolves it to
+        its true self"""
+        # FIXME: Due the way the mixins are ordered
+        # on the ExtractYear, ExtractDay... classes,
+        # the isinstance check on this fails therefore
+        # trying to add a None string function item
+        # to the model
+        # FIXME: Value is not deep cleaned when using
+        # the special functions
+        instances = (ExtractDay, ExtractMonth, ExtractYear)
+
+        if isinstance(value, instances):
+            value.model = self
+            value.field_name = name
+            value.resolve()
+            return value._cached_data
+        return value
+    
     def add_calculated_value(self, name, value, *funcs):
         """Adds a value to the model after running an 
         arithmetic operation
