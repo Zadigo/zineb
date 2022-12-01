@@ -1,6 +1,6 @@
 from collections import Counter
 
-from zineb.exceptions import ConstraintError
+from zineb.exceptions import ConstraintError, FieldError
 
 
 class BaseConstraint:
@@ -51,6 +51,17 @@ class BaseConstraint:
     def update_model_options(self, model):
         self.model = model
         self._data_container = model._data_container
+
+        # TODO: When the fields are not in the model
+        # raise an error. Only fields within the model
+        # are allowed
+        # errors = []
+        # for field in self.constrained_fields:
+        #     if not model._meta.field_exists(field):
+        #         errors.extend([FieldError(field, model._meta.fields, self.model.name)])
+
+        # if errors:
+        #     raise ExceptionGroup('', errors) 
 
 
 class UniqueConstraint(BaseConstraint):
