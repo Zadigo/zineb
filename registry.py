@@ -301,9 +301,9 @@ class MasterRegistry:
             "settings.py file."), Warning, stacklevel=0)
         else:
             for config in self.get_spiders():
+                # TODO: Send a signal before the spider has
+                # started parsing
                 try:
-                    # TODO: Send a signal before the spider has
-                    # starting parsing
                     config.run()
                 except Exception:
                     logger.instance.critical((f"Could not start {config}. "
@@ -312,7 +312,6 @@ class MasterRegistry:
                 else:
                     # TODO: Send a signal once the spider has
                     # terminated the parsing
-                    # signal.send(dispatcher.Any, self)
                     pass
 
 

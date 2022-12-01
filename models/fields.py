@@ -230,7 +230,7 @@ class Field:
         """        
         if clean_value == 'Empty' or clean_value is None:
             # Although a value could be empty or None, we still
-            # allow he user to be able to validate he data
+            # allow he user to be able to validate the data
             self._cached_result = self._run_validation(clean_value)
         else:
             result = self._to_python_object(clean_value)
