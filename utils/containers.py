@@ -119,15 +119,17 @@ class SmartDict:
 
     def as_values(self):
         """
-        Returns the data as
-        {key1: [..., ...], key2: [..., ...], ...}
+        Returns the data as dictionnary
+
+        >>> {key1: [..., ...], key2: [..., ...], ...}
         """
         return self.values
 
     def as_list(self):
         """
         Return a sorted collection of dictionnaries
-        e.g. [{a: 1}, {b: 2}, ...]
+        
+        >>> [{a: 1}, {b: 2}, ...]
         """
         values = remap_to_dict(self.as_values())
         return self.apply_sort(values)
@@ -135,7 +137,8 @@ class SmartDict:
     def as_csv(self):
         """
         Return the values under a csv format
-        as [[col1, col2], [..., ...]]
+        
+        >>> [[col1, col2], [..., ...]]
         """
         data = self.as_values()
         columns = list(data.keys())

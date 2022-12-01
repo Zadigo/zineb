@@ -256,16 +256,12 @@ class Base(type):
             return super_new(cls, name, bases, attrs)
 
         # TODO:
-        declared_fields = set()
-        for key, field_obj in attrs.items():
-            if isinstance(field_obj, Field):
-                field_obj._bind(key)
-                declared_fields.add((key, field_obj))
+        # declared_fields = set()
+        # for key, field_obj in attrs.items():
+        #     if isinstance(field_obj, Field):
+        #         field_obj._bind(key, model=cls)
+        #         declared_fields.add((key, field_obj))
 
-        default_options = [
-            ('label', f"models.{name}")
-        ]
-        meta = ModelOptions(default_options)
         meta_attributes = attrs.pop('Meta', None)
         
         # "Remove" all the declared fields on the model.
@@ -426,6 +422,20 @@ class Model(metaclass=Base):
             self._meta.model_name == obj._meta.model_name,
             self._meta.field_names == obj._meta.field_names
         ])
+
+    @staticmethod
+    def check_special_function(value):
+        """Checks if the incoming value is a special function
+        e.g. ExtractYear, ExtractMonth and resolves it to
+        its true self"""
+        # FIXME: Due the way the mixins are ordered
+        # on the ExtractYear, ExtractDay... classes,
+        # the isinstance check on this fails therefore
+        # trying to add a None string function item
+        # to the model
+        # FIXME: Value is not deep cleaned when using
+        # the special functions
+        return isinstance(value, (ExtractDay, ExtractMonth, ExtractYear))
         
     @property
     def _get_internal_data(self):
@@ -475,7 +485,7 @@ class Model(metaclass=Base):
         cached_values.append(value)
         self._data_container.update(field_name, cached_values)
 
-    def _bind_to_value_field(self, field_name: str, data: Union[str, int, float, list, dict, Any]):
+    def _bind_to_value_field(self, field_name, data):
         instance = Value(data)
         instance.field_name = field_name
         return instance
@@ -485,13 +495,7 @@ class Model(metaclass=Base):
         for field in self._meta.fields_map.values():
             errors.extend(field.checks())
         return errors
-    
-    def _trigger_constraints(self, value):
-        """Runs before the model tries to a add a value
-        to the underlying container by running each
-        constraints created on the model"""
-        pass
-    
+
     def checks(self):
         # This is the main collector for all the errors
         # that might have occured during the creation
@@ -505,26 +509,6 @@ class Model(metaclass=Base):
         # options class
         field = self._meta.get_field('id')
         field.resolve()
-
-    def check_special_function(self, name, value):
-        """Checks if the incoming value is a special function
-        e.g. ExtractYear, ExtractMonth and resolves it to
-        its true self"""
-        # FIXME: Due the way the mixins are ordered
-        # on the ExtractYear, ExtractDay... classes,
-        # the isinstance check on this fails therefore
-        # trying to add a None string function item
-        # to the model
-        # FIXME: Value is not deep cleaned when using
-        # the special functions
-        instances = (ExtractDay, ExtractMonth, ExtractYear)
-
-        if isinstance(value, instances):
-            value.model = self
-            value.field_name = name
-            value.resolve()
-            return value._cached_data
-        return value
     
     def add_calculated_value(self, name, value, *funcs):
         """Adds a value to the model after running an 
@@ -643,31 +627,33 @@ class Model(metaclass=Base):
         # the isinstance check on this fails therefore
         # trying to add a None string function item
         # to the model
-        instances = (ExtractDay, ExtractMonth, ExtractYear)
-        
-        if isinstance(value, instances):
+
+        obj = self._get_field_by_name(name)
+
+        state = self.check_special_function(value)
+        if state:
             value.model = self
             value.field_name = name
             value.resolve()
-            return self._data_container.update(name, value._cached_data)
+            resolved_value = value._cached_data
+        else:
+            if not isinstance(value, Value):
+                # We know that the Value field deep_cleans
+                # and formats the raw value. Makes no sense
+                # to redo all of this if we already have a
+                # Value instance
+                value = self._bind_to_value_field(obj.field_name, value)
 
-        obj = self._get_field_by_name(name)
-        if not isinstance(value, Value):
-            # We know that the Value field deep_cleans
-            # and formats the raw value. Makes no sense
-            # to redo all of this if we already have a
-            # Value instance
-            value = self._bind_to_value_field(obj._meta_attributes['field_name'], value)
-        obj.resolve(value)
-        resolved_value = obj._cached_result
+            obj.resolve(value)
+            resolved_value = obj._cached_result
 
-        if obj.internal_name == 'DateField':
-            # Some fields such as the DateField does not
-            # store a string but a function. For example,
-            # in this case, a datetime.datetime objec.
-            # Therefore we have to resolve the true value of the field
-            # otherwise the user might get something unexpected
-            resolved_value = str(obj._cached_result)
+            if obj.internal_name == 'DateField':
+                # Some fields such as the DateField does not
+                # store a string but a function. For example,
+                # in this case, a datetime.datetime objec.
+                # Therefore we have to resolve the true value of the field
+                # otherwise the user might get something unexpected
+                resolved_value = str(obj._cached_result)
 
         # Before saving the value to the model, check
         # constraints aka existing values if the user

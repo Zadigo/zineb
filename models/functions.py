@@ -315,6 +315,7 @@ class DateExtractorMixin:
         # resolved value without passing through the whole
         # resolution process of these field
         source_field._simple_resolve(self._cached_data)
+        self._cached_data = source_field._cached_result
         
         
 class ExtractYear(DateExtractorMixin, FunctionsMixin):
