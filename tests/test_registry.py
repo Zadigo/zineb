@@ -18,6 +18,9 @@ class TestSpiderConfig(unittest.TestCase):
             import_module('zineb.tests.testproject.spiders')
         )
 
+    def test_global_options(self):
+        self.assertTrue(self.config.name == 'MySpider')
+
     def test_can_run_spider_internally(self):
         self.config.check_ready()
         self.assertTrue(self.config.is_ready)
@@ -40,6 +43,14 @@ class TestRegistry(unittest.TestCase):
         self.assertIsNotNone(spider)
         self.assertIsInstance(spider, SpiderConfig)
         self.assertTrue(self.registry.is_ready)
+
+    def test_global(self):
+        self.registry.populate()
+        spiders = self.registry.get_spiders()
+        self.assertTrue(len(spiders) > 0)
+        self.assertIsInstance(list(spiders)[0], SpiderConfig)
+        self.assertTrue(self.registry.has_spider('MySpider'))
+        self.assertIsInstance(self.registry.get_spider('MySpider'), SpiderConfig)
         
     @unittest.expectedFailure
     def test_error_spider_not_found(self):
@@ -47,10 +58,3 @@ class TestRegistry(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
-# registry = MasterRegistry()
-# registry.populate()
-# registry.populate()
-# spider_config = registry.get_spider('MySpider')
-# print(registry.check_spiders_ready())
-# spider_config.run()

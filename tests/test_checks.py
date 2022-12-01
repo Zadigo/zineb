@@ -13,7 +13,7 @@ os.environ.setdefault('ZINEB_SPIDER_PROJECT', 'zineb.tests.testproject')
 # Reload the settings file in order to
 # load the user project settings from the
 # global variable above
-settings_dict = settings()
+settings()
 
 
 class TestApplicationChecks(unittest.TestCase):        

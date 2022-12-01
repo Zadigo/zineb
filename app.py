@@ -88,14 +88,15 @@ class Spider(metaclass=BaseSpider):
     """
     start_urls = []
 
-    def __init__(self):
+    def __init__(self, debug=False):
         logger.instance.info(f'Starting {self.__class__.__name__}')
         logger.instance.info(f"{self.__class__.__name__} contains {len(self.meta.prepared_requests)} request(s)")
 
         # TODO: Send signal when the spider is
         # initialized
-            
-        self._resolve_requests()
+        
+        if not debug:
+            self._resolve_requests()
 
     def __repr__(self):
         return f"{self.__class__.__name__}(requests={len(self.meta.prepared_requests)})"

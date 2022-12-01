@@ -1,9 +1,8 @@
 import os
 import warnings
 from collections import OrderedDict, deque
-from importlib import import_module
 from typing import Callable
-from zineb.logger import logger
+
 from zineb.exceptions import ImproperlyConfiguredError, ProjectExistsError
 from zineb.settings import settings
 
@@ -21,7 +20,6 @@ DEFAULT_CHECKS_MODULES = (
 
 
 class GlobalMixins:
-    # _default_settings = None
     _errors = []
     _MODULES = OrderedDict()
 
@@ -91,14 +89,14 @@ class ApplicationChecks(GlobalMixins):
         if not os.path.isdir(PROJECT_PATH):
             raise IsADirectoryError("PROJECT_PATH should be the valid project's directory")
 
-    def register(self, tag: str = None):
+    def register(self, tag = None):
         """Register a check on this class by using 
         this decorator on a custom function
 
         Example
         -------
 
-            @register
+        >>> @register
             def some_check():
                 pass
         """

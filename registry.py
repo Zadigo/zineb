@@ -150,8 +150,19 @@ class MasterRegistry:
             raise SpiderExistsError(spider_name)
         
     def get_default_storage(self):
-        name, instance = list(self.storages['default'].items())[0]
-        return instance
+        try:
+            name, instance = list(self.storages['default'].items())[0]
+        except:
+            # If the spider was not initialized with
+            # the project setup() function then no
+            # default storage will be implemented as
+            # an attribute. In which case just return None
+            # NOTE: Maybe we could create a new storage instance
+            # but does this make sense since a spider is supposed
+            # to run within a scrapping project?
+            return None
+        else:
+            return instance
         
     def preconfigure_project(self, dotted_path, settings):
         """Runs additional actions before marking the

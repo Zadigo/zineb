@@ -1,6 +1,6 @@
 import os
 
-from zineb.app import FileCrawler, Spider, Zineb
+from zineb.app import FileCrawler, Spider
 from zineb.settings import settings
 from zineb.tests.models.items import ExampleModel, ExampleModel2
 from zineb.utils.iteration import collect_files
@@ -19,10 +19,10 @@ class MetaSpider(Spider):
         domains = ['example.com']
         limit_requests_to = 0
         verbose_name = None
-        base_url = 'http://example.com'
+        # base_url = 'http://example.com'
 
 
-class SpiderWithMultiple(Zineb):
+class SpiderWithMultiple(Spider):
     start_urls = [
         'http://example.com'
     ]
@@ -39,7 +39,7 @@ class SpiderWithMultiple(Zineb):
         self._temp_model_holder.extend([model, model2])
 
 
-class SpiderWithMultipleDomains(Zineb):
+class SpiderWithMultipleDomains(Spider):
     start_urls = [
         'http://example.com',
         'http://example.com'
@@ -51,7 +51,7 @@ class SpiderWithMultipleDomains(Zineb):
 
 
 # For collectfiles
-os.environ.setdefault('ZINEB_SPIDER_PROJECT', 'zineb.tests.testproject.settings')
+os.environ.setdefault('ZINEB_SPIDER_PROJECT', 'zineb.tests.testproject')
 settings()
 
 class FileCrawler1(FileCrawler):
