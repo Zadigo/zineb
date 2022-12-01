@@ -155,17 +155,6 @@ class ModelOptions:
         if not self.has_field('id'):
             auto_field = AutoField(auto_created=True)
             self.add_field('id', auto_field)
-            
-        # Initialize all the eventual constraints
-        # that were provided on the model
-        # TODO: The big problem with setting the constraints
-        # here is we get the Class as a type as opposed to
-        # the instance which makes that we cannot access
-        # the _data_container. Maybe it does not make sense
-        # to init the constraints model option here but
-        # do it on the __init__
-        # for constraint in self.constraints:
-        #     constraint.update_model_options(self.model)
         
     def has_field(self, name):
         return name in self.field_names

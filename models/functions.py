@@ -160,9 +160,10 @@ class Divide(Math):
         
 
 class When:
-    """Checks if a condition is met. If True, returns
-    a value from the then_condition else, returns
-    the default one/else_condition
+    """Checks if a condition is met
+
+    >>> model.add_case(20, When("age__gt=21", 24))
+    ... [{"age": 20}]
     """
     
     _cached_data = None
@@ -345,17 +346,13 @@ class ExtractDay(DateExtractorMixin, FunctionsMixin):
 class ComparisionMixin(FunctionsMixin):
     def __init__(self, *values):
         values = list(values)
-        types = []
         values_length = len(values)
         
         # Make sure that each value is of the same
         # type by comparing the previous one to the one
         # ahead of it. If one comparision fails,
-        # does not matter, everything fails
-        
-        for value in values:
-            types.append(type(value).__name__)
-        
+        # does not matter, everything fails        
+        types = [type(value).__name__ for value in values]
         results = []
         for i, name in enumerate(types):
             if i == values_length - 1:
@@ -364,6 +361,7 @@ class ComparisionMixin(FunctionsMixin):
             
         if not all(results):
             raise ValueError('All the values should be of the same type')
+
         self.values = values 
     
     def __repr__(self):
@@ -375,6 +373,7 @@ class Greatest(ComparisionMixin):
     one. Each values should be of the same type
     
     >>> model.add_value("age", Greatest(15, 31, 21))
+    ... [{"age": 15}]
     """
         
     def resolve(self):
@@ -386,6 +385,7 @@ class Smallest(ComparisionMixin):
     one. Each values should be of the same type
     
     >>> model.add_value("age", Smallest(15, 31, 21))
+    ... [{"age": 31}]
     """
     
     def resolve(self):

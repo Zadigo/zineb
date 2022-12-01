@@ -156,5 +156,16 @@ class TestExtractDates(unittest.TestCase):
         )
 
 
+class TestComparision(unittest.TestCase):
+    def test_greatest(self):
+        instance = functions.Greatest(15, 31, 24)
+        instance.resolve()
+        self.assertEqual(instance._cached_data, 31)
+    
+    def test_smallest(self):
+        instance = functions.Smallest(15, 31, 24)
+        instance.resolve()
+        self.assertEqual(instance._cached_data, 15)
+
 if __name__ == '__main__':
     unittest.main()
