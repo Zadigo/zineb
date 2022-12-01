@@ -246,7 +246,7 @@ class When:
 class DateExtractorMixin:
     lookup_name = None
 
-    def __init__(self, value: Any, date_format: str=None):
+    def __init__(self, value, date_format=None):
         self.value = value
         self._datetime_object = None
         
