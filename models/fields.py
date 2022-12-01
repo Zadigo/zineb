@@ -242,7 +242,7 @@ class Field:
     #     except AttributeError:
     #         raise
             
-    def resolve(self, value: Any):
+    def resolve(self, value):
         """
         This is the main resolution function that deals with
         making and incoming scrapped value from the internet
