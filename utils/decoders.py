@@ -1,4 +1,4 @@
-def decode_email(value: str):
+def decode_email(value):
     """
     Decodes a protected email from an HTML
     response. Generally, this is a x bits

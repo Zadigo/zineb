@@ -1,18 +1,16 @@
-import ast
 import datetime
-import json
 import re
-from typing import Any, Callable, List, Tuple, Union
-from urllib.parse import urlparse
+from typing import Any, List
 
 from bs4.element import Tag as beautiful_soup_tag
 from w3lib import html
 from w3lib.url import canonicalize_url, safe_download_url
+from zineb.checks import messages
 from zineb.exceptions import ValidationError
 from zineb.models import validators as model_validators
 from zineb.settings import settings
 from zineb.utils.characters import deep_clean
-from zineb.utils.conversion import convert_to_type, detect_object_in_string
+from zineb.utils.conversion import detect_object_in_string
 from zineb.utils.encoders import DefaultJsonEncoder
 from zineb.utils.formatting import LazyFormat
 from zineb.utils.images import download_image_from_url
@@ -47,8 +45,7 @@ class Value:
     """
     result = None
 
-    # def __init__(self, value: Any, output_field: Callable=None):
-    def __init__(self, value: Any):
+    def __init__(self, value, output_field=None):
         self.result = value
         self.field_name = None
         # self.output_field = output_field
@@ -119,20 +116,53 @@ class Value:
     #     return CharField()
     
 
+class DeferredAttribute:
+    """A base class for deferred-loading of the data
+    from the data container of a model field"""
+
+    def __init__(self, field):
+        self.field = field
+
+    def __get__(self, instance, cls=None):
+        if instance is None:
+            return self
+
+        data = instance.__dict__
+        field_name = self.field.field_name
+        if field_name not in data:
+            field_data = instance._data_container.get_container(field_name)
+            data[field_name] = field_data
+        return data[field_name]
+    
+    
+class OneToOneDescriptor(DeferredAttribute):
+    def __get__(self, instance, cls=None):
+        if instance is None:
+            return self
+        
+        data = instance.__dict__
+        field_name = self.field.field_name
+        if field_name not in data:
+            data[field_name] = self.field.related_model
+        return data[field_name]
+    
+
 class Field:
     """Base class for all fields """
 
-    name = None
+    field_descriptor = DeferredAttribute
     _cached_result = None
     _default_validators = []
-    _dtype = str
     _validation_error_message = ("The value '{value}' does not match the type provided "
     "in {t}. Got {type1} instead of {type2} for model field '{name}'.")
 
-    def __init__(self, max_length: int=None, null: bool=True, 
-                 default: Union[str, int, float]=None, validators=[]):
-        self._meta_attributes = {'field_name': None}
-
+    def __init__(self, max_length=None, null=True, default=None, validators=[]):
+        self.model = None
+        # Use '' instead of None to be able to
+        # test checks when using test comparision
+        # on field_name
+        self.field_name = ''
+        
         self.max_length = max_length
         self.null = null
 
@@ -144,8 +174,9 @@ class Field:
             )
 
         self.default = default
+        self.creation_counter = 0
 
-        # Be careful here, the problem is each
+        # FIXME: Be careful here, the problem is each
         # time the field is used, a validator
         # is added for each new value which
         # creates an array containing the same
@@ -155,6 +186,9 @@ class Field:
 
         if not self.null:
             self._validators.add(model_validators.validate_is_not_null)
+            
+    def __hash__(self):
+        return hash((self.model._meta.verbose_name, self.field_name))
 
     def _bind(self, field_name, model=None):
         """Bind the field's name registered 
@@ -166,6 +200,16 @@ class Field:
         if current_model is None and model is not None:
             self._meta_attributes['model'] = model
 
+    @property 
+    def internal_type(self):
+        """Determines the internal 
+        python type of the field"""
+        return str
+    
+    @property
+    def internal_name(self):
+        return None
+    
     def _true_value_or_default(self, value):
         # ENHANCE: Check against Empty is not a valid or useful
         # type check anymore since we can check emptyness
@@ -209,10 +253,24 @@ class Field:
                 message = ("A validation error occured on "
                 "field '{name}' with value '{value}'.")
                 raise Exception(
-                    LazyFormat(message, name=self._meta_attributes.get('field_name'), value=value)
+                    LazyFormat(message, name=self.field_name, value=value)
                 )
         if self._validators:
             return validator_return_value
+        return value
+
+    # TODO: Rename this method
+    def _check_emptiness(self, value):
+        """
+        Deals with true empty values e.g. '' that
+        are factually None but get passed
+        around as containing data
+        
+        The Empty class is the pythonic representation
+        for these kinds of strings
+        """
+        if value == '':
+            return Empty()
         return value
 
     def _simple_resolve(self, clean_value):
@@ -234,13 +292,74 @@ class Field:
             result = self._to_python_object(clean_value)
         self._cached_result = self._run_validation(result)
             
-    # def _function_resolve(self, func):
-    #     """A method to resolve specific functions such
-    #     as ExtractYear, ExtractMonth... by avoiding """
-    #     try:
-    #         self._simple_resolve(func._cached_data)
-    #     except AttributeError:
-    #         raise
+    def checks(self):
+        """Run global checks on the Field. Other specific
+        fields need to implement their other other additional
+        checking method"""
+        def check_field_name():
+            if self.field_name.endswith('__'):
+                return [
+                    messages.ErrorMessage(
+                        f"{self.field_name} is not a valid field name",
+                        obj=self
+                    )
+                ]
+                
+            if '__' in self.field_name:
+                return [
+                    messages.ErrorMessage(
+                        f"{self.field_name} cannot have '__' in the name",
+                        obj=self
+                    )
+                ]
+            
+            if self.field_name == 'pk' or self.field_name == 'id':
+                return [
+                    messages.ErrorMessage(
+                        f"{self.field_name} cannot be 'id' or 'pk' which are reserved keywords",
+                        obj=self
+                    ),
+                ]
+            return []
+        
+        def check_validators():
+            errors = []
+            for validator in self._validators:
+                if not callable(validator):
+                    errors.append(
+                        messages.ErrorMessage(
+                            f'Validators have be a callable',
+                            obj=validator
+                        )
+                    )
+            return errors
+        
+        def check_null():
+            if not isinstance(self.null, bool):
+                return [
+                    messages.ErrorMessage(
+                        f"null attribute should be a boolean",
+                        obj=self
+                    )                    
+                ]
+            return []
+        
+        return [
+            *check_field_name(),
+            *check_validators(),
+            *check_null()
+        ]
+                
+    def update_model_options(self, model, field_name):
+        self.model = model
+        self.field_name = field_name
+        model._meta.add_field(self.field_name, self)
+        # Since we removed the original declared field
+        # on the model, we replace it with a descriptor
+        # that will allow the user to directly load the
+        # field's data from the data container directly
+        # as opposed to returning the Field class
+        setattr(model, self.field_name, self.field_descriptor(self))
             
     def resolve(self, value):
         """
@@ -259,27 +378,52 @@ class Field:
                     
 
 class CharField(Field):
-    name = 'char'
+    @property
+    def internal_name(self):
+        return 'CharField'
     
     def _to_python_object(self, value):
         if value is None:
             return value
         
-        return self._dtype(value)
+        return self.internal_type(value)
+    
+    def checks(self):
+        errors = super().checks()
+        
+        def check_max_length():
+            if self.max_length is not None:
+                if (not isinstance(self.max_length, int) or self.max_length < 0):
+                    return [
+                        messages.ErrorMessage(
+                            "'max_length' attribute should be a positive integer",
+                            obj=self
+                        )
+                    ]
+            return []
+        
+        errors.extend([
+            *check_max_length()
+        ])
+        return errors
 
 
 class TextField(CharField):
-    name = 'text'
-
     def __init__(self, max_length: int=500, **kwargs):
         super().__init__(max_length=max_length, **kwargs)
 
+    @property
+    def internal_name(self):
+        return 'TextField'
+    
 
 class NameField(CharField):    
-    name = 'name'
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        
+    @property
+    def internal_name(self):
+        return 'NameField'
         
     def _to_python_object(self, value):
         result = super()._to_python_object(value)
@@ -291,10 +435,13 @@ class NameField(CharField):
 class EmailField(CharField):
     _default_validators = [model_validators.validate_email]
 
-    def __init__(self, limit_to_domains: Union[List[str], Tuple[str]] = [],
-                 null: bool=False, default: Any=None, validators: list=[]):
+    def __init__(self, limit_to_domains=[], null=False, default=None, validators=[]):
         super().__init__(null=null, default=default, validators=validators)
         self.limit_to_domains = limit_to_domains
+        
+    @property
+    def internal_name(self):
+        return 'EmailField'
         
     def _check_domain(self, domain):
         if self.limit_to_domains:
@@ -309,9 +456,12 @@ class EmailField(CharField):
 
 
 class URLField(CharField):
-    name = 'url'
     _default_validators = [model_validators.validate_url]
 
+    @property
+    def internal_name(self):
+        return 'URLField'
+    
     def resolve(self, url):
         super().resolve(url)
         if self._cached_result is not None:
@@ -321,10 +471,8 @@ class URLField(CharField):
 
 
 class ImageField(URLField):
-    name = 'image'
-
-    def __init__(self, max_length: int=None, null: bool=True, validators: list=[], 
-                 download: bool=False, as_thumnail: bool=False, download_to: str=None):
+    def __init__(self, max_length=None, null=True, validators=[], 
+                 download=False, as_thumnail=False, download_to=None):
         valid_extensions = ['jpeg', 'jpg', 'png']
         self._default_validators.extend([model_validators.validate_extension(valid_extensions)])
         
@@ -335,6 +483,10 @@ class ImageField(URLField):
         # self.image_data = None
         # self.metadata = {}
         self.download_to = download_to
+
+    @property
+    def internal_name(self):
+        return 'ImageField'
 
     def resolve(self, url):
         super().resolve(url)
@@ -348,12 +500,10 @@ class ImageField(URLField):
 
 
 class IntegerField(Field):
-    name = 'integer'
-    _dtype = int
-
-    def __init__(self, default: Any=None, min_value: int=None, 
-                 max_value: int=None, validators: list=[]):
+    def __init__(self, default=None, min_value=None, max_value=None, validators=[]):
         super().__init__(default=default, validators=validators)
+        self.min_value = min_value
+        self.max_value = max_value
 
         if min_value is not None:
             self._validators.add(model_validators.MinLengthValidator(min_value))
@@ -361,28 +511,63 @@ class IntegerField(Field):
         if max_value is not None:
             self._validators.add(model_validators.MaxLengthValidator(max_value))
 
+    @property
+    def internal_type(self):
+        return int
+    
+    @property
+    def internal_name(self):
+        return 'IntegerField'
+
     def _to_python_object(self, value):
         try:
-            return self._dtype(str(value))
+            return self.internal_type(value)
         except:
             if not isinstance(value, (int, float)):
                 attrs = {
                     'value': value,
                     't': self.__class__.__name__,
                     'type1': type(value),
-                    'type2': self._dtype,
-                    'name': self._meta_attributes.get('name')
+                    'type2': self.internal_type,
+                    'name': self.field_name
                 }
                 raise ValidationError(LazyFormat(self._validation_error_message, **attrs))
 
+    def checks(self):
+        errors = super().checks()
+        
+        def check_min_and_max_values():
+            if self.min_value is not None:
+                if not isinstance(self.min_value, int) and self.min_value < 0:
+                    return [
+                        messages.ErrorMessage(f"min_value attribute should be a positive integer")
+                    ]
+            
+            if self.max_value is not None:    
+                if not isinstance(self.max_value, int) and self.max_value < 0:
+                    return [
+                        messages.ErrorMessage(f"max_value attribute should be a positive integer")
+                    ]
+            return []
+        
+        errors.extend([
+            *check_min_and_max_values()
+        ])
+        return errors
 
-class DecimalField(IntegerField):
-    name = 'decimal'
-    _dtype = float
+
+class DecimalField(IntegerField):    
+    @property
+    def internal_type(self):
+        return float
+    
+    @property
+    def internal_name(self):
+        return 'DecimalField'
     
 
 class DateFieldsMixin:
-    def __init__(self, date_format: str=None, default: Any=None):
+    def __init__(self, date_format=None, default=None):
         super().__init__(default=default)
 
         self.date_parser = datetime.datetime.strptime
@@ -391,6 +576,7 @@ class DateFieldsMixin:
         formats = set(getattr(settings, 'DEFAULT_DATE_FORMATS'))
         formats.add(date_format)
         self.date_formats = formats
+        self.date_format = date_format
 
     def _to_python_object(self, result: str):
         for date_format in self.date_formats:
@@ -404,17 +590,30 @@ class DateFieldsMixin:
         
         if d is None:
             message = LazyFormat("Could not find a valid format for "
-            "date '{d}' on field '{name}'.", d=result, name=self._meta_attributes.get('field_name'))
+            "date '{d}' on field '{name}'.", d=result, name=self.field_name)
             raise ValidationError(message)
         self._datetime_object = d
         return d.date()
 
-    # def _function_resolve(self, func):
-    #     self._datetime_object = getattr(func, '_datetime_object')
-
+    def checks(self):
+        errors = super().checks()
+        if not isinstance(self.date_format, str):
+            errors.extend([
+                messages.ErrorMessage(
+                    f"'date_format' attribute should be a string",
+                    obj=self
+                )
+            ])
+        return errors
 
 class DateField(DateFieldsMixin, Field):
-    name = 'date'
+    @property
+    def internal_type(self):
+        return datetime.datetime
+
+    @property
+    def internal_name(self):
+        return 'DateField'
     
     # def _function_resolve(self, func):
     #     super()._function_resolve(func)
@@ -422,72 +621,24 @@ class DateField(DateFieldsMixin, Field):
 
 
 class AgeField(DateFieldsMixin, Field):
-    name = 'age'
-    _dtype = int
-
-    def __init__(self, date_format: str=None, default: Any = None):
+    def __init__(self, date_format=None, default=None):
         super().__init__(date_format=date_format, default=default)
                 
+    @property
+    def internal_type(self):
+        return int
+    
+    @property
+    def internal_name(self):
+        return 'AgeField'
+    
     def _substract(self):
         current_date = datetime.datetime.now()
         return current_date.year - self._datetime_object.year
-    
-    # def _function_resolve(self, func):
-    #     super()._function_resolve(func)
-    #     self._cached_result = self._substract()
 
     def resolve(self, date: str):
         super().resolve(date)
         self._cached_result = self._substract()
-
-
-# class FunctionField(Field):
-#     """
-#     Field that resolves a value by passing it through
-#     different custom methods
-#     """
-#     name = 'function'
-
-#     def __init__(self, *methods: Callable[[Any], Any], output_field: Field = None, 
-#                  default: Any = None, validators: list = []):
-#         super().__init__(default=default, validators=validators)
-
-#         if not methods:
-#             raise ValueError('FunctionField expects at least on method.')
-
-#         self.methods = []
-#         self.output_field = output_field
-
-#         if output_field is not None:
-#             if not isinstance(output_field, Field):
-#                 raise TypeError(("The output field should be one of "
-#                         "zineb.models.fields types and should be "
-#                         "instanciated e.g. FunctionField(output_field=CharField())"))
-#         else:
-#             self.output_field = CharField()
-        
-#         incorrect_elements = []
-#         for method in methods:
-#             if not callable(method):
-#                 incorrect_elements.append(method)
-#             self.methods.append(method)
-
-#         if incorrect_elements:
-#             raise TypeError(LazyFormat('You should provide a list of '
-#             'callables. Got: {incorrect_elements}', incorrect_elements=incorrect_elements))
-
-#     def resolve(self, value):
-#         super().resolve(value)
-
-#         new_result = None
-#         for method in self.methods:
-#             if new_result is None:
-#                 new_result = method(self._cached_result)
-#             else:
-#                 new_result = method(new_result)
-
-#         self.output_field._simple_resolve(new_result)
-#         self._cached_result = self.output_field._cached_result
 
 
 class MappingFieldMixin:
@@ -498,34 +649,46 @@ class MappingFieldMixin:
                 'value': value,
                 't': self.__class__.__name__,
                 'type1': type(value),
-                'type2': self._dtype,
-                'name': self._meta_attributes.get('name')
+                'type2': self.internal_type,
+                'name': self.field_name
             }
             raise ValidationError(LazyFormat(self._validation_error_message, **attrs))
         return result
     
 
 class ListField(MappingFieldMixin, Field):
-    name = 'list'
-    _dtype = list
-
-    def __init__(self, default: Any=None, validators: list=[]):
+    def __init__(self, default=None, validators=[]):
         super().__init__(default=default, validators=validators)
+        
+    @property
+    def internal_type(self):
+        return list
+    
+    @property
+    def internal_name(self):
+        return 'ListField'
 
 
 class JsonField(MappingFieldMixin, Field):
-    name = 'json'
-    _dtype = dict
-
-    def __init__(self, default: Any=None, validators: list=[]):
+    def __init__(self, default=None, validators=[]):
         super().__init__(default=default, validators=validators)
+        
+    @property
+    def internal_type(self):
+        return dict
+    
+    @property
+    def internal_name(self):
+        return 'JsonField'
 
 
 class CommaSeperatedField(Field):
-    name = 'comma_separated'
-
     def __init__(self, max_length: int = None):
         super().__init__(max_length=max_length)
+        
+    @property
+    def internal_name(self):
+        return 'CommaSeperatedField'
         
     def _to_python_object(self, value):
         values = detect_object_in_string(value)        
@@ -535,7 +698,7 @@ class CommaSeperatedField(Field):
                 't': self.__class__.__name__,
                 'type1': type(value),
                 'type2': self._dtype,
-                'name': self._meta_attributes.get('name')
+                'name': self.field_name
             }
             raise ValidationError(LazyFormat(self._validation_error_message, **attrs))
         return ','.join(map(lambda x: str(x), values))
@@ -552,13 +715,15 @@ class CommaSeperatedField(Field):
 
 
 class RegexField(Field):
-    name = 'regex'
-
     def __init__(self, pattern: str, group: int = 0, output_field: Field=None, **kwargs):
         self.pattern = re.compile(pattern)
         self.group = group
         self.output_field = output_field
         super().__init__(**kwargs)
+        
+    @property
+    def internal_name(self):
+        return 'RegexField'
 
     def resolve(self, value: str):
         value = self._run_validation(value)
@@ -582,17 +747,22 @@ class RegexField(Field):
 
 
 class BooleanField(Field):
-    name = 'boolean'
-    _dtype = bool
-    
     REP_TRUE = ['True', 'true', '1', 
                 'ON', 'On', 'on', True]
 
     REP_FALSE = ['False', 'false', '0', 
                  'OFF', 'Off', 'off', False]
 
-    def __init__(self, default: Any=None, null: bool=True):
+    def __init__(self, default=None, null=True):
         super().__init__(null=null, default=default)
+        
+    @property
+    def internal_type(self):
+        return bool
+    
+    @property
+    def internal_name(self):
+        return 'BooleanField'
 
     def _true_value_or_default(self, value):
         if isinstance(self.default, bool) and (value is None or value == Empty):
@@ -605,11 +775,11 @@ class BooleanField(Field):
                 'value': value,
                 't': self.__class__.__name__,
                 'type1': type(value),
-                'type2': self._dtype,
-                'name': self._meta_attributes.get('name')
+                'type2': self.internal_type,
+                'name': self.field_name
             }
             raise ValidationError(LazyFormat(self._validation_error_message, **attrs))
-        return self._dtype(value)
+        return self.internal_type(value)
 
     def resolve(self, value: Any):
         if value in self.REP_TRUE:
@@ -621,3 +791,95 @@ class BooleanField(Field):
                 value = Empty
             result = self._run_validation(value)              
         self._cached_result = self._to_python_object(result)
+
+
+class AutoField(Field):
+    """Tracks the current IDs for a given model"""
+    def __init__(self, auto_created=False):
+        super().__init__()
+        self.auto_created = auto_created
+        self._tracked_id = 0
+        
+    @property
+    def internal_name(self):
+        return 'AutoField'
+                
+    def resolve(self):
+        self._tracked_id = self._tracked_id + 1
+
+
+class RelatedField(Field):
+    is_relationship_field = True
+
+    def __init__(self, model, relation_name=None):
+        super().__init__()
+        self.related_model = model
+        self.related_name = relation_name
+        self.reverse_related_name = None
+        self.is_relationship_field = True
+        
+    def checks(self):
+        errors = super().checks()
+        if self.related_model is None:
+            errors.extend([
+                messages.ErrorMessage(
+                    f"Related model cannot be None"
+                )
+            ])
+            
+        if not isinstance(self.related_name, str):
+            errors.extend([
+                messages.ErrorMessage(
+                    f"Related name must be a string"
+                )
+            ])
+        return errors
+
+
+    def resolve(self, value):
+        # The related model field should not
+        # be resolving data directly so raise
+        # an error if the user tries something
+        # like model_name.add_value(related_field_name, value)
+        raise Exception(f"A RelatedModel field cannot resolve data directly. Use {self.model._meta.model_name}.{self.field_name}.add_value(...) for example to add a value to the related model.")
+
+
+# TODO: When the related field is set on the model
+# we get [{'ages': [{'age': 30}], 'name': 'Kendall'}]
+# for example. I think we should get instead
+# [{'ages': {'age': 30}, 'name': 'Kendall'}] and create
+# a many field that does the initial result that we
+# are getting
+
+# FIXME: Maybe find a better name for this field
+# so that we know explicitly what it does
+    
+class RelatedModel(RelatedField):
+    """Creates a relationship between two models. Does not
+    keep track of the relationship between individual data
+    and the related model. In other words, all the data
+    from the related model will be included in the model"""
+    field_descriptor = OneToOneDescriptor
+    
+    def update_model_options(self, model, field_name):
+        self.model = model
+        self.field_name = field_name
+                
+        if self.related_name is None:
+            related_model_name = self.related_model._meta.model_name
+            self.related_name = f"{model._meta.model_name}_{related_model_name}"
+            self.reverse_related_name = f"{related_model_name}_set"
+            # This section we create the attribute that allows
+            # us to get the data from the related model to the
+            # one that created the relation. In that sense, if
+            # we have model1.field where field being the
+            # RelatedModelField, then we should be able to do
+            # model2.field_set in reverse for model1
+            setattr(self.related_model, self.reverse_related_name, self.model)
+        
+        # TODO: We should not be able to create a RelatedModel field
+        # for the model that is a superclass of the model that wants
+        # to create the relationship
+        
+        setattr(model, field_name, self.field_descriptor(self))
+        model._meta.add_field(self.field_name, self)

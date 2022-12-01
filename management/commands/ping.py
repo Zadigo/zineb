@@ -1,7 +1,8 @@
 import platform
 import subprocess
 
-from zineb.logger import global_logger
+import zineb
+from zineb.logger import logger
 from zineb.management.base import BaseCommand
 
 
@@ -10,9 +11,11 @@ class Command(BaseCommand):
         parser.add_argument('host', type=str)
 
     def execute(self, namespace):
+        zineb.setup()
+        
         param = '-n' if platform.system().lower() == 'windows' else '-c'
         command = ['ping', param, '1', namespace.host]
         if subprocess.call(command) == 0:
-            global_logger.logger.info('Ping was successful.')
+            logger.instance.info('Ping was successful.')
         else:
-            global_logger.logger.error('Url is not valid.')
+            logger.instance.error('Url is not valid.')

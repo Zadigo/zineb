@@ -11,7 +11,7 @@ def read_files(filename):
     try:
         with open(path.join(ROOT, filename), 'rb', encoding='utf-8') as f:
             data = f.read()
-            return data.strip()
+            return data
     except:
         pass
 
@@ -60,7 +60,7 @@ install_requires = [
 setuptools.setup(
     name='zineb-scrapper',
     # packages: [],
-    version='6.0.2',
+    version='6.0.3',
     # version=read_files('version.txt'),
     author='John Pendenque',
     author_email='pendenquejohn@gmail.com',

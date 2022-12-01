@@ -7,8 +7,10 @@ WORKDIR ./spider
 RUN pipenv shell &&
     pip install zineb-scrapper
 
+RUN python manage.py test
+
 PORT 8000
 
-CMD ['start']
+CMD ["start"]
 
-ENTRYPOINT ['python', 'manage.py']
+ENTRYPOINT ["python", "manage.py"]

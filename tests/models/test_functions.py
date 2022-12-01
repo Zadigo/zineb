@@ -1,14 +1,13 @@
 import unittest
 
-from zineb.models import functions
-from zineb.models import fields
+from zineb.models import fields, functions
 from zineb.tests.models import items
 
 
 class TestMathOperations(unittest.TestCase):
     def setUp(self):
-        self.model = items.BareModel()
-    
+        self.model = items.SimpleModel()
+
     def test_addition(self):
         instance = functions.Add(5)
         instance._cached_data = 30
@@ -40,30 +39,15 @@ class TestMathOperations(unittest.TestCase):
         instance.field_name = 'age'
         instance.resolve()
         self.assertEqual(instance._cached_data, 15)
-        
-    def test_can_add_values_of_two_different_types(self):
-        # Even though the value is a string result
-        # of the model field, ensure that we can
-        # still add it to a number for example
-        instance = functions.Add(5)
-        instance.model = items.SimpleModel()
-        instance.field_name = 'name'
-        
-        values_to_test = ['30', 'Kendall', 5]
-        for value in values_to_test:
-            with self.subTest(value=value):
-                instance._cached_data = value
-                instance.resolve()
-                self.assertIn(instance._cached_data, ['305', 'Kendall5', '55'])
-                
-    def test_can_use_multiple_math_instances(self):
-        model = items.BareModel()
-        instances = [functions.Add(1), functions.Add(2)]
-        for instance in instances:
-            instance.model = model
-            instance.field_name = 'age'
-        model.add_calculated_value('age', 1, *instances)
-        self.assertListEqual(model._cached_result.as_list(), [{'age': 4}])
+
+    # def test_with_string(self):
+    #     # TODO: Allow addition on strings ??
+    #     instance = functions.Add(3)
+    #     instance._cached_data = 'Something'
+    #     instance.model = self.model
+    #     instance.field_name = 'name'
+    #     instance.resolve()
+    #     self.assertEqual(instance._cached_data, 'Something5')
 
 
 class TestWhen(unittest.TestCase):
@@ -79,6 +63,14 @@ class TestWhen(unittest.TestCase):
         field_name, result = self.instance.resolve()
         self.assertIsInstance(field_name, str)
         self.assertEqual(result, 20)
+
+    # @unittest.expectedFailure
+    # def test_cannot_compare_in_when(self):
+    #     self.model.add_case('google', functions.When('age__eq=21', 23))
+    #     self.assertRaises(TypeError)
+
+    # def test_wrong_expression_in_when(self):
+    #     self.assertRaises(TypeError, functions.When, if_condition='fast', then_condition=0)
 
     def test_comparision(self):
         result = self.instance.compare('gt', '10')
@@ -101,17 +93,11 @@ class TestWhen(unittest.TestCase):
         ]
         for expression in expressions:
             with self.subTest(expression=expression):
-                field_name, exp, value = self.instance.parse_expression(expression)
+                field_name, exp, value = self.instance.parse_expression(
+                    expression)
                 self.assertEqual(field_name, 'age')
                 self.assertIn(exp, ['gt', 'lt', 'eq', 'lte', 'gte', 'contains'])
                 self.assertEqual(value, '15')
-
-    # def test_adding_to_model(self):
-    #     self.model.add_case(15, self.instance)
-    #     self.assertDictEqual(dict(self.model._cached_result.values), {'age': [(1, 30), (2, 15)]})
-
-        # self.model.add_case(15, When('age__lt=20', 25, else_condition='age'))
-        # self.assertDictEqual(self.model._cached_result, {'age': [15, 25]})
 
 
 class TestExtractDates(unittest.TestCase):
@@ -140,8 +126,8 @@ class TestExtractDates(unittest.TestCase):
         self.assertEqual(instance._cached_data, 1)
 
     def test_can_extract_from_any_format(self):
-        dates = ['1987-1-1', '1.1.1987', '1-1-1987', '1/1/1987', 
-                'Oct 1, 1987', '1-1-02', '02-1-1', '1.1.02']
+        dates = ['1987-1-1', '1.1.1987', '1-1-1987', '1/1/1987',
+                 'Oct 1, 1987', '1-1-02', '02-1-1', '1.1.02']
         for d in dates:
             with self.subTest(d=d):
                 instance = functions.ExtractDay(d)
@@ -160,10 +146,14 @@ class TestExtractDates(unittest.TestCase):
                 instance.resolve()
                 self.assertEqual(instance._cached_data, 1987)
 
-    # @unittest.expectedFailure
+    @unittest.expectedFailure
     def test_field_should_not_be_a_datefield(self):
-        self.model._meta.cached_fields['age'] = fields.DateField()
-        self.assertRaises(TypeError, self.model.add_value, name='age', value=functions.ExtractYear('11-1-2021'))
+        self.model._meta.fields_map['age'] = fields.DateField()
+        self.assertRaises(TypeError,
+            self.model.add_value,
+            name='age', 
+            value=functions.ExtractYear('11-1-2021')
+        )
 
 
 if __name__ == '__main__':

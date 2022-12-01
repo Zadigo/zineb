@@ -5,7 +5,7 @@ from bs4.element import Tag
 from zineb.extractors.base import TableExtractor
 from zineb.tags import Link, TableTag
 
-path = 'tests/html/test_links.html'
+path = 'tests/html/links.html'
 with open(path, mode='r') as f:
     soup = BeautifulSoup(f, 'html.parser')
     links = soup.find_all('a')
