@@ -140,11 +140,6 @@ def detect_object_in_string(value: Any):
     return ast.literal_eval(value)
 
 
-def convert_to_dataframe(data: Union[list, dict], columns: list=[]):
-    import pandas
-    return pandas.DataFrame(data=data, columns=columns)
-
-
 def convert_if_number(value: str):
     from zineb.models.fields import Value
     

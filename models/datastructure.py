@@ -1,141 +1,77 @@
-import copy
+import bisect
+import csv
+import json
 import os
 import secrets
-from collections import OrderedDict
-from functools import cached_property
-from typing import Any, Callable, List, Union
+from collections import defaultdict, namedtuple
+from functools import cached_property, lru_cache
+from pathlib import Path
 
-from bs4 import BeautifulSoup
 from zineb.exceptions import FieldError, ModelExistsError
 from zineb.http.responses import HTMLResponse
-from zineb.models.fields import Empty, Field
+from zineb.models.fields import Value, Field
 from zineb.models.functions import (Add, Divide, ExtractDay, ExtractMonth,
-                                    ExtractYear, Math, Multiply, Substract,
-                                    When)
-from zineb.settings import settings
-from zineb.utils.containers import SmartDict
+                                    ExtractYear, Multiply, Substract, When)
+from zineb.utils.containers import ModelSmartDict
 from zineb.utils.formatting import LazyFormat
 
+# FIXME: This raises a circular import error
+# from zineb.models.fields import Value
+
+
+DEFAULT_META_OPTIONS = {
+    'constraints', 'ordering', 'verbose_name'
+}
 
 class ModelRegistry:
     """
     This class is a convienience container that remembers
-    the models that were created and the order in which
-    they were
+    the models that were created and the order
     """
     counter = 0
-    registry = OrderedDict()
+    registry = defaultdict(dict)
 
     def __getitem__(self, name: str):
         return self.registry[name]
 
-    def __iter__(self):
-        return iter(self.models)
-
-    @property
+    @cached_property
     def models(self):
         return list(self.registry.values())
 
-    def add(self, name: str, model: type):
-        if self.has_model(name):
+    def add(self, name, model):
+        if name in self.registry:
             raise ModelExistsError(name)
 
         self.counter = self.counter + 1
-        return self.registry.setdefault(name, model)
+        self.registry[name] = model
 
-    def get_model(self, name: str):
-        return self.registry[name]()
-
-    def has_model(self, name: str):
-        return name in self.registry
 
 model_registry = ModelRegistry()
 
 
-class FieldMixin:
-    parents = []
-    # forward_fields_map = {}
-    cached_fields = OrderedDict()
-    
-    @cached_property
-    def field_names(self):
-        return list(self.cached_fields.keys())
-
-    # @cached_property
-    # def fields_map(self):
-    #     pass
-    
-    @cached_property
-    def true_fields(self):
-        return list(self.cached_fields.values())
-
-    def get_field(self, name) -> Field:
-        try:
-            return self.cached_fields[name]
-        except:
-            raise FieldError(name, self.field_names)
-
-    def has_fields(self, *names, raise_exception=False):
-        result = all(map(lambda x: x in self.field_names, names))
-        if raise_exception and not result:
-            # FIXME: Should implement the field names that are
-            # really missing as opposed to the names provided
-            raise FieldError(LazyFormat('Field does not exist: '
-            '{fields}', fields=', '.join(names)))
-        return result
-
-
-class ModelOptions(FieldMixin):
+class ModelOptions:
     """
     A container that stores the options
-    of a given model including both the 
-    fields and the Meta options
+    for a given model such as fields,
+    constraints...
     """
-    authorized_options = ['ordering', 'label', 'template_model']
-
-    def __init__(self, options: Union[List[tuple[str]], dict]):
-        self.model_name = None
-        self.cached_options = OrderedDict(options)
-
-        self.ordering_field_names = set()
-        self.ascending_fields = []
-        self.descending_fields = []
-        self.ordering_booleans = []
+    def __init__(self, model, model_name):
+        self.model = model
+        model_name = model.__name__
+        self.model_name = model_name.lower()
+        self.verbose_name = model_name.title()
+        self.field_names = []
+        self.fields_map = {}
+        self.related_model_fields = {}
+        self.parents = set()
+        self.ordering = []
+        # NOTE: These are the initial constraints.
+        # We might need to create another variable.
+        self.constraints = []
+        self.initial_model_meta = None
         
-        if self.has_option('ordering'):
-            ordering = self.get_option_by_name('ordering')
-            for field in ordering:
-                self.ordering_field_names.add(field.removeprefix('-'))
-            self.ascending_fields = [
-                field for field in ordering 
-                    if not field.startswith('-')
-            ]
-            self.descending_fields = [
-                field for field in ordering 
-                    if field.startswith('-')
-            ]
-
-            # Convert each ordering field on the
-            # model to Booleans. This is what a
-            # DataFrame accepts in order to sort
-            # a particular column
-            def convert_to_boolean(value):
-                if value.startswith('-'):
-                    return False
-                return True
-            self.ordering_booleans = list(map(convert_to_boolean, ordering))
-
-    def __call__(self, options):
-        # old_options = copy.deepcopy(self.cached_options)
-        self.__init__(options)
-        # self.cached_options = old_options | self.cached_options
-        return self
-
-    def __getitem__(self, name):
-        return self.cached_options[name]
-
     def __repr__(self):
-        return f"{self.__class__.__name__}(model={self.model_name})"
+        return f'<{self.__class__.__name__} for {self.verbose_name}>'
 
     def __getattr__(self, name):
         if name in self.field_names:
@@ -154,6 +90,24 @@ class ModelOptions(FieldMixin):
         # In that sense, we shouldn't be able to
         # add values to it or even save.
         return self.cached_options.get('template_model', False)
+    
+    def _run_checks(self, declared_fields=None):
+        checks = [
+            self._check_fields_ordering
+        ]
+        for check in checks:
+            # Since the model is not yet instantiated,
+            # we used the declared collected fields to
+            # run the check at the very top level. Other
+            # option would be to run this check at the
+            # __init__ level
+            check(declared_fields)
+    
+    def _check_fields_ordering(self, declared_fields):
+        for field in self.get_option_by_name('ordering'):
+            for declared_field in declared_fields:
+                if field not in declared_field:
+                    raise FieldError(field, [])
 
     def get_option_by_name(self, name):
         return self.cached_options.get(name)
@@ -161,111 +115,336 @@ class ModelOptions(FieldMixin):
     def has_option(self, name):
         return name in self.cached_options
     
+    @property
+    def has_ordering(self):
+        return self.ordering
+        
+    def _check_ordering_fields(self):
+        for name in self.ordering:
+            if name not in self.field_names:
+                raise FieldError(name, self.field_names)
+            
+    def _check_constraints(self):
+        names = set()
+        duplicates = []
+        
+        for constraint in self.constraints:
+            names.add(constraint.name)
+            
+            if constraint.name in  names:
+                duplicates.append(constraint.name)
+                
+        if duplicates:
+            raise ValueError('Constraints should have a unique name')
+            
+    def _checks(self):
+        return [
+            self._check_ordering_fields,
+            self._check_constraints
+        ]
+        
+    def _prepare(self):
+        """Final step to prepare the model for
+        final use in a project"""
+        # Include the ID field by default for functions
+        # or definitions that might require using this.
+        # If we have not inherited from an ID field
+        # skip this process
+        from zineb.models.fields import AutoField
+        self.set_field_names()
+        if not self.has_field('id'):
+            auto_field = AutoField(auto_created=True)
+            self.add_field('id', auto_field)
+        
+    def has_field(self, name):
+        return name in self.field_names
+    
+    # TODO: Is this useful ??
+    # def add_constraint(self, name):
+    #     pass
+        
+    def add_field(self, name, field):
+        if name in self.fields_map:
+            raise ValueError(f"Field '{name}' is already present on the model '{self.model_name}'")
+        
+        if getattr(field, 'is_relationship_field', False):
+            # We have to keep track of a two way relationship:
+            # one from model1 -> model2 and the reverse from
+            # model1 <- model2 where model1.field accesses
+            # model2 and model2.field_set accesses model1
+            self.related_model_fields[name] = field
+        self.fields_map[name] = field
+        self.field_names.append(name)
+        
+        field.creation_counter = len(self.field_names) - 1
+        self.set_field_names()
+        
+    def set_field_names(self):
+        sorted_names = []
+        names = self.fields_map.keys()
+        for name in names:
+            bisect.insort(sorted_names, name)
+        self.field_names = sorted_names
+        
+    # def update_fields(self, fields):
+    #     for name, items in fields:
+    #         field, parent = items
+    #         self.parents[parent] = field
 
+    def add_meta_options(self, options):
+        for name, value in options:
+            if name not in DEFAULT_META_OPTIONS:
+                raise ValueError(LazyFormat("Meta for model '{name}' received "
+                "and illegal option '{option}'", name=self.verbose_name, option=name))
+            setattr(self, name, value)
+        
+            
+        # TODO: Alter the check so that if the field
+        # starts with a - on the ordering, that it
+        # does not create an error
+        # for check in self._checks():
+        #     check()
+            
+    def get_field(self, name):
+        try:
+            return self.fields_map[name]
+        except KeyError:
+            raise FieldError(name, self.field_names, model_name=self.model_name)
+        
+    def get_ordering(self):
+        def remove_prefix(value):
+            return value.removeprefix(('-'))
+        
+        ascending_fields = [
+            field for field in self.ordering
+                if not field.startswith('-')
+        ]
+        
+        descending_fields = [
+            field for field in self.ordering
+                if field.startswith('-')
+        ]
+    
+        # Create a map that can be used by the internal
+        # python sorted method. The Ascending order is
+        # represented by the minus
+        ordering_map = [
+            (remove_prefix(name), name.startswith('-'))
+                for name in self.ordering
+        ]
+        ordering = namedtuple('Ordering', ['ascending_fields', 'descending_fields', 'booleans'])
+        return ordering(ascending_fields, descending_fields, ordering_map)    
+
+        
 class Base(type):
     def __new__(cls, name, bases, attrs):
         super_new = super().__new__
+        
         parents = [b for b in bases if isinstance(b, Base)]
-
         if not parents:
             return super_new(cls, name, bases, attrs)
 
-        declared_fields = set()
-        for key, field_obj in attrs.items():
-            if isinstance(field_obj, Field):
-                field_obj._bind(key)
-                declared_fields.add((key, field_obj))
+        # TODO:
+        # declared_fields = set()
+        # for key, field_obj in attrs.items():
+        #     if isinstance(field_obj, Field):
+        #         field_obj._bind(key, model=cls)
+        #         declared_fields.add((key, field_obj))
 
-        default_options = [
-            ('label', f"models.base.{name}")
-        ]
-        meta = ModelOptions(default_options)
+        meta_attributes = attrs.pop('Meta', None)
+        
+        # "Remove" all the declared fields on the model.
+        # They will be replaced later on with a descriptor
+        # that wil load the fields true value directly
+        # from the data container
+        new_attrs = {}
+        for item_name, value in attrs.items():
+            # "update_model_options" is a method that
+            # explicitly tells the Meta class that 
+            # the ModelOptions should reference the
+            # object that requires it to be bound
+            # to the given model
+            if not hasattr(value, 'update_model_options'):
+                new_attrs[item_name] = value
+                
+        new_class = super_new(cls, name, bases, new_attrs)
 
+        meta = ModelOptions(new_class, name)
+        meta.initial_model_meta = meta_attributes
+        setattr(new_class, '_meta', meta)
+        
         # If the model is subclassed, resolve the MRO
         # to get all the fields from the superclass
-        # [...] also maybe create direct relationship
-        # with the parent model via a ForeignKey
+        super_class_fields = []
         for parent in bases:
             if hasattr(parent, '_meta'):
-                fields = getattr(getattr(parent, '_meta'), 'cached_fields', {})
-                for key, field_obj in fields.items():
-                    # If the field is registered twice (on the
-                    # superclass and on the subclass), use the
-                    # subclass version of the field
-                    if field_obj not in declared_fields:
-                        declared_fields.add((key, field_obj))
-                    # Create the map that will allow us to register
-                    # and use ForeignKey type fields in forward and
-                    # backward relationships
-                    # meta.forward_fields_map.update({key: field_obj})
-                meta.parents.append(parent)
-
-        meta.model_name = name
-        if declared_fields:
-            meta.cached_fields = OrderedDict(declared_fields)
-
-        if 'Meta' in attrs:
-            meta_dict = attrs.pop('Meta').__dict__
-            non_authorized_options = []
-
-            def check_option(item):
-                key, _ = item
-                if key.startswith('__'):
-                    return False
-
-                if key in meta.authorized_options:
-                    return True
+                fields = parent._meta.fields_map
+                meta.parents.add(parent)
                 
-                non_authorized_options.append(key)
-                return False
+                for name, field in fields.items():
+                    super_class_fields.append((name, field, parent))
+                                
+        # Get all the declared items on the model
+        # regardless whether they are fields or not
+        # and if they have update_model_options function
+        # we would then know that they should be included
+        # to the ModelOptions class defining their own
+        # way of how they should be integrated
+        for name, item in attrs.items():
+            if hasattr(item, 'update_model_options'):                
+                item.update_model_options(new_class, name)
+            else:
+                setattr(cls, name, item)
+                
+        # Now that we've resolved all fields
+        # from the model itself, deal with
+        # those present on the parent
+        if super_class_fields:
+            for item in super_class_fields:
+                field_name, field, parent = item
 
-            options = list(filter(check_option, meta_dict.items()))
-            if non_authorized_options:
-                raise ValueError("Meta received an illegal "
-                f"option. Valid options are: {', '.join(meta.authorized_options)}")
-            default_options.extend(options)
-            meta = meta(default_options)
+                if meta.has_field(field_name):
+                    continue
+                                
+                meta.fields_map[field_name] = field
+                
+            # If the superclass has a Meta that the user
+            # has configured, we have to inherit from it 
+            # and copy the values in the subclass's meta
+            if parent._meta.initial_model_meta is not None:
+                meta_attributes_to_update = {'ordering', 'constraints', 'initial_model_meta'}
+                for attribute in meta_attributes_to_update:
+                    setattr(meta, attribute, getattr(parent, attribute))
             
-        attrs['_meta'] = meta
-        
-        new_class = super_new(cls, name, bases, attrs)
-
-        if declared_fields:
-            # is_template_model = False
-            # if meta.has_option('template_model'):
-            #     is_template_model = meta.get_option_by_name('template_model')
-            # # The parent model is just a template,
-            # # we'll not create any ForeignKey
-            # # relationship to the parent
-            # if not is_template_model:
-            #     relationships = [
-            #         (f"{parent}_rel", ForeignKey(new_class, parent)) 
-            #             for parent in new_class._meta.parents
-            #     ]
-            #     meta.cached_fields.update(relationship for relationship in relationships)
-
-            # That's where is explicitely register
-            # models that have declared fields and
-            # that are actually user created models -;
-            # this might seem odd to implement this block
-            # but it allows us to do additional things on
-            # on the new model and its meta
-            model_registry.add(name, new_class)
-            return new_class
-
+        # Deal with all the options on 
+        # the "Meta" of the given model
+        if meta_attributes is not None:
+            meta_dict = meta_attributes.__dict__
+            
+            declared_options = []
+            for key, value in meta_dict.items():
+                if key.startswith('__'):
+                    continue
+                declared_options.append((key, value))
+            meta.add_meta_options(declared_options)
+                        
+        new_class._prepare()
         return new_class
+    
+    def _prepare(cls):
+        cls._meta._prepare()
+        model_registry.add(cls.__name__, cls)
 
 
-class DataStructure(metaclass=Base):
-    def __init__(self, html_document: BeautifulSoup=None, response: HTMLResponse=None):
-        self._cached_result = SmartDict.new_instance(*self._meta.field_names)
+class Model(metaclass=Base):
+        
+    """
+    A Model is a class that helps you structure
+    your scrapped data efficiently for later use. It has to 
+    inherit from this base Model class and implement fields.
+
+    >>> class MyModel(Model):
+            name = CharField()
+
+    Once you've created the model, you can then use
+    it within your project like so:
+
+    >>> model = MyModel()
+    ... model.add_value('name', 'Kendall')
+    ... model.save()
+    ... [{"name": "Kendall"}]
+    """
+    
+    _cached_resolved_data = None
+    
+    def __init__(self, html_document=None, response=None):
+        self._data_container = ModelSmartDict.new_instance(self)
+        
+        # When the class is instantiated, that's where
+        # we finalize the relationships between all the
+        # classes by making sure that they are
+        # correctly instantiated
+        related_model_fields = self._meta.related_model_fields
+        if related_model_fields:
+            for field in related_model_fields.values():
+                if isinstance(field.related_model, type):
+                    setattr(field, 'related_model', field.related_model())
 
         self.html_document = html_document
         self.response = response
 
         self.parser = self._choose_parser()
+        
+        # When the model is initialized, we bind it
+        # to the constraint if there are any
+        for constraint in self._meta.constraints:
+            constraint.update_model_options(self)
 
-    def _get_field_by_name(self, field_name) -> Field:
+        # Errors aggregated from the different
+        # other pieces that compose the model
+        self.global_errors = []
+
+    def __str__(self):
+        # data = self._data_container.as_list()
+        return str(self.resolve_all_related_fields())
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}"
+    
+    def __hash__(self):
+        attrs = [self._meta.verbose_name, len(self._meta.field_names), self.id]
+        return hash(tuple(attrs))
+    
+    def __getattr__(self, name):
+        id_names = ['id', 'pk']
+        if name in id_names:
+            field = self._meta.get_field('id')
+            return field._tracked_id
+        
+    def __reduce__(self):
+        return self.__class__, (self._meta.verbose_name,), {}
+    
+    def __eq__(self, obj):
+        if not isinstance(obj, Model):
+            raise ValueError('Object to compare is not a Model')
+        return all([
+            self._meta.model_name == obj._meta.model_name,
+            self._meta.field_names == obj._meta.field_names
+        ])
+
+    @staticmethod
+    def check_special_function(value):
+        """Checks if the incoming value is a special function
+        e.g. ExtractYear, ExtractMonth and resolves it to
+        its true self"""
+        # FIXME: Due the way the mixins are ordered
+        # on the ExtractYear, ExtractDay... classes,
+        # the isinstance check on this fails therefore
+        # trying to add a None string function item
+        # to the model
+        # FIXME: Value is not deep cleaned when using
+        # the special functions
+        return isinstance(value, (ExtractDay, ExtractMonth, ExtractYear))
+        
+    @property
+    def _get_internal_data(self):
+        return dict(self._cached_result.values)
+        
+    @lru_cache(maxsize=10)
+    def resolve_all_related_fields(self):
+        # When returning the data, we have to map all
+        # the related fields in order to return their
+        # own values
+        new_data = self._data_container.as_list()
+        related_model_fields = self._meta.related_model_fields
+        if related_model_fields:
+            for name, field in related_model_fields.items():
+                related_model_data = field.related_model._data_container.as_list()
+                for item in new_data:
+                    item[name] = related_model_data
+        return new_data
+    
+    def _get_field_by_name(self, field_name):
         """
         Gets the cached field object that was registered
         on the model via the FieldDescriptor
@@ -282,7 +461,7 @@ class DataStructure(metaclass=Base):
                 'zineb.response.HTMLResponse object.'))
             return self.response.html_page
 
-    def _add_without_field_resolution(self, field_name: str, value:Any):
+    def _add_without_field_resolution(self, field_name, value):
         """
         When the value of a field has already been
         resolved, just add it to the model. This is
@@ -291,11 +470,42 @@ class DataStructure(metaclass=Base):
         field resolution and raw data from the internet
         would be added as is
         """
-        cached_values = self._cached_result.get_container(field_name)
+        cached_values = self._data_container.get_container(field_name)
         cached_values.append(value)
-        self._cached_result.update(field_name, cached_values)
+        self._data_container.update(field_name, cached_values)
 
-    def add_calculated_value(self, name: str, value: Any, *funcs):
+    def _bind_to_value_field(self, field_name, data):
+        instance = Value(data)
+        instance.field_name = field_name
+        return instance
+        
+    def _checks_for_fields(self):
+        errors = []
+        for field in self._meta.fields_map.values():
+            errors.extend(field.checks())
+        return errors
+
+    def checks(self):
+        # This is the main collector for all the errors
+        # that might have occured during the creation
+        # of the the current model
+        return [
+            *self._checks_for_fields()
+        ]
+        
+    def update_id_field(self):
+        # TODO: Maybe move this to the
+        # options class
+        field = self._meta.get_field('id')
+        field.resolve()
+    
+    def add_calculated_value(self, name, value, *funcs):
+        """Adds a value to the model after running an 
+        arithmetic operation
+        
+        >>> model.add_calculated_value("age", 21, Add(3), Substract(1))
+        ... 23
+        """
         funcs = list(funcs)
 
         # TODO: Quick fix because the funcs is an optional
@@ -315,9 +525,12 @@ class DataStructure(metaclass=Base):
             # if the field actually exists on the
             # model before passing to the func
             setattr(func, 'field_name', name)
+        
+        # value = self.check_special_function(name, value)
 
         if len(funcs) == 1:
-            func._cached_data = value
+            func = funcs[-1]
+            func._cached_data = Value(value)
             func.resolve()
             self.add_value(func.field_name, func._cached_data)
         else:
@@ -337,21 +550,29 @@ class DataStructure(metaclass=Base):
             # use the data of the last function to
             # add the given value to the model
             self.add_value(funcs[-1].field_name, funcs[-1]._cached_data)
+            self.update_id_field()
 
-    def add_case(self, value: Any, case: Callable):
+    def add_case(self, value, case):
         """
         Add a value to the model based on a specific
-        conditions determined by a When-function.
+        conditions determined by a When-function
+
+        >>> model.add_case("kendall", When("name_eq=kendall", "Kendall"))
+        ... "Kendall"
         """
         if not isinstance(case, When):
             raise TypeError('Case should be a When class.')
 
+        # We let the user test against the
+        # raw value directly. This opens more
+        # options for him
         case._cached_data = value
         case.model = self
         field_name, value = case.resolve()
         self.add_value(field_name, value)
+        self.update_id_field()
 
-    def add_using_expression(self, name: str, tag: str, attrs: dict={}):
+    def add_using_expression(self, name, tag, attrs={}):
         """
         Adds a value to your Model object using an expression. Using this
         method requires that you pass and BeautifulSoup object to your model.
@@ -366,108 +587,85 @@ class DataStructure(metaclass=Base):
         tag_value = self.parser.find(name=tag, attrs=attrs)
         obj.resolve(tag_value.string)
         resolved_value = obj._cached_result
-        self._cached_result.update(name, resolved_value)
+        self._data_container.update(name, resolved_value)
+        self.update_id_field()
 
     def add_values(self, **attrs):
         """
-        Add a single row at once on your model
-        using either a dictionnary or keyword
-        arguments
-        """
-        self._fields.has_fields(list(attrs.keys()), raise_exception=True)
-        self._cached_result.update_multiple(**attrs)
+        Add a single row at once on the model
+        using either a dictionnary or keywords
 
-    def add_value(self, name: str, value: Any):
+        >>> model.add_values(name="Kendall")
+        >>> model.add_values({"name": "Kendall"})
         """
-        Adds a value to the Model object
+        # FIXME: The user can just add values without any
+        # formatting whatsoever? This should be fixed in
+        # order that the values that are added be deep_cleaned
+        # formatted correctly for consistency
+        self._fields.has_fields(list(attrs.keys()), raise_exception=True)
+        self._data_container.update_multiple(**attrs)
+        self.update_id_field()
+
+    def add_value(self, name, value):
+        """
+        Adds a value to the model
+
+        >>> model.add_value("name", "Kendall")
         """
         # FIXME: Due the way the mixins are ordered
         # on the ExtractYear, ExtractDay... classes,
         # the isinstance check on this fails therefore
         # trying to add a None string function item
         # to the model
-        instances = (ExtractDay, ExtractMonth, ExtractYear, 
-                     Add, Substract, Divide, Multiply)
-        if isinstance(value, instances):
+
+        obj = self._get_field_by_name(name)
+
+        state = self.check_special_function(value)
+        if state:
             value.model = self
             value.field_name = name
             value.resolve()
-            return self._cached_result.update(name, value._cached_data)
+            resolved_value = value._cached_data
+        else:
+            if not isinstance(value, Value):
+                # We know that the Value field deep_cleans
+                # and formats the raw value. Makes no sense
+                # to redo all of this if we already have a
+                # Value instance
+                value = self._bind_to_value_field(obj.field_name, value)
 
-        obj = self._get_field_by_name(name)
-        obj.resolve(value)
-        resolved_value = obj._cached_result
+            obj.resolve(value)
+            resolved_value = obj._cached_result
 
-        if obj.name == 'date':
-            # Some fields such as the DateField does not
-            # store a string but a function. For example,
-            # in this case, a datetime.datetime object is
-            # stored. In that case, we have to resolve to
-            # the true value of the field. Otherwise the
-            # user might get something unexpected
-            resolved_value = str(obj._cached_result)
-        
-        self._cached_result.update(name, resolved_value)
-        
-    # def update_model(self, func):
-    #     """Run an update function directly on the underlying
-    #     data container of the model e.g. SmartDict"""
-        
-    # def query(self, **expressions):
-    #     """Method to check that the underlying model
-    #     contains a certain set of elements"""
-    #     return self._cached_result.run_query('')
+            if obj.internal_name == 'DateField':
+                # Some fields such as the DateField does not
+                # store a string but a function. For example,
+                # in this case, a datetime.datetime objec.
+                # Therefore we have to resolve the true value of the field
+                # otherwise the user might get something unexpected
+                resolved_value = str(obj._cached_result)
 
-    def resolve_fields(self):
-        return self._cached_result.as_list()
+        # Before saving the value to the model, check
+        # constraints aka existing values if the user
+        # has required this step
+        result = self.check_constraints(resolved_value)
+        if result:
+            self._data_container.update(name, resolved_value)
+            self.update_id_field()
 
+    def check_constraints(self, clean_value):
+        constraint_errors = []
+        for constraint in self._meta.constraints:
+            constraint_result = constraint(clean_value)
+            constraint_errors.extend(constraint_result)
+        self.global_errors.extend(constraint_errors)
+        return False if constraint_errors else True
 
-class Model(DataStructure):
-    """
-    A Model is a class that helps you structure
-    your scrapped data efficiently for later use
-
-    Your custom models have to inherit from this
-    base Model class and implement a set of fields
-    from zineb.models.fields. For example:
-
-            class MyModel(Model):
-                name = CharField()
-
-    Once you've created the model, you can then use
-    it within your project like so:
-
-            custom_model = MyModel()
-            custom_model.add_value('name', 'p')
-            custom_model.save()
-    """
-    _cached_dataframe = None
-
-    def __str__(self):
-        return str(self._cached_result)
-        
-    def __repr__(self):
-        return f"{self.__class__.__name__}"
-
-    def __getitem__(self, field_name: str):
-        return self._cached_result.get_container(field_name)
-    
-    # def __getattribute__(self, name):
-    #     # When the acceses model.field_name
-    #     # on the model, instead of returning the
-    #     # field instance, we should return the
-    #     # visual representation of the field
-    #     meta = getattr(self, '_meta')
-    #     if meta.has_field(name):
-    #         smart_dict = getattr(self, '_cached_result')
-    #         return smart_dict.get_container(name)
-    #     return super().__getattribute__(name)
-        
-    # def __get__(self, attr):
-    #     print(attr)
-
-    def full_clean(self, dataframe, **kwargs):
-        self._cached_dataframe = dataframe
+    def full_clean(self, **kwargs):
+        # data = self._data_container.as_list()
+        data = self.resolve_all_related_fields()
+        self._cached_resolved_data = data
+        self.clean(data)
 
     def clean(self, dataframe, **kwargs):
         """
@@ -475,12 +673,11 @@ class Model(DataStructure):
         run on the DataFrame here before calling the save
         function on your model
         """
-        self._cached_dataframe = dataframe
         
-    def save(self, commit: bool=True, filename: str=None, **kwargs):
+    def save(self, commit=True, filename=None, extension='json', **kwargs):
         """
         Transform the collected data to a DataFrame which
-        in turn will be saved to a JSON file.
+        in turn can be saved to a JSON file.
 
         By setting commit to False, you will get a copy of the
         dataframe in order to run additional actions on it
@@ -488,23 +685,45 @@ class Model(DataStructure):
         to a file within your project.
         """
         # TODO: Send a signal before the model
-        # is saved
-
-        dataframe = self.resolve_fields()
-
-        self.full_clean(dataframe=dataframe)
-        self.clean(self._cached_dataframe)
+        # is saved - pre_save
+        
+        self.full_clean()
 
         if commit:
+            from zineb.settings import settings
+            from zineb.utils.encoders import DefaultJsonEncoder
+            
             if filename is None:
                 filename = f'{secrets.token_hex(nbytes=5)}'
                 
-            # TODO: Send a signal after the model
-            # is saved
-    
-            if settings.MEDIA_FOLDER is not None:
-                filename = os.path.join(settings.MEDIA_FOLDER, filename)
+            try:
+                path = Path(settings.MEDIA_FOLDER)
+                if not path.exists():
+                    path.mkdir()
+            except:
+                raise Exception('Could not find media folder')
+            else:
+                full_path = path.joinpath(filename)
                 
-            self._cached_result.save(commit=commit, filename=filename, **kwargs)
-            return dataframe
-        return self._cached_dataframe.copy()    
+                acceptable_extensions = ['json', 'csv']
+                if extension not in acceptable_extensions:
+                    raise ValueError('Extension should b one of csv or json')
+                
+                full_path = f"{full_path}.{extension}"
+                
+                if extension == 'json':
+                    data = json.loads(json.dumps(self._data_container.as_list()))
+                    with open(full_path, mode='w', encoding='utf-8') as f:
+                        json.dump(data, f, indent=2, sort_keys=2, cls=DefaultJsonEncoder)
+                
+                if extension == 'csv':
+                    with open(full_path, mode='w', newline='\n', encoding='utf-8') as f:
+                        writer = csv.writer(f)
+                        writer.writerows(self._data_container.as_csv())    
+            
+                
+            # TODO: Send a signal after the model
+            # is saved - post_save
+                
+            # self._data_container.execute_save(commit=commit, filename=filename, **kwargs)
+        return self._cached_resolved_data    

@@ -9,9 +9,10 @@ from typing import List, NoReturn, Union
 from bs4 import BeautifulSoup
 from bs4.element import ResultSet, Tag
 from w3lib.html import safe_url_string
-from w3lib.url import is_url, urljoin
+from w3lib.url import is_url
+from urllib.parse import urljoin
 from zineb.extractors._mixins import MultipleRowsMixin
-from zineb.settings import settings as global_settings
+from zineb.settings import settings
 from zineb.utils.characters import deep_clean
 from zineb.utils.decoders import decode_email
 from zineb.utils.iteration import keep_while
@@ -66,24 +67,23 @@ class TableExtractor(Extractor):
         Example
         -------
 
-            extractor = TableExtractor()
-            extractor.resolve(BeautifulSoup Object)
+        >>> extractor = TableExtractor()
+        ... extractor.resolve(BeautifulSoup Object)
+        ... [[a, b, c], [d, ...]]
 
-                [[a, b, c], [d, ...]]
+        By indicating if the table has a header, the header values 
+        which generally corresponds to the first row will be dropped
+        from the final result.
 
-            By indicating if the table has a header, the header values 
-            which generally corresponds to the first row will be dropped
-            from the final result.
+        Finally, you can also pass a set of processors that will modifiy the values
+        of each rows according to the logic you would have implemented.
 
-            Finally, you can also pass a set of processors that will modifiy the values
-            of each rows according to the logic you would have implemented.
-
-            def drop_empty_values(value):
+        >>> def drop_empty_values(value):
                 if value != '':
                     return value
 
-            extractor = TableExtractor(processors=[drop_empty_values])
-            extractor.resolve(BeautifulSoup Object)
+        >>> extractor = TableExtractor(processors=[drop_empty_values])
+        ... extractor.resolve(BeautifulSoup Object)
     """
 
     def __init__(self, class_or_id_name=None, header_position: int=None, 
@@ -437,7 +437,7 @@ class TextExtractor(Extractor):
 
     @cached_property
     def _stop_words(self):
-        stop_words_path = os.path.join(global_settings.GLOBAL_ZINEB_PATH, 'extractors', 'stop_words')
+        stop_words_path = os.path.join(settings.GLOBAL_ZINEB_PATH, 'extractors', 'stop_words')
         with open(stop_words_path, mode='r') as f:
             data = f.readlines()
             words = data.copy()

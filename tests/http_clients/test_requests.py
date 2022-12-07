@@ -1,74 +1,95 @@
 import unittest
 from typing import Generator
-
-import requests
-from bs4 import BeautifulSoup
+from urllib.parse import ParseResult
+from zineb.settings import settings
 from requests.models import Response
+
 from zineb.http.headers import ResponseHeaders
 from zineb.http.request import HTTPRequest
 from zineb.http.responses import HTMLResponse
-from zineb.tags import Link
 from zineb.tests.http_clients.items import BAD_URLS, create_simple_request
 
 
-class TeestBaseRequest(unittest.TestCase):
+class TestBaseRequest(unittest.TestCase):
+    def test_request_class(self):
+        request = HTTPRequest
+        self.assertTrue(request.can_be_sent)
+        self.assertListEqual(request.http_methods, ['GET', 'POST'])
+
+    def test_domains_flag(self):
+        settings(DOMAINS=['http://google.com'])
+        request = create_simple_request()
+        self.assertFalse(request.can_be_sent)
+
+    def test_https_flag(self):
+        settings(ENSURE_HTTPS=True)
+        request = create_simple_request()
+        self.assertFalse(request.can_be_sent)
+        
+    def test_request_instance(self):
+        request = create_simple_request()
+        # A request is orginally considered
+        # safe to be sent as is
+        self.assertTrue(request.can_be_sent)
+        self.assertIsNone(request._http_response)
+        self.assertIsNone(request.html_response)
+        self.assertFalse(request.only_secured_requests)
+        self.assertIsInstance(request._url_meta, ParseResult)
+        self.assertListEqual(request.http_methods, ['GET', 'POST'])
+        self.assertTrue(request.url == 'http://example.com')
+        self.assertIsInstance(request.url, str)
+        self.assertIsNone(request.root_url, None)
+
     def test_global_http_api(self):
         request = create_simple_request(send=True)
 
-        self.assertTrue(request.can_be_sent)
-        
+        self.assertTrue(request.can_be_sent)        
         self.assertEqual(request.url, 'http://example.com')
         self.assertIsNotNone(request.url)
-        
         self.assertListEqual(request.errors, [])
         self.assertTrue(request.resolved)
-        
         self.assertIsNotNone(request.html_response)
         self.assertIsInstance(request._http_response, Response)
-    
-    def test_domain_restriction(self):
-        request = HTTPRequest('http://example.com')
-        request.only_secured_requests = True
-        request._send()
 
-    def test_secured_requests(self):
-        pass
-
-#     def test_link_following(self):
-#         response = _request.follow(_request.html_response.links[0])
-#         self.assertIsInstance(response, HTMLResponse)
+    def test_link_following(self):       
+        request = HTTPRequest
+        new_instance = request.follow('http://example.com')
+        self.assertIsInstance(new_instance, HTTPRequest)
+        self.assertEqual(new_instance.html_response.page_title, 'Example Domain')
         
-#         self.assertEqual(response.cached_response.url, 'http://www.iana.org/domains/reserved')
-#         self.assertEqual(response.page_title, 'IANA — IANA-managed Reserved Domains')
+    def test_multiple_link_following(self):
+        request = HTTPRequest
+        instances = request.follow_all(['http://example.com'])
+        
+        # Resolution of the the follow_all is deferred
+        # until the user iterates over the generator
+        self.assertIsInstance(instances, Generator)
+        instances = list(instances)
+        for instance in instances:
+            with self.subTest(instance=instance):
+                self.assertIsInstance(instance, HTTPRequest)
 
+    def test_headers(self):
+        request = HTTPRequest('http://example.com')
+        request._send()
+        self.assertIsInstance(request.html_response.headers, ResponseHeaders)
+        self.assertEqual(request.html_response.headers.get('x-cache'), 'HIT')
+        
+    def test_bad_urls(self):
+        # FIXME: Test bad urls on the request but does
+        # not raise Exceptions
+        for url in BAD_URLS:
+            with self.subTest(url=url):
+                request = HTTPRequest(url)
+                with self.assertRaises(Exception):
+                    request._send()
+                self.assertFalse(request.can_be_sent)
+                
+    def test_json_property(self):
+        request = HTTPRequest('https://jsonplaceholder.typicode.com/todos')
+        request._send()
+        self.assertIsInstance(request.json(), (dict, list))
 
-#     def test_multiple_link_following(self):
-#         tag = _request.html_response.html_page.find('a')
-#         links = [Link(tag), Link(tag)]
-#         responses = _request.follow_all(links)
-#         self.assertIsInstance(responses, Generator)
-#         self.assertEqual(len(list(responses)), 2)
-
-#     def test_headers(self):
-#         self.assertIsInstance(_request.html_response.headers, ResponseHeaders)
-
-
-# class TestHTTPRequest(unittest.TestCase):
-#     def test_cached_response(self):
-#         self.assertIsInstance(_request.html_response.cached_response, Response)
-
-#     def test_html_response(self):
-#         self.assertIsInstance(_request.html_response, HTMLResponse)
-#         self.assertIsInstance(_request.html_response.html_page, BeautifulSoup)
-
-#     def test_count_links_on_page(self):
-#         self.assertEqual(len(_request.html_response.links), 1)
-
-#     def test_count_images_on_page(self):
-#         self.assertEqual(len(_request.html_response.images), 0)
-
-#     def test_url_join(self):
-#         self.assertEqual(_request.html_response.urljoin('kendall'), 'http://example.com/kendall')
 
 if __name__ == '__main__':
     unittest.main()

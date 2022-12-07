@@ -11,6 +11,7 @@ from bs4.element import Tag
 from PIL import Image
 from w3lib.html import strip_html5_whitespace
 from w3lib.url import is_url
+
 from zineb.extractors.base import (ImageExtractor, LinkExtractor,
                                    MultiTablesExtractor)
 from zineb.http.headers import ResponseHeaders
@@ -34,15 +35,16 @@ class HTMLResponse(BaseResponse):
     Parameters
     ----------
 
-            response (Response): an HTTP response object
+        - response (Response): an HTTP response object
 
     Example
     -------
             
-            wrapped_response = HTMLResponse(response)
-            wrapped_response.html_page -> BeautifulSoup object
-            wrapped_response.find("a") -> BeautifulSoup object
+        >>> instance = HTMLResponse(response)
+        ... instance.html_page
+        ... link_object = instance.find("a")
     """
+
     def __init__(self, response, **kwargs):
         # PERFORMANCE: Import this module during
         # the __init__ because this takes a little
@@ -90,11 +92,6 @@ class HTMLResponse(BaseResponse):
     def links(self):
         """
         Get all the links present on the HTML page
-
-        Returns
-        -------
-
-            (list): list of valid and invalid links
         """
         extractor = LinkExtractor()
         extractor.resolve(self.html_page)
@@ -104,11 +101,6 @@ class HTMLResponse(BaseResponse):
     def images(self):
         """
         Get all the images on the HTML page
-
-        Returns
-        -------
-
-            list: list of images tags
         """
         extractor = ImageExtractor()
         return extractor.resolve(self.html_page)
