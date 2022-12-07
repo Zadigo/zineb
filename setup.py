@@ -51,7 +51,6 @@ install_requires = [
     'requests',
     'w3lib',
     # 'pandas',
-    # 'numpy==1.19.3',
     # 'PyDispatcher',
     # 'nltk',
     # 'scikit-learn'
