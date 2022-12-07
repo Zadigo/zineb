@@ -132,28 +132,29 @@
 # print(constraint())
 
 
-from zineb.models.datastructure import Model
-from zineb.models import fields
-from zineb.models.constraints import UniqueConstraint
-from zineb.models.functions import ExtractYear
-from zineb.models.fields import Value
+# from zineb.models.datastructure import Model
+# from zineb.models import fields
+# from zineb.models.constraints import UniqueConstraint
+# from zineb.models.functions import ExtractYear
+# from zineb.models.fields import Value
 
 
-class MyModel(Model):
-    name = fields.NameField()
-    surname = fields.NameField()
+# class MyModel(Model):
+#     name = fields.NameField()
+#     surname = fields.NameField()
 
-    class Meta:
-        ordering = ['name']
+#     class Meta:
+#         ordering = ['name']
 
 
-model = MyModel()
-# model.add_value('name', 'Kendall  ')
-model.add_value('name', 'Kylie')
-model.add_value('surname', 'Jenner')
-model.add_value('name', 'Kendall')
-model.add_value('surname', 'Jenner')
-print(model.surname)
+# model = MyModel()
+# # model.add_value('name', 'Kendall  ')
+# model.add_value('name', 'Kylie')
+# model.add_value('surname', 'Jenner')
+# model.add_value('name', 'Kendall')
+# model.add_value('surname', 'Jenner')
+# print(model.surname)
+
 # constraint = CheckConstraint(['name', 'surname'], 'unique_name', condition=lambda x: x == 15)
 # constraint = UniqueConstraint(['name', 'surname'], 'unique_name', condition=lambda x: x == 15)
 # constraint.values = {'name': ['Kendall'], 'surname': ['Jenner']}
