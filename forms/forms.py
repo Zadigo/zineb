@@ -1,41 +1,49 @@
 from typing import OrderedDict
+
 from zineb.http.request import FormRequest
-from zineb.utils.formatting import LazyFormat
-from zineb.models.fields import Field
 from zineb.models import fields
+from zineb.models.fields import Field
+from zineb.utils.formatting import LazyFormat
+
 
 class BaseForm(type):
     def __new__(cls, name, bases, attrs):
         create_new = super().__new__
 
-        declared_fields = set()
-        for key, field_obj in attrs.items():
-            if isinstance(field_obj, Field):
-                field_obj._bind(key)
-                declared_fields.add((key, field_obj))
+        new_attrs = {}
 
-        if declared_fields:
-            fields = OrderedDict(list(declared_fields))
-            attrs['_fields'] = fields
-            attrs['_true_fields'] = list(fields.values())
-            attrs['_field_names'] = list(fields.keys())
+        for key, value in attrs.items():
+            if hasattr(value, 'update_form_fields'):
+                new_attrs.update({key: value})
 
-            # # If the user creates a function of
-            # # type clean_[field name] then we
-            # # then we need to detect these
-            # # functions in order to pass
+        # declared_fields = set()
+        # for key, field_obj in attrs.items():
+        #     if isinstance(field_obj, Field):
+        #         field_obj.upd
+        #         declared_fields.add((key, field_obj))
 
-            # field_functions = [f'clean_{field}' for field in fields.keys()]
-            # for key, func in attrs.items():
-            #     if key in field_functions:
-            #         pass
+        # if declared_fields:
+        #     fields = OrderedDict(list(declared_fields))
+        #     attrs['_fields'] = fields
+        #     attrs['_true_fields'] = list(fields.values())
+        #     attrs['_field_names'] = list(fields.keys())
+
+        # If the user creates a function of
+        # type clean_[field name] then we
+        # then we need to detect these
+        # functions in order to pass
+
+        # field_functions = [f'clean_{field}' for field in fields.keys()]
+        # for key, func in attrs.items():
+        #     if key in field_functions:
+        #         new_class.update(key, None)
 
         new_class = create_new(cls, name, bases, attrs)
         return new_class
             
 
 class Form(metaclass=BaseForm):
-    def __init__(self, data: dict={}):
+    def __init__(self, data):
         self.validated_data = {}
         self.data_fields = []
 
@@ -71,11 +79,13 @@ class Form(metaclass=BaseForm):
         pass
 
 
-class TestForm(Form):
-    name = fields.CharField()
+# class TestForm(Form):
+#     name = fields.CharField()
 
 
-test = TestForm(data={'name': 'Kendall'})
-request = FormRequest('http://example.com', test)
+# test = TestForm(data={'name': 'Kendall'})
+# request = FormRequest('http://example.com', test)
 
-print(test.validated_data)
+# print(test.validated_data)
+
+form = Form({'name': 'Kendall'})
