@@ -529,6 +529,7 @@ class Model(metaclass=Base):
         # value = self.check_special_function(name, value)
 
         if len(funcs) == 1:
+            func = funcs[-1]
             func._cached_data = Value(value)
             func.resolve()
             self.add_value(func.field_name, func._cached_data)

@@ -476,7 +476,7 @@ class EmailField(CharField):
     def resolve(self, value):
         super().resolve(value)
         if self._cached_result is not None or self._cached_result != 'Empty':
-            _, domain = value.split('@')
+            _, domain = str(value).split('@')
             self._check_domain(domain)
 
 
@@ -549,7 +549,7 @@ class IntegerField(Field):
 
     def _to_python_object(self, value):
         try:
-            return self.internal_type(value)
+            return self.internal_type(str(value))
         except:
             if not isinstance(value, (int, float)):
                 attrs = {
@@ -609,10 +609,10 @@ class DateFieldsMixin:
         self.date_formats = formats
         self.date_format = date_format
 
-    def _to_python_object(self, result: str):
+    def _to_python_object(self, result):
         for date_format in self.date_formats:
             try:
-                d = self.date_parser(result, date_format)
+                d = self.date_parser(str(result), date_format)
             except:
                 d = None
             else:
@@ -675,7 +675,7 @@ class AgeField(DateFieldsMixin, Field):
 
 class MappingFieldMixin:
     def _to_python_object(self, value):
-        result = detect_object_in_string(value)
+        result = detect_object_in_string(str(value))
         if not isinstance(result, (list, dict)):
             attrs = {
                 'value': value,
@@ -760,12 +760,12 @@ class RegexField(Field):
     def internal_name(self):
         return 'RegexField'
 
-    def resolve(self, value: str):
-        value = self._run_validation(value)
+    def resolve(self, value):
+        value = self._run_validation(str(value))
         try:
             # If the value is None, this raises and
             # error, hence the try-catch function
-            regexed_value = self.pattern.search(value)
+            regexed_value = self.pattern.search(str(value))
         except TypeError:
             self._cached_result = None
         else:
