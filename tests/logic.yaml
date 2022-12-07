@@ -1,0 +1,30 @@
+jobs:
+  workflow_a:
+    goto:
+      - url: http://example.com
+        ping: false
+        # continue | stop
+        ping_success: continue
+
+    actions:
+      get:
+        tag:
+          - name: a | div | span
+            class: null
+            id: null
+          - result: text | href
+          - condition:
+              if text == Google then method1 else method2
+          - callback: function_name
+            args: null
+            kwargs: null
+
+      follow:
+        - url: null
+        - previous: true
+        - on_fail: continue | stop | callback[function_name]
+
+workflows:
+  jobs:
+    - workflow_a
+    - workflow_b
