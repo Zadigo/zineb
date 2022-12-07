@@ -4,6 +4,14 @@ from zineb.models import fields
 from zineb.models import functions
 
 
+# class SuperModel(Model):
+#     class Meta:
+#         template_model = True
+
+class GreatModel(Model):
+    lastname = fields.CharField()
+
+
 class SomeModel(Model):
     title = fields.CharField()
     content = fields.TextField()
@@ -15,6 +23,8 @@ class SomeModel(Model):
     email = fields.EmailField()
     domains = fields.ListField()
     restaurant = fields.RegexField(r'^(restaurant)\-google')
+    other_value = fields.CharField()
+    lastnames = fields.RelatedModel(GreatModel)
 
 
 class MySpider(Spider):
@@ -24,19 +34,21 @@ class MySpider(Spider):
         title = response.find('h1')
         content = response.find('p')
         model = SomeModel()
-        # model.add_value('title', title)
-        # model.add_value('content', content.text)
-        # model.add_value('firstname', 'julie')
-        # model.add_value('linkedin', 'http://example.com')
-        # model.add_value('restaurant', 'restaurant-google')
-        # FIXME: Fields has bug fixes
-        # model.add_value('date_of_birth', '1987-1-1')
-        # model.add_value('data', {'height': 175})
-        # model.add_value('domains', [1, 2, 3])
-        # model.add_value('email', 'email@gmail.com')
-        # model.add_value('emails', 1)
-        # model.add_calculated_value('emails', 1, functions.Substract(1))
+        model.add_value('title', title.text)
+        model.add_value('content', content.text)
+        model.add_value('firstname', 'julie')
+        model.add_value('linkedin', 'http://example.com')
         model.add_value('restaurant', 'restaurant-google')
+        model.add_value('date_of_birth', '1987-1-1')
+        model.add_value('data', {'height': 175})
+        model.add_value('domains', [1, 2, 3])
+        model.add_value('email', 'email@gmail.com')
+        model.add_value('emails', 1)
+        model.add_calculated_value('emails', 1, functions.Substract(1))
+        model.add_value('restaurant', 'restaurant-google')
+        model.add_case('enterprise', functions.When(
+            'other_value__eq=enterprise', 'startup'))
+        model.lastnames.add_value('lastname', 'Marion')
         print(model)
 
 

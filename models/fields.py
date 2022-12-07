@@ -895,7 +895,10 @@ class RelatedModel(RelatedField):
     """Creates a relationship between two models. Does not
     keep track of the relationship between individual data
     and the related model. In other words, all the data
-    from the related model will be included in the model"""
+    from the related model will be included in the model
+    
+    >>> model.related_field.add_value("field_name", "...")
+    """
     field_descriptor = OneToOneDescriptor
 
     def update_model_options(self, model, field_name):
