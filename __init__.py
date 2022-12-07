@@ -1,3 +1,7 @@
-from zineb.logger import Logger
-
-global_logger = Logger(name='Zineb', to_file=True)
+def setup():
+    """Initial entrypoint that allows the configuration
+    of a Zineb project by populating the application
+    with the spiders, models and other items"""
+    from zineb.registry import registry
+    
+    registry.populate()

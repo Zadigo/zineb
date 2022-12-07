@@ -83,3 +83,113 @@ class Spider(Zineb):
         model.add_value("name", "Kendall Jenner")
         model.save()
 ```
+
+
+
+
+
+# Signals
+
+Signals are a very simple yet efficient way for you to run functions during the lifecycle of your project when certain events occur at very specific moments.
+
+Internally signals are sent on the following events:
+
+* When the registry is populated
+* Before the spider starts
+* After the spider has started
+* Before an HTTP request is sent
+* Before and HTTP request is sent
+* Before the model downloads anything
+* After the model has downloaded something
+
+## Creating a custom signal
+
+To create custom signal, you need to mark a method as being a receiver for any incoming signals. For example, if you want to create a signal to intercept one of the events above, you should do:
+
+```python
+from zineb.signals import receiver
+
+@receiver(tag="Signal Name")
+def my_custom_signal(sender, **kwargs):
+    pass
+```
+
+The signals function has to be able to accept a `sender` object and additional parameters such as the current url or the current HTML page.
+
+You custom signals do not have to return anything.
+
+
+
+
+
+## MIDDLEWARES
+
+Middlewares are functions/classes that are executed when a signal is sent from any part of the project. Middlewares implement extra functionnalities without affecting the core parts of the project. They can then be disabled safely if you do not need them.
+
+```python
+MIDDLEWARES = [
+    "zineb.middlewares.handlers.Handler",
+    "myproject.middlewares.MyMiddleware"
+]
+```
+
+The main Zineb middlewares are the following:
+
+* zineb.middlewares.referer.Referer
+* zineb.middlewares.handlers.Handler
+* zineb.middlewares.automation.Automation
+* zineb.middlewares.history.History
+* zineb.middlewares.statistics.GeneralStatistics
+* zineb.middlewares.wireframe.WireFrame
+
+
+
+
+
+
+### Adding related values
+
+In cases where you want to add a value to your model based on the last inserted value, this function serves exactly this purpose. Suppose you are retrieving date of births on a website and want to automatically derive the person's age based on that model field:
+
+```python
+class MyModel(Model):
+    date_of_birth = fields.DateField("%d-%M-%Y")
+    age = fields.AgeField("%Y-%M-%d")
+```
+
+Without the `add_related_value` this is what you would do:
+
+```python
+model.add_value("date_of_birth", value)
+model.add_value("age", value)
+```
+
+However, with the `add_related_value` you can automatically insert the age value in the model based on the returned value from the date of birth:
+
+```python
+model.add_related_value("date_of_birth", "age", value)
+```
+
+This will insert date of birth based on the DateField and then insert another on the AgeField.
+
+
+
+
+
+
+### FunctionField
+
+The function field is a special field that you can use when you have a set of functions to run on the value before returning the final result. For example, let's say you have this value `Kendall J. Jenner` and you want to run a specific function that takes out the middle letter on every incoming values:
+
+```python
+def strip_middle_letter(value):
+    # Do something here
+    return value
+
+class MyModel(Model):
+    name = FunctionField(strip_middle_letter, output_field=CharField())
+```
+
+Every time the resolve function will be called on this field, the methods provided will be passed on the value sequentially. Each method should return the new value.
+
+An output field is not compulsory but if not provided, each value will be returned as a character.

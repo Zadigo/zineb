@@ -1,10 +1,10 @@
+import six
 import datetime
 import decimal
 import uuid
 from json.encoder import JSONEncoder
 from typing import Any, Type
 
-import six
 from zineb.utils.formatting import LazyFormat
 
 
@@ -52,7 +52,7 @@ class DefaultJsonEncoder(JSONEncoder):
             try:
                 return convert_to(obj)
             except Exception:
-                pass
+                raise
         
         if hasattr(obj, '__iter__'):
             return tuple(item for item in obj)
@@ -60,10 +60,12 @@ class DefaultJsonEncoder(JSONEncoder):
         return super().default(obj)
 
 
-def convert_to_unicode(value: Any, encoding='utf-8', errors='strict'):
+def convert_to_unicode(value, encoding='utf-8', errors='strict'):
     """
-    Return the unicode representation of a bytes object `text`.
-    If the value is already a text, return it.
+    Return the unicode representation of a bytes object `text`
+
+    >>> convert_to_unicode(b'Kendall Jenner')
+    ... "Kendall Jenner"
     """
     if isinstance(value, six.text_type):
         return value

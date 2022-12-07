@@ -1,3 +1,5 @@
+![logo](https://imgur.com/VVkf96x)
+
 # Introduction
 
 Zineb is a lightweight tool solution for simple and efficient web scrapping and crawling built around BeautifulSoup and Pandas. It's main purpose is to help __quickly structure your data in order to be used as fast as possible in data science or machine learning projects.__
@@ -10,7 +12,7 @@ Most of your interactions with the HTML page will be done through the ``HTMLResp
 
 When the spider starts crawling the page, each response and request in past through the start function:
 
-```
+```python
 def start(self, response, **kwargs):
      request = kwargs.get('request')
      images = response.images
@@ -20,14 +22,14 @@ def start(self, response, **kwargs):
 
 ## Creating a project
 
-To create a project do `python -m zineb start_project <project name>` which will create a directory which will have the following structure.
+To create a project do `python -m zineb startproject <project name>` which will create a directory which will have the following structure.
 
 .myproject
-    |
-    |--media
-    |
-    |-- models
-        |-- base.py
+|
+|--media
+|
+|-- models
+|-- base.py
 |
 |-- __init__.py
 |
@@ -55,7 +57,7 @@ You can read more about this in the [settings section of this file](#Settings).
 
 Creating a spider is extremely easy and requires a set of starting urls that can be used to scrap one or many HTML pages.
 
-```
+```python
 class Celebrities(Zineb):
     start_urls = ['http://example.com']
 
@@ -69,7 +71,7 @@ You are not required to use all these parameters at once. They're just for convi
 
 In which case, you can also write the start method as so if you only need one of these.
 
-```
+```python
 def start(self, response, **kwargs):
   # Do something here
 ```
@@ -80,7 +82,7 @@ Other objects can be passes through the function such as the models that you hav
 
 Meta options allows you to customize certain very specific behaviours [not found in the `settings.py` file] related to the spider.
 
-```
+```python
  class Celerities(Zineb):
     start_urls = ['http://example.com']
   
@@ -98,11 +100,11 @@ This option writer as `verbose_name` will specific a different name to your spid
 
 ## Running commands
 
-#### Start
+### Start
 
 Triggers the execution of all the spiders present in the given the project.
 
-#### Shell
+### Shell
 
 Start a iPython shell on which you can test various elements on the HTML page.
 
@@ -121,7 +123,7 @@ In that regards, the shell becomes a interesting place where you can test variou
 
 We can get a simple url :
 
-```
+```python
 IPython 7.19.0
 
 In [1]: response.find("a")
@@ -130,7 +132,7 @@ Out[1]: <a href="https://www.iana.org/domains/example">More information...</a>
 
 We can find all urls on the page:
 
-```
+```python
 IPython 7.19.0
 
 In [2]: extractor = links()
@@ -144,7 +146,7 @@ Out [5]: [Link(url=https://www.iana.org/domains/example, valid=True)]
 
 Or simply get the page title:
 
-```
+```python
 IPython 7.19.0
 
 In [6]: response.page_title
@@ -159,7 +161,7 @@ Like said previously, the majority of your interactions with the HTML page will 
 
 This class will implement some very basic general functionnalities that you can use through the course of your project. To illustrate this, let's create a basic Zineb HTTP response from a request:
 
-```
+```python
 from zineb.http.requests import HTTPRequest
 
 request = HTTPRequest("http://example.com")
@@ -169,27 +171,24 @@ Requests, when created a not sent [or resolved] automatically if the `_send` fun
 
 Once the `_send` method is called, by using the `html_page` attribute or calling any BeautifulSoup function on the class, you can do all the classic querying on the page e.g. find, find_all...
 
-```
+```python
 request._send()
 
 request.html_response
-
-    -> Zineb HTMLResponse object
+# -> Zineb HTMLResponse object
 
 request.html_response.html_page
-
-    -> BeautifulSoup object
+# -> BeautifulSoup object
 
 request.find("a")
-
-    -> BeautifulSoup Tag
+# -> BeautifulSoup Tag
 ```
 
 If you do not know about BeautifulSoup please read [the documentation here](https://www.crummy.com/software/BeautifulSoup/bs4/doc/).
 
-For instance, suppose you have a spider and want to get the first link present on the http://example.com page. That's what you would so:
+For instance, suppose you have a spider and want to get the first link present on http://example.com. That's what you would so:
 
-```
+```python
 from zineb.app import Zineb
 
 class MySpider(Zineb):
@@ -213,33 +212,30 @@ Zineb HTTPRequest objects are better explained in the following section.
 
 ### Getting all the links
 
-```
+```python
 request.html_response.links
-
-    -> [Link(url=http://example.com valid=True)]
+# -> [Link(url=http://example.com valid=True)]
 ```
 
 ### Getting all the images
 
-```
+```python
 request.html_response.images
-
-    -> [Image(url=https://example.com/1.jpg")]
+# -> [Image(url=https://example.com/1.jpg")]
 ```
 
 ### Getting all the tables
 
-```
+```python
 request.html_response.tables
-
-    -> [Table(url=https://example.com/1")]
+# -> [Table(url=https://example.com/1")]
 ```
 
 ### Getting all the text
 
 Finally you can retrieve all the text of the web page at once.
 
-```
+```python
 request.html_response.text
 
     -> '\n\n\nExample Domain\n\n\n\n\n\n\n\nExample Domain\nThis domain is for use in   illustrative examples in documents. You may use this\n    domain in literature without prior coordination or asking for permission.\nMore information...\n\n\n\n'
@@ -251,14 +247,14 @@ There might be situations where you might have a set of HTML files in your proje
 
 __NOTE:__ Ensure that the directory to use is within your project.
 
-```
+```python
 class Spider(FileCrawler):
     start_files = ["media/folder/myfile.html"]
 ```
 
 You might have thousands of files and certainly might not want to reference each file one by one. You can then also use a utility function `collect_files`.
 
-```
+```python
 from zineb.utils.iterator import collect_files
 
 class Spider(FileCrawler):
@@ -269,15 +265,17 @@ Read more on `collect_files` [here](#-File-collection).
 
 # Models
 
-Models are a simple way to structure your scrapped data before saving them to a file.
+Models are a simple way to structure your scrapped data before eventually saving them to a file (generally JSON or CSV). The Model class is an interface to an internal container called `SmartDict` that actually does contain the data and fields which purpose is to clean and normalize the incoming values.
+
+By using models, you are then assured to have clean usable data for data analysis.
 
 ## Creating a custom Model
 
-In order to create a model, subclass the Model object from `zineb.models.Model` and then add fields to it. For example:
+In order to create a model, subclass the Model object from `zineb.models.Model` and then add fields to it:
 
-```
-from zineb.models.datastructure import Model
+```python
 from zineb.models import fields
+from zineb.models.datastructure import Model
 
 class Player(Model):
     name = fields.CharField()
@@ -285,118 +283,211 @@ class Player(Model):
     height = fields.IntegerField()
 ```
 
-### Using the custom model
+On its own however, a model does nothing. In order to make it work, you have to add values to it and then resolve the fields [or data]. There are multiple ways to do this.
 
-On its own, a model does nothing. In order to make it work, you have to add values to it and then resolve the fields.
+Adding a new value generally requires two main parameters: _the name of the field to use and the incoming data to be added._
 
-#### Adding a free custom value
+## Adding values to the model
 
-The first method consists of adding values through the `add_value` method. This method does not rely on the BeautifulSoup HTML page object which means that values can be added freely.
+Each model gets instantiated with a underlying container that does the heavy work of storing and aggregating the data. The default container is called `SmartDict`.
 
-```
+### Understanding SmartDict
+
+The `SmartDict` container ensures that each row is well balanced with the same amount of fields when values are added.
+
+For instance, if your model has two fields `name` and `surname`, suppose you add `name` but not `surname`, the final result should be `{"name": ['Kendall'], "surname": [None]}` which in return will be saved as `[{"name": "Kendall", "surname": null}]`.
+
+In the same manner, if you supply values for both fields your final result would be `{"name": ['Kendall'], "surname": ["Jenner"]}` which in return will be saved as `[{"name": "Kendall", "surname": "Jenner"}]`.
+
+In other words, whichever fields are supplied, the final result will always be a well balanced list of dictionnaries with no missing fields.
+
+__deprecated__
+This class does the following process:
+
+* Before the data is added, it runs any field constraint present on the model
+* It then adds the value to the existing container via the `update` function
+* Finally, once `execute_save` is called, it applies any sorting specified on the fields in the `Meta` class of the model and returns the corresponding data
+
+### Adding a free custom value
+
+The first method consists of using `add_value`.
+
+```python
 player.add_value('name', 'Kendall Jenner')
 ```
 
-#### Adding a value based on an expression
+### Adding a value based on an expression
 
 Addind expression based values requires a BeautifulSoup HTML page object. You can add one value at a time.
 
+````python
+player.add_using_expression('name', 'a', attrs={'class': 'title'})
 ````
-player.add_using_expression(''name', 'a', attrs={'class': 'title'})
-````
 
-#### Add case based values
+### Add case based values
 
-If you want to add a value to the model based on certain conditions, use `add_case` in combination wih an expression class.
+When you want to add a value to the model based on certain conditions, use `add_case` in combination wih a function class.
 
-For instance, suppose you are scrapping a fashion website and for certain prices, let's say 25 you want to replace them by 25.5.
+For instance, suppose you are scrapping a fashion website and for certain prices, let's say 25 you want to replace them by 25.5 you can do the following:
 
-```
+```python
 from zineb.models.expressions import When
 
-my_model.add_case(25, When('price__eq=25', 25.5))
+my_model.add_case(25, When(25, 25.5))
 ```
 
-#### Adding multiple values with expressions
+### Adding calculated values
 
-#### Adding calculated values
+If you wish to operate a calculation on a field before passing the data to your model, you can use math function classes in combination with the `add_calculated_value`.
 
-If you wish to operate a calculation on a field before passing to your model, you can use expression classes in combination with the `add_calculated_value`.
-
-```
+```python
 from zineb.models.expressions import Add
 
-my_model.add_calculatd_value('price', Add(25, 5))
+my_model.add_calculatd_value('price', 25, Add(5))
 ```
 
-#### Adding related values
+You can also run multiple arithmetic operations on on the field:
 
-In cases where you want to add a value to your model based on the last inserted value, this function serves exactly this purpose. Suppose you are retrieving date of births on a website and want to automatically derive the person's age based on that model field:
-
-```
-class MyModel(Model):
-    date_of_birth = fields.DateField("%d-%M-%Y")
-    age = fields.AgeField("%Y-%M-%d")
+```python
+my_model.add_calculatd_value('price', 25, Add(5), Substract(1))
 ```
 
-Without the `add_related_value` this is what you would do:
+## Saving the model
 
-```
-model.add_value("date_of_birth", value)
-model.add_value("age", value)
-```
+You can save the data within a model by calling the `save` method. It takes the following arguments:
 
-However, with the `add_related_value` you can automatically insert the age value in the model based on the returned value from the date of birth:
+* `filename`
+* `commit`
 
-```
-model.add_related_value("date_of_birth", "age", value)
-```
+The save method does the following things in order:
 
-This will insert date of birth based on the DateField and then insert another on the AgeField.
+* Call `full_clean` in order to apply general modifications to the final data
+* `full_clean` then calls the `clean` method to apply any custom user modifications to be applied on the resulting data
+* Finally, save the data to a file if commit or return the elements as list
 
 ## Meta options
 
 By adding a Meta to your model, you can pass custom behaviours.
 
 * Ordering
+* Template model
 * Constraints
 
-### Constraints
+### Template model
+
+If a model's only purpose is to implement additional fields to a child model, use the `template_model` option to indicate this state.
+
+```python
+class TemplateModel(Model):
+    name = fields.CharField()
+
+    class Meta:
+        template_model = True
+
+
+class MainModel(TemplateModel):
+    surname = fields.CharField()
+```
+
+This technique is useful when you need to implement common fields to multiple models at a time.
 
 ### Ordering
 
 Order your data in a specific way based on certain fields before saving your model.
 
+### Constraints
+
+You an ensure that the data on your model is unique using the `UniqueConstraint` class. These constraint check is done before the data is saved by skipping the saving process if a similar value was found.
+
+```python
+class UserModel(Model):
+    name = fields.CharField()
+    email = fields.EmailField()
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['name'], name='unique_name')
+        ]
+```
+
+Multiple fields can be constrained creating a unique together directive. In the example below, both name and email have to be unique in order to be saved.
+
+```python
+class UserModel(Model):
+    name = fields.CharField()
+    email = fields.EmailField()
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['name', 'email'], name='unique_name')
+        ]
+```
+
+You can also implement a constraint function on the fields:
+
+```python
+class UserModel(Model):
+    name = fields.CharField()
+    email = fields.EmailField()
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['name', 'email'], name='unique_name', condition=lambda x: x != 'Kendall')
+        ]
+```
+
 ## Fields
 
-Fields are a very simple way to passing HTML data to your model in a very structured way. Zineb comes with number of preset fields that you can use out of the box:
+Fields are the main entrypoint for passing a raw value from the internet to the underlying `SmartDict` container of your model. They guarantee cleanliness and consistency.
 
-- CharField
-- TextField
-- NameField
-- EmailField
-- UrlField
-- ImageField
-- IntegerField
-- DecimalField
-- DateField
-- AgeField
-- FunctionField
-- CommaSeparatedField
-- ListField
-- BooleanField
+Zineb comes with number of preset fields that you can use out of the box:
 
-### How fields work
+* CharField
+* TextField
+* NameField
+* EmailField
+* UrlField
+* ImageField
+* IntegerField
+* DecimalField
+* DateField
+* AgeField
+* CommaSeparatedField
+* ListField
+* BooleanField
+* Value
+* RelatedModelField
 
-Each fields comes with a  `resolve` function when called stores the resulting value within itself.
+### How they work
 
-By default, the resolve function will do the following things.
+Each fields comes with a `resolve` function whiche gets called by the model. The resulting data is then passed unto the model's data store.
+
+The resolve function will then do the following things.
 
 First, it will run all cleaning functions on the original value for example by stripping tags like "<" or ">" which normalizes the value before additional processing.
 
-Second, a `deep_clean` method is run on the result by taking out out any useless spaces, removing escape characters and finally reconstructing the value to ensure that any none-detected white space be eliminated.
+Second, a `deep_clean` function is run on the result by removing any useless spaces, escape characters and finally reconstructing the value to ensure that any none-detected white space be eliminated.
 
-Finally, all the registered validators (default and custom) are called on the final value.
+Finally, all the registered validators (default and custom) are called.
+
+### Accessing data from the field instance
+
+You can access the data of a declared field directly on the model by calling the field's name.
+
+```python
+class PlayerModel(Model):
+	name = fields.CharField()
+	surname = fields.CharField()
+
+model = PlayerModel()
+model.add_value('name': 'Shelly-Ann')
+model.add_value('surname', 'Fraiser')
+
+# -> model.name -> ["Shelly-Ann"]
+# -> model.surname -> ["Fraiser"]
+```
+
+By calling `model.name` you will receive an array containing all the values that were registered on in the data container e.g. `["Shelly-Ann"]`. Each field has a descriptor `FieldDescriptor`
 
 ### CharField
 
@@ -420,7 +511,7 @@ The name field allows you to implement capitalized text in your model. The `titl
 
 The email field represents emails. The default validator, `validators.validate_email`, is automatically called on the resolve function fo the class in order to ensure that that the value is indeed an email.
 
-- `limit_to_domains`: Check if email corresponds to the list of specified domains
+* `limit_to_domains`: Check if email corresponds to the list of specified domains
 
 `EmailField(limit_to_domains=[], max_length=None, null=None, default=None, validators=[])`
 
@@ -432,11 +523,11 @@ The url field is specific for urls. Just like the email field, the default valid
 
 The image field holds the url of an image exactly like the UrlField with the sole difference that you can download the image directly when the field is evaluated.
 
-- `download`: Download the image to your media folder while the scrapping is performed
-- `as_thumnail`: Download image as a thumbnail
-- `download_to`: Download image to a specific path
+* `download`: Download the image to your media folder while the scrapping is performed
+* `as_thumnail`: Download image as a thumbnail
+* `download_to`: Download image to a specific path
 
-```
+```python
 class MyModel(Model):
     avatar = ImageField(download=True, download_to="/this/path")
 ```
@@ -445,55 +536,38 @@ class MyModel(Model):
 
 This field allows you to pass an integer into your model.
 
-- `default`: Default value if None
-- `max_value`: Implements a maximum value constraint
-- `min_value`: Implements a minimum value constraint
+* `default`: Default value if None
+* `max_value`: Implements a maximum value constraint
+* `min_value`: Implements a minimum value constraint
 
 ### DecimalField
 
 This field allows you to pass a float value into your model.
 
-- `default`: Default value if None
-- `max_value`: Implements a maximum value constraint
-- `min_value`: Implements a minimum value constraint
+* `default`: Default value if None
+* `max_value`: Implements a maximum value constraint
+* `min_value`: Implements a minimum value constraint
 
 ### DateField
 
-The date field allows you to pass dates to your model. In order to use this field, you have to pass a date format so that the field can know how to resolve the value.
+The date field allows you to pass dates to your model. This field uses a preset of custom date formats to identify the structure of date incoming value. For instance `%d-%m-%Y` will be able to resolve `1-1-2021`.
 
-- `date_format`: Indicates how to parse the incoming data value
-- `default`: Default value if None
-- `tz_info`: Timezone information
+* `date_format`: Additional format that can be used to parse the incoming value
 
-```
+```python
 class MyModel(Model):
     date = DateField("%d-%m-%Y")
 ```
+
+Generally speaking, most date formats are covered so you wouldn't need to implement a generally used format.
 
 ### AgeField
 
 The age field works likes the DateField but instead of returning the date, it will return the difference between the date and the current date which corresponds to the age.
 
-- `date_format`: Indicates how to parse the incoming data value
-- `default`: Default value if None
-- `tz_info`: Timezone information
-
-### FunctionField
-
-The function field is a special field that you can use when you have a set of functions to run on the value before returning the final result. For example, let's say you have this value `Kendall J. Jenner` and you want to run a specific function that takes out the middle letter on every incoming values:
-
-```
-def strip_middle_letter(value):
-    # Do something here
-    return value
-
-class MyModel(Model):
-    name = FunctionField(strip_middle_letter, output_field=CharField())
-```
-
-Every time the resolve function will be called on this field, the methods provided will be passed on the value sequentially. Each method should return the new value.
-
-An output field is not compulsory but if not provided, each value will be returned as a character.
+* `date_format`: Indicates how to parse the incoming data value
+* `default`: Default value if None
+* `tz_info`: Timezone information
 
 ### ListField
 
@@ -511,7 +585,7 @@ __N.B.__ Note that the value of a CommaSeperatedField is implemented as is in th
 
 Parse an element within a given value using a regex expression before storing it in your model.
 
-```
+```python
 RegexField(r'(\d+)(?<=\€)')
 ```
 
@@ -519,28 +593,96 @@ RegexField(r'(\d+)(?<=\€)')
 
 Adds a boolean based value to your model. Uses classic boolean represenations such as `on, off, 1, 0, True, true, False or false` to resolve the value.
 
-### Creating your own field
+### RelatedModelField
 
-You an also create a custom field by suclassing `zineb.models.fields.Field`. When doing so, your custom field has to provide a `resolve` function in order to determine how the value should be parsed.
+This field allows you to create a direct relationship with any existing models of your project. Suppose you have the given models:
+
+```python
+from zineb.models.datastructure import Model
+from zineb.models import fields
+
+class Tournament(Model):
+    location = fields.CharField()
+
+
+class Player(Model):
+    full_name = fields.CharField()
 
 ```
+
+You might be tempted when scrapping your data to instantiate both models in order to add values like this:
+
+```python
+class MySpider(Spider):
+    def start(self, soup, **kwargs):
+        player = Player()
+        tournament = Tournament()
+        
+        player.add_value('full_name', 'Kendall Jenner')
+        tournament.add_value('location', 'Paris')
+```
+
+There's lots of code and this is not necessarily the most efficient way for this task. The `RelatedModelField` allows us then to create both a forward and backward relationship between two different models.
+
+The above technique can then be simplified the code below:
+
+```python
+from zineb.models.datastructure import Model
+from zineb.models import fields
+
+class Tournament(Model):
+    location = fields.CharField()
+
+
+class Player(Model):
+    full_name = fields.CharField()
+    tournament = fields.RelatedModelField(Tournament)
+```
+
+Which would then allow us to do the following:
+
+```python
+class MySpider(Spider):
+    def start(self, soup, **kwargs):
+        player = Player()
+        
+        player.add_value('full_name', 'Kendall Jenner')
+        player.tournament.add_value('location', 'Paris')
+
+        player.save(commit=False)
+
+# -> [{"full_name": "Kendall Jenner", "tournament": [{"location": "Paris"}]}]     
+```
+
+It does not keep track of the individual relationship the main model and the related model. In other words, all data from the main model will receive the same data from the related model contrarily to a database foreign key.
+
+This is ideal for creating nested data within your model.
+
+### Creating your own field
+
+You an also create a custom field by suclassing `zineb.models.fields.Field`. When doing so, your custom field has to provide a `resolve` function in order to determine how the value should be parsed and a `_to_python_object` function in order to know under which python type the data should be represented (str, int...).
+
+```python
 class MyCustomField(Field):
+    _dtype = str
+
+    def _to_python_object(self, clean_value):
+        # Code here
+
     def resolve(self, value):
         initial_result = super().resolve(value)
 
         # Rest of your code here
 ```
 
-__NOTE:__ If you want to use the cleaning functionalities from the super class in your own resolve function, make sure to call super beforehand as indicated above.
-
 ## Validators [initial validators]
 
-Validators make sure that the value that was passed respects the constraints that were implemented as a keyword arguments on the field class. There are five basic validations that could possibly run if you specify a constraint for them:
+Validators make sure that the value that was passed respects the constraints that were implemented as a keyword arguments on the field class. There are five basic validations that could possibly run if they are specified.
 
-- Maximum length (`max_length`)
-- Nullity (`null`)
-- Defaultness (`default`)
-- Validity (`validators`)
+* Maximum length (`max_length`)
+* Nullity (`null`)
+* Defaultness (`default`)
+* Validity (`validators`)
 
 ### Maximum or Minimum length
 
@@ -556,13 +698,13 @@ The defaultness provides a default value for null or none existing ones.
 
 For instance, suppose you want only values that do not exceed a certain length:
 
-```
+```python
 name = CharField(max_length=50)
 ```
 
 Or suppose you want a default value for fields that are empty or blank:
 
-```
+```python
 name = CharField(default='Kylie Jenner')
 ```
 
@@ -570,7 +712,7 @@ Remember that validators will validate the value itself for example by making su
 
 Suppose you want only values that would be `Kendall Jenner`. Then you could create a custom validator that would do the following:
 
-```
+```python
 def check_name(value):
     if value == "Kylie Jenner":
         return None
@@ -581,7 +723,7 @@ name = CharField(validators=[check_name])
 
 You can also create validators that match a specific regex pattern using the `zineb.models.validators.regex_compiler` decorator:
 
-```
+```python
 from zineb.models.datastructure import Model
 from zineb.models.fields import CharField
 from zineb.models.validators import regex_compiler
@@ -596,157 +738,87 @@ class Player(Model):
     age = IntegerField(validators=[custom_validator])
 ```
 
-__NOTE:__ It is important to understand that the result of the regex compiler is reinjected into your custom validator on which you can then do various other checks.
+__NOTE:__ The result of the regex compiler is reinjected into your custom validator on which you can then do your custom checks.
 
 #### Field resolution
 
-In order to get the complete structured data, you need to call `resolve_values` which will return a `pandas.DataFrame` object:
+In order to get the complete structured data, you need to call `resolve_fields` which will return the values as list stored into the `SmartDict` container.
 
-```
+```python
 player.add_value("name", "Kendall Jenner")
 player.resolve_values()
 
--> pandas.DataFrame
+# -> List
 ```
 
-Practically though, you'll be using the `save` method which also calls the `resolve_values` under the hood:
+Practically though, you'll be using the `save` method which then calls the `resolve_fields` under the hood:
 
-```
+```python
 player.save(commit=True, filename=None, **kwargs)
 
--> pandas.DataFrame or new file
+# -> List // New File
 ```
 
-By calling the save method, you'll be able to store the data directly to a JSON or CSV file.
+By calling the save method, you'll also be able to store the data directly to a JSON or CSV file.
 
-## Expressions
+## Functions
 
-Expressions a built-in functions that can modify the incoming value in some kind of way before storing to your model.
+Functions a built-in elements that can modify the incoming value in some kind of way before sending it to the `SmartDict` container through your model.
 
-### Math
+### Add, Substract, Divide, Multiply
 
-Run a calculation such as addition, substraction, division or multiplication on the value.
+Allows you to run an arithmetic operation on an incoming value.
 
+```python
+from zineb.models.functions import Add, Substract, Divide, Multiply
+
+player.add_calculated_value('height', 175, Add(5))
+player.add_calculated_value('height', 175, Substract(5))
+player.add_calculated_value('height', 175, Divide(1))
+player.add_calculated_value('height', 175, Multiply(1))
+
+# -> {'height': [180]}
+# -> {'height': [170]}
+# -> {'height': [175]}
+# -> {'height': [175]}
 ```
-from zineb.models.expressions import Add
 
-player.add_calculated_field('height', Add(175, 5))
+### ExtractYear, ExtractMonth, ExtractDay
 
--> {'height': [180]}
-```
+From a string that contains a date, extract the year, the date or the day.
 
-### ExtractYear, ExtractDate, ExtractDay
-
-From a date string, extract the year, the date or the day.
-
-```
-from zineb.models.expressions import ExtractYear
+```python
+from zineb.models.functions import ExtractYear
 
 player.add_value('competition_year', ExtractYear('11-1-2021'))
+player.add_value('competition_month', ExtractMonth('11-1-2021'))
+player.add_value('competition_day', ExtractDay('11-1-2021'))
 
--> {'competition_year': [2021]}
+# -> {'competition_year': [2021]}
+# -> {'competition_month': [11]}
+# -> {'competition_day': [1]}
 ```
 
-# Extractors
+### When
 
-Extractors are utilities that facilitates extracting certain specific pieces of data from a web page such as links, images [...] quickly.
+Allows you to conditionally implement a value in the model if it respects a set of conditions.
 
-Some extractors can be used in various manners. First, with a context processor:
+```python
+from zineb.models.functions import When
 
-```
-extractor = LinkExtractor()
-with extractor:
-    # Do something here
+player.add_value('age', When(21, 25, else_condition=21))
 ```
 
-Second, in an interation process:
+### Smallest, Greatestt
 
+From a set of incoming data, pick the smallest or the greatest one. This requires that all the incoming values be of the same type.
+
+```python
+from zineb.models.functions import Smallest, Greatest
+
+player.add_value('name', Smallest('Kendall', 'Kylie', 'Hailey'))
+player.add_value('revenue', Greatest(12000, 5000, 156000))
 ```
-for link in extractor:
-    # Do something here
-```
-
-Finally, with `next`:
-
-```
-next(extractor)
-```
-
-You can also check if an extractor has a specific value and even concatenate some of them together:
-
-```
-# Contains
-if x in extractor:
-    # Do something here
-
-# Addition
-concatenated_extractors = extractor1 + extractor2
-```
-
-## LinkExtractor
-
-* `url_must_contain` - only keep urls that contain a specific string
-* `unique` - return a unique set of urls (no duplicates)
-* `base_url` - reconcile a domain to a path
-* `only_valid_links` - only keep links (Link) that are marked as valid
-
-```
-extractor = LinkExtractor()
-extractor.finalize(response.html_response)
-
-    -> [Link(url=http://example.com, valid=True)]
-```
-
-There might be times where the extracted links are relative paths. This can cause an issue for running additional requests. In which case, use the `base_url` parameter:
-
-```
-extractor = LinkExtractor(base_url=http://example.com)
-extractor.finalize(response.html_response)
-
-# Instead of getting this result which would also
-# be marked as a none valid link
-
-    -> [Link(url=/relative/path, valid=False)]
-
-# You will get the following with the full url link
-
-    -> [Link(url=http://example.com/relative/path, valid=True)]
-```
-
-NOTE: By definition, a relative path is not a valid link hence the valid set to False.
-
-## MultiLinkExtractor
-
-A `MultiLinkExtractor` works exactly like the `LinkExtractor` with the only difference being that it also identifies and collects emails that are contained within the HTML page.
-
-## TableExtractor
-
-Extract all the rows from the first table that is matched on the HTML page.
-
-* `class_name` - intercept a table with a specific class name
-* `has_headers` - specify if the table has headers in order to ignore it in the final data
-* `filter_empty_rows` - ignore any rows that do not have a values
-* `processors` - a set of functions to run on the data once it is all extracted
-
-## ImageExtractor
-
-Extract all the images on the HTML page.
-
-You can filter down the images that you get by using a specific set of parameters:
-
-* `unique` - return only a unique et set of urls
-* `as_type` - only return images having a specific extension
-* `url_must_contain` - only return images which contains a specific string
-* `match_height` - only return images that match as specific height
-* `match_width` - only return images that match a specific width
-
-## TextExtractor
-
-Extract all the text on an HTML page.
-
-First, the text is retrieved as a raw value then tokenized and vectorized using `nltk.tokenize.PunktSentenceTokenizer` and `nltk.tokenize.WordPunctTokenizer`.
-
-To know more about NLKT, [please read the following documentation](https://www.nltk.org/).
 
 # Zineb special wrappers
 
@@ -757,11 +829,11 @@ Zineb uses a special built-in HTTPRequest class which wraps the following for be
 * The `requests.Request` response class
 * The `bs4.BeautifulSoup` object
 
-In general, you will not need to interact with this class that much because it's just an interface for implement additional functionnalities especially to the Request class.
+In general, you will not need to interact with this class because it's just an interface for implementing additional functionnalities the base Request class from the requests module.
 
-* `follow`: create a new instance of the class whose resposne will be the one of a new url
-* `follow_all`: create new instances of the class who responses will tbe the ones of the new urls
-* `urljoin`: join a path the domain
+* `follow`: create a new instance of the class whose response will be one created from the url tha was followed
+* `follow_all`: create new instances of the class who responses will be ones created from the urls tha were followed
+* `urljoin`: join a domain to a given path
 
 # HTMLResponse
 
@@ -772,52 +844,21 @@ It wraps the BeautifulSoup object in order to implement some small additional fu
 * `images`: return all the images of the page
 * `tables`: return all the tables of the page
 
-# Signals
-
-Signals are a very simple yet efficient way for you to run functions during the lifecycle of your project when certain events occur at very specific moments.
-
-Internally signals are sent on the following events:
-
-- When the registry is populated
-- Before the spider starts
-- After the spider has started
-- Before an HTTP request is sent
-- Before and HTTP request is sent
-- Before the model downloads anything
-- After the model has downloaded something
-
-## Creating a custom signal
-
-To create custom signal, you need to mark a method as being a receiver for any incoming signals. For example, if you want to create a signal to intercept one of the events above, you should do:
-
-```
-from zineb.signals import receiver
-
-@receiver(tag="Signal Name")
-def my_custom_signal(sender, **kwargs):
-    pass
-```
-
-The signals function has to be able to accept a `sender` object and additional parameters such as the current url or the current HTML page.
-
-You custom signals do not have to return anything.
-
-
 # Utilities
 
 ## Link reconciliation
 
 Most of times, when you retrieve links from a page, they are returned as relative paths. The ``urljoin`` method reconciles the url of the visited page with that path.
 
-```
-<a href="/kendall-jenner">Kendall Jenner</a>
+```python
+# <a href="/kendall-jenner">Kendall Jenner</a>
 
 # Now we want to reconcile the relative path from this link to
 # the main url that we are visiting e.g. https://example.com
 
 request.urljoin("/kendall-jenner")
 
--> https://example.com/kendall-jenner
+# -> https://example.com/kendall-jenner
 ```
 
 ## File collection
@@ -826,67 +867,47 @@ Collect files within a specific directory using `collect_files`. Collect files a
 
 # Settings
 
-This section will talk about all the available settings that are available for your project and how to use them for web scrapping.
+This section will talk about all the available settings for your project and how they should be used.
 
-**PROJECT_PATH**
+## PROJECT_PATH
 
-Represents the current path for your project. This setting is not be changed.
+Represents the current path for your project. This setting is not to be changed.
 
-**SPIDERS**
+## SPIDERS
 
-In order for your spider to be executed, every created spider should be registered here. The name of the class should serve as the name of the spider to be used.
+In order for your spiders to be executed, they should be registered here. The name of the spider class serves as the name of the spider to be run.
 
-```
+```python
 SPIDERS = [
     "MySpider"
 ]
 ```
 
-**DOMAINS**
+## DOMAINS
 
 You can restrict your project to use only to a specific set of domains by ensuring that no request is sent if it matches one of the domains within this list.
 
-```
+```python
 DOMAINS = [
     "example.com"
 ]
 ```
 
-**ENSURE_HTTPS**
+## ENSURE_HTTPS
 
 Enforce that every link in your project is a secured HTTPS link. This setting is set to False by default.
 
-**MIDDLEWARES**
-
-Middlewares are functions/classes that are executed when a signal is sent from any part of the project. Middlewares implement extra functionnalities without affecting the core parts of the project. They can then be disabled safely if you do not need them.
-
-```
-MIDDLEWARES = [
-    "zineb.middlewares.handlers.Handler",
-    "myproject.middlewares.MyMiddleware"
-]
-```
-
-The main Zineb middlewares are the following:
-
-* zineb.middlewares.referer.Referer
-* zineb.middlewares.handlers.Handler
-* zineb.middlewares.automation.Automation
-* zineb.middlewares.history.History
-* zineb.middlewares.statistics.GeneralStatistics
-* zineb.middlewares.wireframe.WireFrame
-
-**USER_AGENTS**
+## USER_AGENTS
 
 A user agent is a characteristic string that lets servers and network peers identify the application, operating system, vendor, and/or version of the requesting [MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent).
 
 Implement additional sets of user agents to your projects in addition to those that were already created.
 
-**RANDOMIZE_USER_AGENTS**
+## RANDOMIZE_USER_AGENTS
 
 Specifies whether to use one user agent for every request or to randomize user agents on every request. This setting is set to to False by default.
 
-**DEFAULT_REQUEST_HEADERS**
+## DEFAULT_REQUEST_HEADERS
 
 Specify additional default headers to use for each requests.
 
@@ -894,32 +915,33 @@ The default initial headers are:
 
 * `Accept-Language` - en
 * `Accept` - text/html,application/json,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
-* Referrer - None
+* `Referrer` - None
 
-**PROXIES**
+## PROXIES
 
-Use a set of proxies for each request. When a request in sent, a random proxy is selected and implemented with the request.
+Allows every request to be sent via a proxy. A random proxy is selected and implemented within each request.
 
-```
+`PROXIES` accepts a list of tuples implemeting a loc e.g. http, https and the IP address to bee used.
+
+```python
 PROXIES = [
     ("http", "127.0.0.1"),
     ("https", "127.0.0.1")
 ]
 ```
 
-**RETRY**
+## RETRY
 
 Specifies the retry policy. This is set to False by default. In other words, the request silently fails and never retries.
 
-**RETRY_TIMES**
+## RETRY_TIMES
 
 Specificies the amount of times the the request is sent before eventually failing.
 
-**RETRY_HTTP_CODES**
+## RETRY_HTTP_CODES
 
 Indicates which status codes should trigger a retry. By default, the following codes: 500, 502, 503, 504, 522, 524, 408 and 429 will trigger it.
 
-###### TIME_ZONE
+## TIME_ZONE
 
-
-
+Indicates which timezone to use when manipulating dates and times in the application. The default is `America/Chicago`.
