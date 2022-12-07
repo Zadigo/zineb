@@ -3,14 +3,14 @@ import unittest
 import pandas
 from bs4.element import Tag
 from zineb.http.responses import HTMLResponse, ImageResponse, JsonResponse
-from zineb.tests import create_test_request
-from zineb.tests._utils import create_test_image_request
+from bs4.element import Tag
+from zineb.http.request import HTTPRequest
 
-_request = create_test_request()
+request = HTTPRequest('http://example.com')
 
 class TestHTMLResponse(unittest.TestCase):
     def setUp(self):
-        self.html_response = HTMLResponse(_request.html_response)
+        self.html_response = HTMLResponse(request.html_response)
 
     def test_page_title(self):
         self.assertEqual(self.html_response.page_title, 'Example Domain')

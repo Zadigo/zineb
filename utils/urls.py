@@ -1,9 +1,7 @@
 import re
-from typing import Callable
 from urllib.parse import urlparse
 
-from zineb import global_logger
-
+from zineb.logger import logger
 
 URL_REGEX = r'^(file|https?)\:\/{2}(?:.*)$'
 
@@ -30,7 +28,7 @@ def url_is_secure(url: str):
 
 def check_url_against_domain(url: str, domain: str):
     if domain.startswith('http'):
-        global_logger.logger.warn(f'Domain {domain} is not valid.')
+        logger.instance.warn(f'Domain {domain} is not valid.')
         return False
 
     parsed_url = urlparse(url)

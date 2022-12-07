@@ -7,24 +7,13 @@ import setuptools
 
 ROOT = path.abspath(path.dirname(__file__))
 
-
 def read_files(filename):
     try:
-        with open(path.join(ROOT, filename), 'r', encoding='utf-8') as f:
+        with open(path.join(ROOT, filename), 'rb', encoding='utf-8') as f:
             data = f.read()
             return data
     except:
         pass
-
-def get_version(filename):
-    data = read_files(filename)
-    version = ''.join(x for x in data.split('\n') if x != '')
-    return version
-
-    # is_match = re.match(r"^__version__.*['](.*)[']", data)
-    # if not is_match:
-    #     raise ValueError('Could not get version')
-    # return is_match.group(1)
 
 
 classifiers = [
@@ -62,7 +51,6 @@ install_requires = [
     'requests',
     'w3lib',
     # 'pandas',
-    # 'numpy==1.19.3',
     # 'PyDispatcher',
     # 'nltk',
     # 'scikit-learn'
@@ -71,7 +59,8 @@ install_requires = [
 setuptools.setup(
     name='zineb-scrapper',
     # packages: [],
-    version=get_version('version.txt'),
+    version='6.0.3',
+    # version=read_files('version.txt'),
     author='John Pendenque',
     author_email='pendenquejohn@gmail.com',
     classifiers=classifiers,
@@ -83,6 +72,7 @@ setuptools.setup(
     long_description_content_type='text/markdown',
     python_requires='>=3.9',
     project_urls={
-        'Source': 'https://github.com/Zadigo/zineb/'
+        'Source': 'https://github.com/Zadigo/zineb/',
+        'Tracker': 'https://github.com/Zadigo/zineb/issues'
     }
 )
