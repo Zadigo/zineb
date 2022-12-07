@@ -434,7 +434,7 @@ class CharField(Field):
 
 
 class TextField(CharField):
-    def __init__(self, max_length: int = 500, **kwargs):
+    def __init__(self, max_length = 500, **kwargs):
         super().__init__(max_length=max_length, **kwargs)
 
     @property
@@ -885,7 +885,7 @@ class RelatedField(Field):
 # we get [{'ages': [{'age': 30}], 'name': 'Kendall'}]
 # for example. I think we should get instead
 # [{'ages': {'age': 30}, 'name': 'Kendall'}] and create
-# a many field that does the initial result that we
+# as many fields as the initial result that we
 # are getting
 
 # FIXME: Maybe find a better name for this field
