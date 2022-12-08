@@ -29,7 +29,7 @@ class ModelsDescriptor:
 class SpiderConfig:
     """
     Class that represents a spider and 
-    its overall difference
+    its overall different configurations
     """
 
     def __init__(self, name, spiders_module):
@@ -66,6 +66,8 @@ class SpiderConfig:
         return instance
     
     def check_ready(self):
+        """Marks the spider as configured and
+        ready to be used"""
         if self.spider_class is not None and self.name is not None:
             self.is_ready = True
 
@@ -113,6 +115,7 @@ class MasterRegistry:
         self.project_name = None
         self.absolute_path = None
         self.middlewares = []
+        self.storages = {'default': {}}
 
     def __repr__(self):
         return f"<{self.__class__.__name__}[{dict(self.spiders)}]>"
@@ -146,29 +149,50 @@ class MasterRegistry:
             f"If you forgot to register {spider_name}, check your settings file."), stack_info=True)
             raise SpiderExistsError(spider_name)
         
+    def get_default_storage(self):
+        try:
+            name, instance = list(self.storages['default'].items())[0]
+        except:
+            # If the spider was not initialized with
+            # the project setup() function then no
+            # default storage will be implemented as
+            # an attribute. In which case just return None
+            # NOTE: Maybe we could create a new storage instance
+            # but does this make sense since a spider is supposed
+            # to run within a scrapping project?
+            return None
+        else:
+            return instance
+        
     def preconfigure_project(self, dotted_path, settings):
+        """Runs additional actions before marking the
+        spider as ready to use"""
         # Replace the log file name with the full path
         # to the project's log file 
-        # setattr(settings, 'LOG_FILE_NAME', Path.joinpath(self.absolute_path, settings.LOG_FILE_NAME))
-        setattr(settings, 'LOG_FILE_NAME', settings.PROJECT_PATH.joinpath(settings.LOG_FILE_NAME))
+        log_settings = settings.LOGGING
+        settings.LOGGING['path'] = settings.PROJECT_PATH.joinpath(log_settings['file_path'])
 
         # If the user did not explicitly set the path
         # to a MEDIA_FOLDER, we will be doing it
         # autmatically here
         media_folder = getattr(settings, 'MEDIA_FOLDER')
         if media_folder is None:
-            # setattr(settings, 'MEDIA_FOLDER', Path.joinpath(self.absolute_path, 'media'))
             setattr(settings, 'MEDIA_FOLDER', settings.PROJECT_PATH.joinpath('media'))
-                
-        try:
-            # Change TIME_ZONE to a pytz usable 
-            # instance for the project
-            instance = pytz.timezone(settings.TIME_ZONE)
-        except pytz.exceptions.UnknownTimeZoneError:
-            raise ValueError(f'Timezone specified in TIME_ZONE '
-                'does not exist. Got: {settings.TIME_ZONE}')
         else:
-            settings.TIME_ZONE = instance
+            path = Path(settings.MEDIA_FOLDER)
+            if not path.exists():
+                raise ValueError("MEDIA_FOLDER path does does not exist")
+            setattr(settings, 'MEDIA_FOLDER', path)
+
+        if isinstance(settings.TIME_ZONE, str):
+            try:
+                # Change TIME_ZONE to a python pytz object
+                instance = pytz.timezone(settings.TIME_ZONE)
+            except pytz.exceptions.UnknownTimeZoneError:
+                raise ValueError('Timezone specified in TIME_ZONE '
+                    f'does not exist. Got: {settings.TIME_ZONE}')
+            else:
+                settings.TIME_ZONE = instance
                     
         self.is_ready = True
         
@@ -179,13 +203,43 @@ class MasterRegistry:
         
         # TODO: Send a signal when the master registry
         # has completed all the initial setting up
-                        
+        
+        # Load the current storage and store it as
+        # an instance on the spider. NOTE: Storages
+        # represent the folder that stores the media
+        # resources that were downloaded from the
+        # scrapping
+        storages = settings.STORAGES
+        for name, storage in storages.items():
+            try:
+                module_path, klass_name = storage.rsplit('.', maxsplit=1)
+                storage_module = import_module(module_path)
+            except:
+                # TODO: Raise an error if we cannot get a file system
+                # storage ?
+                raise
+            else:
+                klass = getattr(storage_module, klass_name, None)
+                if klass is not None:
+                    from zineb.storages import BaseStorage
+                    if inspect.isclass(klass) and BaseStorage in klass.__mro__:
+                        instance = klass()
+                        instance.prepare()
+                        self.storages.update({name: {klass_name: instance}})
+                             
     def populate(self):
         """
         Populates the registry with the spiders 
         that were registered in the `SPIDERS` variable 
-        in the settings.py file
-        """        
+        from the settings.py file
+        """
+        # If the registry is already populated,
+        # calling populate once again will raise
+        # errors on certain items e.g. TIME_ZONE
+        # configuration. If populated, skip
+        if self.is_ready:
+            return
+        
         dotted_path = os.environ.get(ENVIRONMENT_VARIABLE, None)
         
         if dotted_path is None:
@@ -199,9 +253,9 @@ class MasterRegistry:
         try:
             project_module = import_module(dotted_path)
         except ImportError:
-            raise ImportError('Could not find the related module')
+            raise ImportError(f"Could not load the project's related module: '{dotted_path}'")
         
-        from zineb.app import Spider
+        from zineb.app import FileCrawler, Spider
         from zineb.settings import settings
         
         self.absolute_path = Path(project_module.__path__[0])
@@ -212,14 +266,20 @@ class MasterRegistry:
             # Try to load the spiders submodule specifically
             # to ensure that this is a zineb project
             spiders_module = import_module(f'{dotted_path}.{SPIDERS_MODULE}')
-        except:
-            raise ImportError("Failed to load the project's spiders submodule")
+        except Exception as e:
+            raise ExceptionGroup(
+                "Project loading fail",
+                [
+                    Exception(e.args),
+                    ImportError("Failed to load the project's spiders submodule")
+                ]
+            )
         
-        # Check that there are class elements that we can used
-        # and that ar subclassed by Spider that we can use
+        # Check that there are class objects that can be used
+        # and are subclasses of the main Spider class object
         elements = inspect.getmembers(spiders_module, predicate=inspect.isclass)
         
-        valid_spiders = list(filter(lambda x: issubclass(x[1], Spider), elements))
+        valid_spiders = list(filter(lambda x: issubclass(x[1], (Spider, FileCrawler)), elements))
         valid_spider_names = list(map(lambda x: x[0], valid_spiders))
         
         for name in settings.SPIDERS:
@@ -230,7 +290,7 @@ class MasterRegistry:
             instance = SpiderConfig.create(name, spiders_module)
             self.spiders[name] = instance
             instance.regitry = self
-        
+
         for config in self.spiders.values():
             config.check_ready()
 
@@ -252,9 +312,9 @@ class MasterRegistry:
             "settings.py file."), Warning, stacklevel=0)
         else:
             for config in self.get_spiders():
+                # TODO: Send a signal before the spider has
+                # started parsing
                 try:
-                    # TODO: Send a signal before the spider has
-                    # starting parsing
                     config.run()
                 except Exception:
                     logger.instance.critical((f"Could not start {config}. "
@@ -263,7 +323,6 @@ class MasterRegistry:
                 else:
                     # TODO: Send a signal once the spider has
                     # terminated the parsing
-                    # signal.send(dispatcher.Any, self)
                     pass
 
 

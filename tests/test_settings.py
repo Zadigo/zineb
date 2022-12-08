@@ -3,7 +3,7 @@ import unittest
 
 from zineb.settings import LazySettings, Settings, UserSettings
 
-TEST_PROJECT_PYTHON_PATH = 'zineb.tests.testproject.settings'
+TEST_PROJECT_PYTHON_PATH = 'zineb.tests.testproject'
 
 class TestSettings(unittest.TestCase):
     def setUp(self):
@@ -78,7 +78,7 @@ class TestUserSettings(unittest.TestCase):
         # Check that the module path corresponds
         # to what was above
         module = self.user_settings.SETTINGS_MODULE
-        self.assertEqual(module.__name__, TEST_PROJECT_PYTHON_PATH)
+        self.assertEqual(module.__name__, f"{TEST_PROJECT_PYTHON_PATH}.settings")
 
     def test_is_configured(self):
         self.assertTrue(self.user_settings.configured)

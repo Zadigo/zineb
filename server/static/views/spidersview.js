@@ -4,60 +4,64 @@ var SpidersView = {
         CreateSpider
     },  
     template: `
-    <div class="card">
-        <div class="card-header">
-            <button :class="{ 'me-2': showCreate }" class="btn btn-primary" @click="showCreate=true">
-                Create
-            </button>
+    <create-spider v-if="showCreate" @show-change="showCreate = false" />
 
-            <button v-if="showCreate" class="btn btn-secondary" @click="showCreate=false">
-                Cancel
-            </button>
+    <div v-else class="card">
+        <div class="card-header d-flex justify-content-end">
+            <div class="btn-group">
+                <button :class="{ 'me-2': showCreate }" class="btn btn-primary" @click="showCreate=true">
+                    Create
+                </button>
+
+                <button class="btn btn-primary">
+                    Refresh
+                </button>     
+            </div>
         </div>
 
-        <div v-if="hasSpiders" class="card-body">
-            <transition name="general-transition">
-                <create-spider v-if="showCreate" />
-
-                <ul v-else class="list-group">
-                    <router-link v-for="(spider, i) in spiders" :key="spider" :to="{ name: 'spider', params: { id: i } }" class="list-group-item">
+        <div class="card-body">
+            <div class="list-group">
+                <div v-if="hasSpiders" class="list-group">
+                    <router-link v-for="(spider, i) in spiders" :key="i" :to="{ name: 'spider_view', params: { id: i } }" class="list-group-item list-group-item-action">
                         {{ spider }}
                     </router-link>
-                </ul>
-            </transition>
-        </div>
+                </div>
 
-        <div v-else class="card-body">
-            <ul class="list-group">
-                <li class="list-group-item">
-                    There are no spiders
-                </li>
-            </ul>
+                <div v-else class="list-group-item">
+                    You have no spiders
+                </div>
+            </div>
         </div>
     </div>
     `,
-    data: () => ({
-        spiders: [],
-        showCreate: false
-    }),
-
+    // setup () {
+    //     const { getSpiders } = useRequests()
+    //     return {
+    //         getSpiders
+    //     }
+    // },
+    data () {
+        return {
+            spiders: [{ name: 'Google' }],
+            showCreate: false
+        }
+    },
     computed: {
         hasSpiders () {
             return this.spiders.length > 0
         }
     },
-
-    beforeMount() {
-        this.setTitle('Spiders')
-        client({
-            method: 'get',
-            url: '/spiders'
-        })
-        .then((response) => {
-            this.spiders = response.data.spiders
-        })
-        .catch((error) => {
-            console.log(error)
-        })
-    }
+    // beforeMount() {
+    //     this.getSpiders()
+    // },
+    // methods: {
+    //     async getSpiders () {
+    //         try {
+    //             const response = await client.get('/spiders')
+    //             this.spiders = response.data.spiders
+    //         } catch (error) {
+    //             console.log(error)
+    //         }
+    //     }
+    // }
 }

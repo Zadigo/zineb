@@ -22,19 +22,17 @@ additional commands that can be used with that very specific command.
 """
 
 import os
+import pathlib
 import subprocess
 import sys
 import unittest
 
 from zineb.management import Utility, collect_commands, load_command_class
 from zineb.management.base import BaseCommand
+from zineb.settings import settings
 
 
 class TestCommandCollection(unittest.TestCase):
-    """
-    Test the function that is responsible for
-    getting all the available commands for Zineb
-    """
     def test_has_paths(self):
         commands_paths = list(collect_commands())
         self.assertTrue(len(commands_paths) > 0)
@@ -56,21 +54,16 @@ class TestUtility(unittest.TestCase):
 
     def test_registry_is_not_empty(self):
         self.assertGreater(len(self.utility.commands_registry), 0)
+    
+    def test_command_calling_in_project(self):
+        os.environ.setdefault('ZINEB_SPIDER_PROJECT', 'zineb.tests.testproject')
 
-# ARGUMENTS = ['python', os.path.join(os.path.dirname(__file__), 'testproject/manage.py')]
+        settings()
 
-# COMMANDS = ['create_spider']
-
-# class TestCommands(unittest.TestCase):
-#     def test_create_spider(self):
-#         ARGUMENTS.extend(['create_spider', 'Google'])
-#         subprocess.call(ARGUMENTS, stderr=subprocess.STDOUT)
+        ARGUMENTS = ['python', pathlib.Path(settings.PROJECT_PATH).joinpath('manage.py')]
+        ARGUMENTS.extend(['ping', 'https://example.com/'])
+        subprocess.call(ARGUMENTS, stderr=subprocess.STDOUT)
 
 
 if __name__ == '__main__':
     unittest.main()
-
-    # runner = unittest.TextTestRunner()
-    # suite = unittest.TestSuite()
-    # suite.addTest(TestCommands('test_create_spider'))
-    # runner.run(suite)

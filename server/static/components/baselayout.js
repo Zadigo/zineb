@@ -1,12 +1,12 @@
-var BaseLayout = {
+const BaseLayout = {
     name: 'BaseLayout',
     template: `
-    <div class="row">
+    <div class="row my-5">
         <div class="col-4">
             <div class="card">
                 <div class="card-body">
                     <ul class="list-group">
-                        <router-link v-for="(link, i) in links" :key="i" :to="{ name: link.name }" class="list-group-item">
+                        <router-link v-for="(link, i) in links" :key="i" :to="{ name: link.name }" class="list-group-item list-group-item-action">
                             {{ link.text }}
                         </router-link>
                     </ul>
@@ -33,19 +33,22 @@ var BaseLayout = {
         <div class="col-8">
             <div class="row">
                 <div class="col-12">
-                    <transition name="general-transition">
-                        <router-view></router-view>
-                    </transition>
+                    <router-view v-slot="{ Component }">
+                        <transition name="general-transition" :key="$route.name">
+                            <component :is="Component" />
+                        </transition>
+                    </router-view>
                 </div>
             </div>
         </div>
     </div>  
     `,
-
-    data: () => ({
-        links: [
-            { name: 'home', text: 'Home'},
-            { name: 'settings', text: 'Settings'}
-        ]
-    })
+    data () {
+        return {
+            links: [
+                { name: 'home_view', text: 'Home' },
+                { name: 'settings_view', text: 'Settings' }
+            ]
+        }
+    }
 } 

@@ -8,7 +8,7 @@ class ValidationError(Exception):
 class FieldError(Exception):
     def __init__(self, field_name, available_fields, model_name=None):
         msg = (f"The field '{field_name}' is not present on your model. "
-        f"Available fields are: {', '.join(available_fields)}")
+        f"Available fields are: {', '.join(available_fields)}.")
         super().__init__(msg)
 
 
@@ -64,11 +64,12 @@ class ResponseFailedError(Exception):
         super().__init__("The request was not sent either"
         " due to a response with a fail status code or being None.")
 
+
 class RequestAborted(Exception):
     pass
 
 
-class ModelConstrainError(Exception):
+class ModelConstraintError(Exception):
     def __init__(self, field_name, value):
         super().__init__(f"Constraint not respected on '{field_name}'. '{value}' already present in the model.")
 
@@ -79,5 +80,6 @@ class RequiresProjectError(Exception):
 
 
 class ConstraintError(Exception):
-    def __init__(self):
-        super().__init__('A constraint error was raised on the given model')
+    def __init__(self, model_name, constraint):
+        message = f"Model {model_name} did no pass constraint for {constraint}"
+        super().__init__(message)

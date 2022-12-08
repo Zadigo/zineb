@@ -1,114 +1,80 @@
-from zineb.exceptions import ConstraintError
+from collections import Counter
+
+from zineb.exceptions import ConstraintError, FieldError
+
 
 class BaseConstraint:
     def __init__(self, fields, name, condition=None):
         self.name = name
+        self.model = None
         self._data_container = None
         self.constrained_fields = list(fields)
         self.condition = condition
-        self.values = {}
-        self.unique_together = []
-        self.unique = []
-        
+
     def __repr__(self):
-        return f'<{self.__class__.__name__} for {self.model}>'
-        
-    def prepare(self):
+        return f'<{self.__class__.__name__}[{self.model._meta.name}{self.constrained_fields}]>'
+
+    def __call__(self, value_to_check):
+        if self.model is None:
+            raise ValueError('Constraint is not attached to any model')
+
+        errors = []
+        counter = Counter()
         if len(self.constrained_fields) == 1:
-            self.unique.extend(self.values[field])
+            field = self.constrained_fields[-1]
+            counter.update(self._data_container.get_container(field))
+            
+            element_count = counter.get(value_to_check, 0)
+            if element_count == 1:
+                errors.extend(
+                    [(field, ConstraintError(self.model._meta.model_name, self.name))]
+                )
         else:
             for field in self.constrained_fields:
-                container = self.values[field]
-                self.unique_together.append(container)
+                counter.update(self._data_container.get_container(field))
 
-    def check_constraint(self, value_to_check):
-        # If we have a unique together, it means that
-        # two fields have to be both unique together
-        truth_array = []
-        if self.unique_together:
-            results = map(lambda x: value_to_check in x, self.unique_together)
-            truth_array.extend(list(results))
-            
-        if self.unique:
-            result = value_to_check in self.unique
-            truth_array.append(result)
-            
+            element_count = counter.get(value_to_check, 0)
+            if element_count == 1:
+                errors.extend(
+                    [(self.constrained_fields, ConstraintError(self.model._meta.model_name, self.name))]
+                )
+
         if self.condition is not None:
-            pass
-        
-        return all(truth_array)
+            result = self.condition(value_to_check)
+            if not result:
+                errors.extend(
+                    [(field, ConstraintError(self.model._meta.model_name, self.name))]
+                )
+
+        return errors
+
+    def update_model_options(self, model):
+        self.model = model
+        self._data_container = model._data_container
+
+        # TODO: When the fields are not in the model
+        # raise an error. Only fields within the model
+        # are allowed
+        # errors = []
+        # for field in self.constrained_fields:
+        #     if not model._meta.field_exists(field):
+        #         errors.extend([FieldError(field, model._meta.fields, self.model.name)])
+
+        # if errors:
+        #     raise ExceptionGroup('', errors) 
 
 
 class UniqueConstraint(BaseConstraint):
-    """Raises an error when a constraint is found
-    on a given model"""
+    """Forces the model to skip the
+    saving process when a value is found in
+    the existing dataset
 
-    def check_constraint(self, value_to_check):
-        result = super().check_constraint(value_to_check)
-        if not result:
-            raise ConstraintError()
-        return result
-        
-        
-class CheckConstraint(BaseConstraint):
-    """Prevents the addition of a given value
-    in the data container if a constraint is
-    found without raising an error"""
-    
-    def check_constraint(self, value_to_check):
-        result = super().check_constraint(value_to_check)
-        return_data = {}
-        if not result:
-            for field in self.constrained_fields:
-                return_data[field] = self._data_container[field]
-        return return_data
+    Example
+    -------
 
-
-# @total_ordering
-# class V:
-#     def __init__(self, value):
-#         self.value = value
-
-#     def __repr__(self):
-#         return f'{self.__class__.__name__}([{self.value}])'
-
-#     def __eq__(self, obj):
-#         return obj == self.value
-
-#     def __gt__(self, obj):
-#         obj = self.convert_to_string(obj)
-#         return len(self.value) > obj
-
-#     def __contains__(self, obj):
-#         obj = self.convert_to_string(obj)
-#         return self.value in obj
-
-#     def convert_to_string(self, value):
-#         if isinstance(value, (int, float)):
-#             return str(value)
-#         return value
-
-
-
-
-# constraint = UniqueConstraint('name', 'surname', condition=lambda x: x == 15)
-# constraint.values = {'name': ['Kendall'], 'surname': ['Jenner']}
-# constraint.prepare()
-# constraint.check_constraint('Kendall')
-# print(constraint)
-
-
-
-# class BaseConditions:
-#     pass
-    
-
-# class Q(BaseConditions):
-#     """A function that can query a value in
-#     a given model and return the result of
-#     of the condition"""
-#     def __init__(self, *args, negated=False, **kwargs):
-#         pass
-
-
-# q = Q(name__eq='Kendall', surname__eq='Jenner')
+    >>> Class MyModel(Model):
+            class Meta:
+                constraints = [
+                    UniqueConstraint(fields=[...], name=...)
+                ]
+    """

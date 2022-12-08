@@ -1,20 +1,10 @@
-import csv
-import json
-import os
-import secrets
 from collections import defaultdict
 from operator import itemgetter
-from pathlib import Path
 
 from zineb.models.fields import Empty
-from zineb.settings import settings
 from zineb.utils.formatting import LazyFormat, remap_to_dict
 from zineb.utils.iteration import drop_while
 
-
-# TODO: Determine how to use the SmartDict, either it has to
-# be bound to a model or either it's an independent container
-# that could be used anywhere in the application
 
 class SmartDict:
     """
@@ -26,7 +16,6 @@ class SmartDict:
     current_updated_fields = set()
 
     def __init__(self, *fields, order_by=[]):
-        self.model = None
         self.values = defaultdict(list)
         self.fields = fields
         for field in fields:
@@ -38,7 +27,7 @@ class SmartDict:
         self.order_by = order_by
 
     def __repr__(self):
-        return self.values
+        return str(dict(self.values))
 
     def __str__(self):
         return str(self.as_list())
@@ -47,9 +36,9 @@ class SmartDict:
     def new_instance(cls, *fields):
         return cls(*fields)
 
-    def _last_value(self, name: str):
+    def _last_value(self, name):
         return self.get_container(name)[-1][-1]
-
+    
     def get_container(self, name: str):
         return self.values[name]
 
@@ -117,6 +106,7 @@ class SmartDict:
                     container = self.get_container(field_name)
                     container.append(self._last_created_row[i - 1])
                 self._id = self._id + 1
+            # self.run_constraints(container)
 
     def update_multiple(self, attrs: dict):
         for key, value in attrs.items():
@@ -129,15 +119,17 @@ class SmartDict:
 
     def as_values(self):
         """
-        Returns the data as
-        {key1: [..., ...], key2: [..., ...], ...}
+        Returns the data as dictionnary
+
+        >>> {key1: [..., ...], key2: [..., ...], ...}
         """
         return self.values
 
     def as_list(self):
         """
         Return a sorted collection of dictionnaries
-        e.g. [{a: 1}, {b: 2}, ...]
+        
+        >>> [{a: 1}, {b: 2}, ...]
         """
         values = remap_to_dict(self.as_values())
         return self.apply_sort(values)
@@ -145,7 +137,8 @@ class SmartDict:
     def as_csv(self):
         """
         Return the values under a csv format
-        as [[col1, col2], [..., ...]]
+        
+        >>> [[col1, col2], [..., ...]]
         """
         data = self.as_values()
         columns = list(data.keys())
@@ -164,9 +157,8 @@ class SmartDict:
         return base
 
 
-
 class ModelSmartDict(SmartDict):
-    """A SmartDict that can be bound to a model"""
+    """A SmartDict that is bound to a model"""
     def __init__(self, model, order_by=[], include_id_field=False):
         fields = model._meta.field_names
         super().__init__(*fields, order_by=order_by)
@@ -187,7 +179,7 @@ class ModelSmartDict(SmartDict):
         else:
             has_ordering = len(self.order_by) > 0
             # For the ordering to work, we need a list
-            # of dicts as [{field_name: True}, ...].
+            # of dicts as [(field_name, True), ...].
             # The boolean determines whether the sort
             # is ascending or descending.
             for item in self.order_by:
@@ -207,31 +199,3 @@ class ModelSmartDict(SmartDict):
                     return values
             return multisort(values, ordering_booleans)
         return values
-        
-    def execute_save(self, commit: bool=True, filename: str=None, extension: str='json', **kwargs):
-        # TODO: Move the file creation to the Model
-        # and only make this deal with the values
-        if commit:
-            filename = filename or secrets.token_hex(5)
-            filename = f'{filename}.{extension}'
-            
-            try:
-                path = Path(settings.MEDIA_FOLDER)
-                if not path.exists():
-                    path.mkdir()
-            except:
-                path = filename
-
-            file_path = os.path.join(settings.MEDIA_FOLDER, f'{filename}')
-            if extension == 'json':
-                data = json.loads(json.dumps(self.as_list()))
-                with open(file_path, mode='w', encoding='utf-8') as f:
-                    json.dump(data, f, indent=2, sort_keys=True)
-
-            if extension == 'csv':
-                with open(file_path, mode='w', newline='\n', encoding='utf-8') as f:
-                    writer = csv.writer(f)
-                    writer.writerows(self.as_csv())
-        else:
-            data = json.loads(json.dumps(self.as_list()))
-            return json.dumps(data, sort_keys=True)

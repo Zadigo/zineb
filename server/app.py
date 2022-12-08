@@ -6,8 +6,6 @@ import flask
 from flask import Flask, jsonify, request
 from flask.templating import render_template
 from flask.wrappers import Response
-# from rest_framework.response import Response as RestResponse
-# from zineb.server.serializers import SPIDER_TYPES
 from zineb.settings import settings
 
 app = Flask(__name__)
@@ -48,7 +46,7 @@ def spiders(**kwargs):
     #     else:
     #         return Response('Spider type is not valid', 404,  mimetype='application/json')
     if request.method == 'GET':
-        return jsonify({'spiders': []})
+        return jsonify({'spiders': [{'name': 'Google'}]})
 
 
 @app.route('/', methods=['get', 'post'])

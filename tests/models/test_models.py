@@ -1,3 +1,14 @@
+"""
+Models are a simple way to store and output data that
+was scrapped from the internet. They are composed of three
+main items:
+
+    Fields: which main purpose is to clean, normalize the incoming values
+    Internal container: which stores the incoming data
+    Model class: which is the central point for organizing all these elements
+                 to work together
+"""
+
 import unittest
 
 from zineb.exceptions import FieldError, ModelExistsError, ValidationError
@@ -14,7 +25,8 @@ class TestModel(unittest.TestCase):
 
     def test_can_add_value(self):
         self.model.add_value('date_of_birth', '1-1-2002')
-        self.assertDictEqual(self.model._data_container.as_values(), {'age': [None], 'date_of_birth': ['2002-01-01'], 'name': [None]})
+        self.assertIsInstance(self.model._data_container.as_values(), dict)
+        self.assertDictEqual(dict(self.model._data_container.as_values()), {'age': [None], 'id': [], 'date_of_birth': ['2002-01-01'], 'name': [None]})
 
     def test_model_in_iteration(self):
         for i in range(1, 4):
@@ -25,21 +37,23 @@ class TestModel(unittest.TestCase):
             'date_of_birth': [None, None, None], 
             'name': ['Kendall1', 'Kendall2', 'Kendall3']
         }
-        self.assertDictEqual(self.model._data_container.as_values(), expected)
+        self.assertDictEqual(dict(self.model._data_container.as_values()), expected)
 
     def test_model_instanciation_in_iteration(self):
-        # The model should return the last value of
+        # FIXME: The model should return the last value of
         # iteration if the user instanciates the model
         # repeteadly in a loop
         for i in range(1, 4):
             model = items.SimpleModel()
             model.add_value('name', f'Kendall{i}')
+            
         expected = {
-            'age': [None],
-            'date_of_birth': [None],
-            'name': ['Kendall3']
+            'age': [None, None, None],
+            'date_of_birth': [None, None, None],
+            'id': [],
+            'name': ['Kendall1', 'Kendall2', 'Kendall3']
         }
-        self.assertDictEqual(model._data_container.as_values(), expected)
+        self.assertDictEqual(dict(model._data_container.as_values()), expected)
 
     @unittest.expectedFailure
     def test_wrong_value_to_field(self):
@@ -153,7 +167,7 @@ class TestModelWithValidators(unittest.TestCase):
 
     def test_field_with_validation(self):
         self.model.add_value('height', 156)
-        self.assertDictEqual(self.model._data_container.as_values(), {'height': [156]})
+        self.assertDictEqual(self.model._data_container.as_values(), {'height': [156], 'id': []})
         
     
 
@@ -228,6 +242,13 @@ class TestModelWithValidators(unittest.TestCase):
 #         # should not be tolerated
 #         self.assertRaises(ValueError, self.model.add_value, name='age', value=Add(3))
         
+
+class TestCanAddModels(unittest.TestCase):
+    def test_can_do_addition(self):
+        model1 = test_models.ModelToAdd1()
+        model2 = test_models.ModelToAdd2() 
+        
+        new_model = model1 + model2
 
 if __name__ == '__main__':
     unittest.main()

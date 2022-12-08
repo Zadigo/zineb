@@ -1,22 +1,19 @@
-from typing import List
-
-
 class LazyFormat:
     """
-    Lazily formats a string until it is called or required.
+    Lazily formats a string until it is called or required 
+    to be used
 
     Example
     -------
 
-        message = LazyFormat('Kendall {name}', name='Jenner')
-
-        >> str(message)
-        >> Kendall Jenner
+    >>> message = LazyFormat('Kendall {name}', name='Jenner')
+    ... str(message)
+    ... Kendall Jenner
     """
     
     __slots__ = ('_cached_result', '_string_to_format', '_args', '_kwargs')
 
-    def __init__(self, string_to_format: str, *args, **kwargs):
+    def __init__(self, string_to_format, *args, **kwargs):
         self._cached_result = None
         self._string_to_format = string_to_format
         self._args = args
@@ -35,7 +32,7 @@ class LazyFormat:
         return str(self) % value
 
 
-def remap_to_dict(data: dict, include_index: bool=False) -> List[dict]:
+def remap_to_dict(data, include_index=False):
     """
     From a dictionnary of values, remap the different
     items to create a list of dictionnaries
@@ -43,7 +40,8 @@ def remap_to_dict(data: dict, include_index: bool=False) -> List[dict]:
     Example
     -------
         
-        {'a': [1, 2], 'b': 1} becomes [{'a': 1}, {'a': 2}, {'b': 1}]
+    >>> items = remap_to_dict({'a': [1, 2], 'b': 1})
+    ... [{'a': 1}, {'a': 2}, {'b': 1}]
     """
     items = []
     base_keys = list(data.keys())
@@ -60,7 +58,7 @@ def remap_to_dict(data: dict, include_index: bool=False) -> List[dict]:
     return items
 
 
-def reverse_remap_to_dict(data: list):
+def reverse_remap_to_dict(data):
     """
     From a list of dictionnaries of values, remap the 
     different items to create a dict where the keys
@@ -75,6 +73,9 @@ def reverse_remap_to_dict(data: list):
     -------
 
         list: list of dictionnaries
+
+    >>> items = reverse_remap_to_dict([{'a': 1}, {'a': 2}, {'b': 1}])
+    ... {'a': [1, 2], 'b': 1}
     """
     items = dict()
     for key in data[-0].keys():

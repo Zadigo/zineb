@@ -1,12 +1,10 @@
 import datetime
 import re
 import unittest
-from unittest.case import TestCase, expectedFailure
+from unittest.case import TestCase
 
 from zineb.exceptions import ValidationError
 from zineb.models import fields
-from zineb.models.fields import (BooleanField, CharField, DecimalField,
-                                 RegexField, Value)
 
 
 class TestField(unittest.TestCase):
@@ -45,7 +43,7 @@ class TestField(unittest.TestCase):
         constrained_field._meta_attributes['field_name'] = 'test_field'
         self.assertRaises(ValueError, constrained_field.resolve, '')
 
-    def test_get_default_instead_of_none(self):
+    def test_default_instead_of_none(self):
         constrained_field = fields.Field(default='Hailey Baldwin')
         constrained_field.resolve(None)
         self.assertEqual(constrained_field._cached_result, 'Hailey Baldwin')
@@ -72,7 +70,12 @@ class TestField(unittest.TestCase):
             return value
         self.field._default_validators = [raising_validator]
         self.assertRaises(ValidationError, self.field.resolve, 'Kendall')
-        
+    
+    def test_to_python_object(self):
+        self.assertEqual(self.field._to_python_object('Kendall'), 'Kendall')
+    
+    # def test_simpl_resolve(self):
+    #     self.assertEqual(self.field._simple_resolve('Kendall'), 'Kendall')
 
 class TestCharfields(unittest.TestCase):
     def setUp(self):
@@ -200,35 +203,6 @@ def method_three(price):
     return price
 
 
-# class TestFunctionField(unittest.TestCase):
-#     def setUp(self):
-#         self.field = fields.FunctionField(method_one, method_two)
-
-#     def test_resolution(self):
-#         # Each function should be run sequentially
-#         # the result, building upon one another
-#         self.field.resolve('I love')
-#         self.assertEqual(self.field._cached_result, 'I love Kendall Jenner')
-        
-#     def test_with_output_field(self):
-#         methods = [method_one, method_two]
-#         field = fields.FunctionField(*methods, output_field=fields.CharField())
-#         field.resolve('I love')
-#         self.assertEqual(field._cached_result, 'I love Kendall Jenner')
-
-#     @unittest.expectedFailure
-#     def test_with_none_instanciated_output_field(self):
-#         methods = [method_one, method_two]
-#         field = fields.FunctionField(*methods, output_field=fields.CharField)
-#         field.resolve('I love')
-#         self.assertEqual(field._cached_result, 'I love Kendall Jenner')
-
-#     def test_special_resolution(self):
-#         field = fields.FunctionField(method_three, output_field=DecimalField())
-#         field.resolve('$456.7')
-#         self.assertEqual(field._cached_result, 456.7)
-
-
 class TestListField(unittest.TestCase):
     def setUp(self):
         self.field = fields.ListField()
@@ -301,7 +275,7 @@ class TestImageField(unittest.TestCase):
 
 class TestBooleanField(unittest.TestCase):
     def setUp(self):
-        self.field = BooleanField()
+        self.field = fields.BooleanField()
 
     def test_resolution(self):
         booleans = ['True', 'true', True, 'on', 'On', 'off', 'Off', 'False', 'false', False, 0, 1, '0', 1]
@@ -342,7 +316,7 @@ class TestJsonField(unittest.TestCase):
 
 class TestRegexField(unittest.TestCase):
     def setUp(self):
-        self.field = RegexField(r'wing\s?spiker')
+        self.field = fields.RegexField(r'wing\s?spiker')
     
     def test_resolution(self):
         values = [
@@ -364,7 +338,7 @@ class TestValueField(TestCase):
         
         for value in values_to_test:
             with self.subTest(value=value):
-                instance = Value(value)
+                instance = fields.Value(value)
                 self.assertEqual(instance.result, 'Kendall')
 
 

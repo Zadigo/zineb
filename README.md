@@ -12,7 +12,7 @@ Most of your interactions with the HTML page will be done through the ``HTMLResp
 
 When the spider starts crawling the page, each response and request in past through the start function:
 
-```
+```python
 def start(self, response, **kwargs):
      request = kwargs.get('request')
      images = response.images
@@ -22,7 +22,7 @@ def start(self, response, **kwargs):
 
 ## Creating a project
 
-To create a project do `python -m zineb start_project <project name>` which will create a directory which will have the following structure.
+To create a project do `python -m zineb startproject <project name>` which will create a directory which will have the following structure.
 
 .myproject
 |
@@ -265,9 +265,9 @@ Read more on `collect_files` [here](#-File-collection).
 
 # Models
 
-Models are a simple way to structure your scrapped data before saving them to a file. They are an interface to a container called `SmartDict` that actually does contain all the data that was scrapped during the process.
+Models are a simple way to structure your scrapped data before eventually saving them to a file (generally JSON or CSV). The Model class is an interface to an internal container called `SmartDict` that actually does contain the data and fields which purpose is to clean and normalize the incoming values.
 
-Models implement a set of functionnalities such as adding new values to the `SmartDict` but also play as an intermediary between the fields [which purpose is to normalize incoming data] and the container that actually does store the transformed data.
+By using models, you are then assured to have clean usable data for data analysis.
 
 ## Creating a custom Model
 
@@ -283,9 +283,9 @@ class Player(Model):
     height = fields.IntegerField()
 ```
 
-On its own however, a model does nothing. In order to make it work, you have to add values to it and then resolve the fields [or data]. There are multiple ways to add values to a model.
+On its own however, a model does nothing. In order to make it work, you have to add values to it and then resolve the fields [or data]. There are multiple ways to do this.
 
-Adding a new value to the model generally requires two main parameters: _the name of the field to use and the incoming data to be added._
+Adding a new value generally requires two main parameters: _the name of the field to use and the incoming data to be added._
 
 ## Adding values to the model
 
@@ -293,14 +293,15 @@ Each model gets instantiated with a underlying container that does the heavy wor
 
 ### Understanding SmartDict
 
-The `SmartDict` container ensures that each row is well balanced and with the same amount of fields when values are added to the model.
+The `SmartDict` container ensures that each row is well balanced with the same amount of fields when values are added.
 
 For instance, if your model has two fields `name` and `surname`, suppose you add `name` but not `surname`, the final result should be `{"name": ['Kendall'], "surname": [None]}` which in return will be saved as `[{"name": "Kendall", "surname": null}]`.
 
-In the same manner, if you supply values for both fields then your final result should be `{"name": ['Kendall'], "surname": ["Jenner"]}` which in return will be saved as `[{"name": "Kendall", "surname": "Jenner"}]`.
+In the same manner, if you supply values for both fields your final result would be `{"name": ['Kendall'], "surname": ["Jenner"]}` which in return will be saved as `[{"name": "Kendall", "surname": "Jenner"}]`.
 
-In other words, whichever fields are supplied, the finale result will always be a well balanced data with no missing fields. That's the benefit that `SmartDict` provides.
+In other words, whichever fields are supplied, the final result will always be a well balanced list of dictionnaries with no missing fields.
 
+__deprecated__
 This class does the following process:
 
 * Before the data is added, it runs any field constraint present on the model
@@ -309,7 +310,7 @@ This class does the following process:
 
 ### Adding a free custom value
 
-The first one consists using the `add_value` method.
+The first method consists of using `add_value`.
 
 ```python
 player.add_value('name', 'Kendall Jenner')
@@ -342,7 +343,13 @@ If you wish to operate a calculation on a field before passing the data to your 
 ```python
 from zineb.models.expressions import Add
 
-my_model.add_calculatd_value('price', Add(25, 5))
+my_model.add_calculatd_value('price', 25, Add(5))
+```
+
+You can also run multiple arithmetic operations on on the field:
+
+```python
+my_model.add_calculatd_value('price', 25, Add(5), Substract(1))
 ```
 
 ## Saving the model
@@ -368,7 +375,7 @@ By adding a Meta to your model, you can pass custom behaviours.
 
 ### Template model
 
-If a model only purpose is to implement additional fields to a child model, use the `template_model` option to indicate this state.
+If a model's only purpose is to implement additional fields to a child model, use the `template_model` option to indicate this state.
 
 ```python
 class TemplateModel(Model):
@@ -382,13 +389,52 @@ class MainModel(TemplateModel):
     surname = fields.CharField()
 ```
 
+This technique is useful when you need to implement common fields to multiple models at a time.
+
 ### Ordering
 
 Order your data in a specific way based on certain fields before saving your model.
 
 ### Constraints
 
-You an ensiure that the data on your model is unique using `UniqueConstraint` and `CheckConstraint` classes in the `Meta` of your model.
+You an ensure that the data on your model is unique using the `UniqueConstraint` class. These constraint check is done before the data is saved by skipping the saving process if a similar value was found.
+
+```python
+class UserModel(Model):
+    name = fields.CharField()
+    email = fields.EmailField()
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['name'], name='unique_name')
+        ]
+```
+
+Multiple fields can be constrained creating a unique together directive. In the example below, both name and email have to be unique in order to be saved.
+
+```python
+class UserModel(Model):
+    name = fields.CharField()
+    email = fields.EmailField()
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['name', 'email'], name='unique_name')
+        ]
+```
+
+You can also implement a constraint function on the fields:
+
+```python
+class UserModel(Model):
+    name = fields.CharField()
+    email = fields.EmailField()
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['name', 'email'], name='unique_name', condition=lambda x: x != 'Kendall')
+        ]
+```
 
 ## Fields
 
@@ -414,19 +460,19 @@ Zineb comes with number of preset fields that you can use out of the box:
 
 ### How they work
 
-Each fields comes with a `resolve` function whiche gets called by the model. The resulting data is then passed unto the model's data store (`SmartDict`\).
+Each fields comes with a `resolve` function whiche gets called by the model. The resulting data is then passed unto the model's data store.
 
-The resolve function will do the following things.
+The resolve function will then do the following things.
 
 First, it will run all cleaning functions on the original value for example by stripping tags like "<" or ">" which normalizes the value before additional processing.
 
-Second, a `deep_clean` method is run on the result by taking out out any useless spaces, removing escape characters and finally reconstructing the value to ensure that any none-detected white space be eliminated.
+Second, a `deep_clean` function is run on the result by removing any useless spaces, escape characters and finally reconstructing the value to ensure that any none-detected white space be eliminated.
 
-Finally, all the registered validators (default and custom) are called on the final value.
+Finally, all the registered validators (default and custom) are called.
 
 ### Accessing data from the field instance
 
-You can access the data of a declared field directly on the model by calling the field's name. Suppose you have the following model:
+You can access the data of a declared field directly on the model by calling the field's name.
 
 ```python
 class PlayerModel(Model):
@@ -441,7 +487,7 @@ model.add_value('surname', 'Fraiser')
 # -> model.surname -> ["Fraiser"]
 ```
 
-By calling `model.name` you will receive an array containing all the values that were registered on in the data container e.g. `["Shelly-Ann"]`.
+By calling `model.name` you will receive an array containing all the values that were registered on in the data container e.g. `["Shelly-Ann"]`. Each field has a descriptor `FieldDescriptor`
 
 ### CharField
 
@@ -504,16 +550,16 @@ This field allows you to pass a float value into your model.
 
 ### DateField
 
-The date field allows you to pass dates to your model. In order to use this field, you have to pass a date format so that the field can know how to resolve the value.
+The date field allows you to pass dates to your model. This field uses a preset of custom date formats to identify the structure of date incoming value. For instance `%d-%m-%Y` will be able to resolve `1-1-2021`.
 
-* `date_format`: Indicates how to parse the incoming data value
-* `default`: Default value if None
-* `tz_info`: Timezone information
+* `date_format`: Additional format that can be used to parse the incoming value
 
 ```python
 class MyModel(Model):
     date = DateField("%d-%m-%Y")
 ```
+
+Generally speaking, most date formats are covered so you wouldn't need to implement a generally used format.
 
 ### AgeField
 
@@ -614,21 +660,24 @@ This is ideal for creating nested data within your model.
 
 ### Creating your own field
 
-You an also create a custom field by suclassing `zineb.models.fields.Field`. When doing so, your custom field has to provide a `resolve` function in order to determine how the value should be parsed.
+You an also create a custom field by suclassing `zineb.models.fields.Field`. When doing so, your custom field has to provide a `resolve` function in order to determine how the value should be parsed and a `_to_python_object` function in order to know under which python type the data should be represented (str, int...).
 
 ```python
 class MyCustomField(Field):
+    _dtype = str
+
+    def _to_python_object(self, clean_value):
+        # Code here
+
     def resolve(self, value):
         initial_result = super().resolve(value)
 
         # Rest of your code here
 ```
 
-__NOTE:__ If you want to use the cleaning functionalities from the super class in your own resolve function, make sure to call super beforehand as indicated above.
-
 ## Validators [initial validators]
 
-Validators make sure that the value that was passed respects the constraints that were implemented as a keyword arguments on the field class. There are five basic validations that could possibly run if you specify a constraint for them:
+Validators make sure that the value that was passed respects the constraints that were implemented as a keyword arguments on the field class. There are five basic validations that could possibly run if they are specified.
 
 * Maximum length (`max_length`)
 * Nullity (`null`)
@@ -689,7 +738,7 @@ class Player(Model):
     age = IntegerField(validators=[custom_validator])
 ```
 
-__NOTE:__ It is important to understand that the result of the regex compiler is reinjected into your custom validator on which you can then do various other checks.
+__NOTE:__ The result of the regex compiler is reinjected into your custom validator on which you can then do your custom checks.
 
 #### Field resolution
 
@@ -718,15 +767,15 @@ Functions a built-in elements that can modify the incoming value in some kind of
 
 ### Add, Substract, Divide, Multiply
 
-Allows you to run a on an incoming value.
+Allows you to run an arithmetic operation on an incoming value.
 
 ```python
 from zineb.models.functions import Add, Substract, Divide, Multiply
 
-player.add_calculated_field('height', Add(175, 5))
-player.add_calculated_field('height', Substract(175, 5))
-player.add_calculated_field('height', Divide(175, 1))
-player.add_calculated_field('height', Multiply(175, 1))
+player.add_calculated_value('height', 175, Add(5))
+player.add_calculated_value('height', 175, Substract(5))
+player.add_calculated_value('height', 175, Divide(1))
+player.add_calculated_value('height', 175, Multiply(1))
 
 # -> {'height': [180]}
 # -> {'height': [170]}
@@ -736,7 +785,7 @@ player.add_calculated_field('height', Multiply(175, 1))
 
 ### ExtractYear, ExtractMonth, ExtractDay
 
-From a date string, extract the year, the date or the day.
+From a string that contains a date, extract the year, the date or the day.
 
 ```python
 from zineb.models.functions import ExtractYear
@@ -770,105 +819,6 @@ from zineb.models.functions import Smallest, Greatest
 player.add_value('name', Smallest('Kendall', 'Kylie', 'Hailey'))
 player.add_value('revenue', Greatest(12000, 5000, 156000))
 ```
-
-# Extractors
-
-Extractors are utilities that facilitates extracting certain specific pieces of data from a web page such as links, images [...] quickly.
-
-Some extractors can be used in various manners. First, with a context processor:
-
-```python
-extractor = LinkExtractor()
-with extractor:
-    # Do something here
-```
-
-Second, in an interation process:
-
-```python
-for link in extractor:
-    # Do something here
-```
-
-Finally, with `next`:
-
-```python
-next(extractor)
-```
-
-You can also check if an extractor has a specific value and even concatenate some of them together:
-
-```python
-# Contains
-if x in extractor:
-    # Do something here
-
-# Addition
-concatenated_extractors = extractor1 + extractor2
-```
-
-## LinkExtractor
-
-* `url_must_contain` - only keep urls that contain a specific string
-* `unique` - return a unique set of urls (no duplicates)
-* `base_url` - reconcile a domain to a path
-* `only_valid_links` - only keep links (Link) that are marked as valid
-
-```python
-extractor = LinkExtractor()
-extractor.finalize(response.html_response)
-
-# -> [Link(url=http://example.com, valid=True)]
-```
-
-There might be times where the extracted links are relative paths. This can cause an issue for running additional requests. In which case, use the `base_url` parameter:
-
-```python
-extractor = LinkExtractor(base_url=http://example.com)
-extractor.finalize(response.html_response)
-
-# Instead of getting this result which would also
-# be marked as a none valid link
-# -> [Link(url=/relative/path, valid=False)]
-
-# You will get the following with the full url link
-# -> [Link(url=http://example.com/relative/path, valid=True)]
-```
-
-NOTE: By definition, a relative path is not a valid link hence the valid set to False.
-
-## MultiLinkExtractor
-
-A `MultiLinkExtractor` works exactly like the `LinkExtractor` with the only difference being that it also identifies and collects emails that are contained within the HTML page.
-
-## TableExtractor
-
-Extract all the rows from the first table that is matched on the HTML page.
-
-* `class_name` - intercept a table with a specific class name
-* `has_headers` - specify if the table has headers in order to ignore it in the final data
-* `filter_empty_rows` - ignore any rows that do not have a values
-* `processors` - a set of functions to run on the data once it is all extracted
-
-## ImageExtractor
-
-Extract all the images on the HTML page.
-
-You can filter down the images that you get by using a specific set of parameters:
-
-* `unique` - return only a unique et set of urls
-* `as_type` - only return images having a specific extension
-* `url_must_contain` - only return images which contains a specific string
-* `match_height` - only return images that match as specific height
-* `match_width` - only return images that match a specific width
-
-## TextExtractor
-
-Extract all the text on an HTML page.
-
-First, the text is retrieved as a raw value then tokenized and vectorized using `nltk.tokenize.PunktSentenceTokenizer` and `nltk.tokenize.WordPunctTokenizer`.
-
-To know more about NLKT, [please read the following documentation](https://www.nltk.org/).
 
 # Zineb special wrappers
 
