@@ -257,31 +257,23 @@ class Field:
         if value is None:
             return None
 
-        # validator_return_value = None
         for validator in self._validators:
             if not callable(validator):
                 raise TypeError('A Validator should be a callable.')
             try:
-                # if validator_return_value is None:
-                #     validator_return_value = validator(value)
-                # else:
-                #     validator_return_value = validator(validator_return_value)
-                # NOTE: Validators should not return any value
-                # instead, they should just validate that a
-                # value respects a certan logic and if not raise
-                # a ValidationError
                 validator(value)
             except:
-                message = ("A validation error occured on "
-                           "field '{name}' with value '{value}'.")
-                raise Exception(LazyFormat(
-                    message,
-                    name=self.field_name,
-                    value=value
+                message = (
+                    "A validation error occured on "
+                    "field '{name}' with value '{value}'."
                 )
+                raise Exception(
+                    LazyFormat(
+                        message,
+                        name=self.field_name,
+                        value=value
+                    )
                 )
-        # if self._validators:
-        #     return validator_return_value
         return value
 
     # TODO: Rename this method
