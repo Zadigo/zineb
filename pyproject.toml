@@ -4,14 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "zineb-scrapper"
+version = "7.0.0"
+description = "Advanced web scrapper for machine learning and data science buit around BeautifulSoup"
+keywords=["python", "web scrapping", "scrapping"]
+license = {text = "MIT"}
 authors = [
-    {name = "John Pendenque", email = "pendenquejohn@gmail.com"},
+    {name = "John Pendenque", email = "pendenquejohn@gmail.com"}
 ]
-description = Advanced web scrapper for machine learning and data science buit around BeautifulSoup"
 readme = "README.md"
 requires-python = ">=3.9"
-keywords=["python", "web scrapping", "scrapping"],
-license = {text = "BSD-3-Clause"}
 classifiers = [
     "Development Status :: 3 - Alpha",
 
@@ -35,8 +36,8 @@ classifiers = [
     "Topic :: Internet",
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Software Development :: Libraries :: Application Frameworks",
-    "Topic :: Software Development :: Libraries :: Python Modules"
-    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Programming Language :: Python :: 3"
 ]
 dependencies = [
     "beautifulsoup4>=4.9.3",
@@ -48,5 +49,3 @@ dependencies = [
     "requests",
     "w3lib"
 ]
-dynamic = ["version"]
-license-files = ["LICENCE", "AUTHORS"]
