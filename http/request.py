@@ -313,6 +313,11 @@ class FormRequest(BaseRequest):
                 self.prepared_request.url = f"{url_to_get}?{encoded_data}"
 
 
+class SitemapRequest(BaseRequest):
+    """A special request for working 
+    with sitemaps"""
+
+
 # class FormRequestFromResponse(FormRequest):
 #     fields = []
 
