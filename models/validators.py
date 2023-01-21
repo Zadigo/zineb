@@ -16,7 +16,6 @@ class RegexValidator:
         result = compiled_pattern.search(self.initial_value)
         if not result or result is None:
             raise ValidationError("Regex could not match pattern")
-        return result.group()
 
 
 def regex_compiler(pattern: str):
@@ -36,7 +35,7 @@ def regex_compiler(pattern: str):
 def validate_numeric(clean_value):
     if not clean_value.isnumeric():
         raise ValidationError('Value is not numeric')
-    return clean_value
+
 
 # TODO: The email validation pattern is quite limited,
 # we are no looking for something complexe but just one
@@ -45,7 +44,6 @@ def validate_numeric(clean_value):
 def validate_email(email) -> str:
     if '@' not in email:
         raise ValidationError(f'{email} is not a valid email for the field')
-    return email
 
 
 def validate_is_not_null(value: Any):
