@@ -3,6 +3,7 @@ import random
 from zineb.settings import settings
 
 
+# TODO: RotatingUserAgent
 class UserAgent:
     agents = [
         'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.3',
@@ -26,3 +27,6 @@ class UserAgent:
         self.agents.extend(user_agents_from_settings)
         random.shuffle(self.agents)
         return random.choice(list(set(self.agents)))
+
+
+# TODO: RotatingProxy
