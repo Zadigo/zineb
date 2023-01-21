@@ -154,11 +154,18 @@ class OneToOneDescriptor(DeferredAttribute):
         if instance is None:
             return self
 
-        data = instance.__dict__
+        # data = instance.__dict__
+        # field_name = self.field.field_name
+        # if field_name not in data:
+        #     data[field_name] = self.field.related_model
+        # return data[field_name]
+        
+        # Return the cached related model
+        # that could be used
         field_name = self.field.field_name
-        if field_name not in data:
-            data[field_name] = self.field.related_model
-        return data[field_name]
+        if not hasattr(self, field_name):
+            setattr(self, field_name, self.field.related_model)
+        return getattr(self, field_name)
 
 
 class Field:
@@ -913,7 +920,7 @@ class RelatedModel(RelatedField):
             # us to get the data from the related model to the
             # one that created the relation. In that sense, if
             # we have model1.field where field being the
-            # RelatedModelField, then we should be able to do
+            # RelatedModel, then we should be able to do
             # model2.field_set in reverse for model1
             setattr(self.related_model, self.reverse_related_name, self.model)
 
