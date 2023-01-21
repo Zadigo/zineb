@@ -50,6 +50,33 @@ class TestWhen(unittest.TestCase):
         instance.model = self.model
         self.instance = instance
 
+    @unittest.expectedFailure
+    def test_wrong_field_name(self):
+        instance = functions.When('WRONG__gt=1', 1)
+        instance._cached_data = 25
+        instance.model = self.model
+        instance.resolve()
+
+    @unittest.expectedFailure
+    def test_no_model(self):
+        instance = functions.When('age__gt=1', 1)
+        instance.resolve()
+
+    @unittest.expectedFailure
+    def test_wrong_expressions(self):
+        instance = functions.When(
+            'age__gt=21',
+            'Facebook',
+            else_condition='Google'
+        )
+        instance.model = self.model
+        instance.resolve()
+
+    def test_no_operator(self):
+        instance = functions.When('age=1', 1)
+        with self.assertRaises(ValueError):
+            instance.resolve()
+
     def test_resolution(self):
         # if age > 15, 20 else 15
         field_name, result = self.instance.resolve()
@@ -62,14 +89,6 @@ class TestWhen(unittest.TestCase):
     #     self.model.add_case(21, When('age__eq=21', 23))
     #     result = self.model._data_container.as_values()
     #     self.assertDictEqual(result, {'age': [23]})
-
-    # @unittest.expectedFailure
-    # def test_cannot_compare_in_when(self):
-    #     self.model.add_case('google', functions.When('age__eq=21', 23))
-    #     self.assertRaises(TypeError)
-
-    # def test_wrong_expression_in_when(self):
-    #     self.assertRaises(TypeError, functions.When, if_condition='fast', then_condition=0)
 
     def test_comparision(self):
         result = self.instance.compare('gt', '10')
