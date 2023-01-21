@@ -167,7 +167,7 @@ class ModelOptions:
         if name in self.fields_map:
             raise ValueError(f"Field '{name}' is already present on the model '{self.model_name}'")
         
-        if getattr(field, 'is_relationship_field', False):
+        if hasattr(field, 'is_relationship_field'):
             # We have to keep track of a two way relationship:
             # one from model1 -> model2 and the reverse from
             # model1 <- model2 where model1.field accesses
