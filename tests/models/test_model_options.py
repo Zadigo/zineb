@@ -31,6 +31,11 @@ class TestModelOptions(unittest.TestCase):
         self.assertIsInstance(self.model._meta.get_field('name'), fields.Field)
 
     def test_model_ordering(self):
+        # BUG: While this test is correct in the making
+        # with using a model with an invalid Meta, technically
+        # though, this should raise an error because the field
+        # in ordering is not present on the Model. Do an
+        # inspection here
         model = items.ModelWithInvalidMeta()
         ordering = model._meta.get_ordering()
         self.assertListEqual(ordering.ascending_fields, ['name'])
