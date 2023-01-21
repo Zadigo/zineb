@@ -204,34 +204,28 @@ class BaseRequest:
 
 class HTTPRequest(BaseRequest):
     """
-    Represents a basic HTTP request which wraps
-    an HTMLResponse and requests.Request instance
-    request
-
-    Parameters
-    ----------
-
-        - url (str): the url to which to send the request
-        - is_download_url (bool, optional): the url is going to be
-          used for a download. Defaults to False.
+    Represents a basic HTTP request and overall proxy
+    for an `HTMLResponse` and a `requests.Request`
+    instance
 
     Example
     -------
-            Sending a basic request can be done in the followin way:
 
-            >>> instance = HttpRequest('http://example.com')
-            ... instance._send()
+    Sending a basic request can be done in the followin way:
 
-            You can also follow additional links using these methods:
+    >>> instance = HttpRequest('http://example.com')
+    ... instance._send()
 
-            >>> new_instance = instance.follow('http://example.com/1')
-            >>> new_instance = instance.follow_all(['http://example.com/2'])
+    You can also follow additional links using these methods:
 
-            Finally, you can also join a relative path to the url's domain
+    >>> new_instance = instance.follow('http://example.com/1')
+    ... new_instance = instance.follow_all(['http://example.com/2'])
 
-            >>> new_url = instance.urljoin('kendall')
-            ... 'http://example.com/kendall'
-            ... instance.follow(new_url)
+    Finally, you can also join a relative path to the url's domain
+
+    >>> new_url = instance.urljoin('kendall')
+    ... 'http://example.com/kendall'
+    ... instance.follow(new_url)
     """
     referer = None
 
@@ -274,13 +268,6 @@ class HTTPRequest(BaseRequest):
         To compensate for relative paths not being
         full ones, this helper function joins a main url 
         to a relative path
-
-        Parameters
-        ----------
-
-            - path (str): the relative path to use
-            - use_domain (bool, optional): Use the domain present 
-              of the in the requested url. Defaults to False
         """
         if use_domain:
             return parse.urljoin(self.root_url, str(path))
