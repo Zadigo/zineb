@@ -1,5 +1,4 @@
 import re
-from typing import Any, Callable, Tuple, Union
 
 from zineb.exceptions import ValidationError
 from zineb.utils.conversion import convert_if_number
@@ -10,23 +9,32 @@ from zineb.utils.urls import is_url
 class RegexValidator:
     def __init__(self, value):
         self.initial_value = value
-        
-    def __call__(self, pattern: str):
+
+    def __call__(self, pattern):
         compiled_pattern = re.compile(pattern)
         result = compiled_pattern.search(self.initial_value)
         if not result or result is None:
             raise ValidationError("Regex could not match pattern")
+        return result.group()
 
 
-def regex_compiler(pattern: str):
-    """Regex decorator for model validators"""
-    def compiler(func: Callable[[Tuple], Any]):
-        def wrapper(value: Any, **kwargs):
+def regex_compiler(pattern):
+    """Regex decorator for creating validators
+    that require regex validation
+
+    >>> @regex_compiler(r'\w+')
+    ... def my_validator(clean_value):
+    ...     # Do something here
+    """
+    def compiler(func):
+        def wrapper(value, **kwargs):
             compiled_pattern = re.compile(pattern)
             result = compiled_pattern.match(str(value))
+
             if not result or result is None:
                 raise ValidationError('The value is not valid')
-            return func(result.group())
+
+            func(result.group())
         return wrapper
     return compiler
 
@@ -46,66 +54,58 @@ def validate_email(email) -> str:
         raise ValidationError(f'{email} is not a valid email for the field')
 
 
-def validate_is_not_null(value: Any):
+def validate_is_not_null(value):
     from zineb.models.fields import Empty
 
-    message = ('{prefix} values are not '
-    'permitted on this field')
-    
+    message = '{prefix} values are not permitted on this field'
+    errors = []
+
     if value is None:
-        raise TypeError(message.format(prefix='None'))
-    
+        errors.append(ValueError(message.format(prefix='None')))
+
     if value == '' or value == Empty:
-        raise ValueError(message.format(prefix='Empty'))
-    return value
+        errors.append(ValueError(message.format(prefix="'' or Empty")))
+
+    if errors:
+        raise ExceptionGroup('Not null validation fail', errors)
 
 
 def validate_length(value, max_length):
     result = max_length_validator(len(value), max_length)
     if result:
-        raise ValidationError('Ensure value is no more than', max_length)
-    return value
+        raise ValidationError(
+            f'Ensure value is no more than {max_length} long')
 
 
-# @regex_compiler(r'(?<=\.)(\w+)\Z')
-# def validate_extension(clean_value, extensions: list=[]):
-#     if clean_value not in extensions:
-#         raise ValidationError('Value is not a valid extension')
-#     return clean_value
-
-
-def validate_extension(extensions: list = []):
+def validate_extension(extensions=[]):
     def validator(clean_value):
         regex_validator = RegexValidator(clean_value)
-        result = regex_validator(r'(?<=\.)(\w{3,4})\Z')
+        result = regex_validator(r'(?<=\.)(\w+)\Z')
         if result not in extensions:
-            raise ValidationError(LazyFormat("'.{extension}' is not valid extension", extension=result))
-        return clean_value
+            raise ValidationError(LazyFormat(
+                "'.{extension}' is not valid extension", extension=result))
     return validator
 
 
-def max_length_validator(a, b) -> bool:
+def max_length_validator(a, b):
     return a >= b
 
 
-def min_length_validator(a, b) -> bool:
+def min_length_validator(a, b):
     return a <= b
 
 
-@regex_compiler(r'^(\-?\d+[\W]\d?)(?=\%$)')
-def validate_percentage(number) -> Union[int, float]:
-    return number
+def validate_percentage(value):
+    regex_compiler = RegexValidator(value)
+    regex_compiler(r'^(?:\-?)(\d+\.?\d+)\%$')
 
 
-def validate_url(url: str):
-    if url.startswith('/'):
-        return url
-
-    url_is_valid = is_url(url)
-    if not url_is_valid:
-        raise ValidationError(("The following url failed the "
-        f"validation test. Got: '{url}'"))
-    return url
+def validate_url(url):
+    if not url.startswith('/'):
+        url_is_valid = is_url(url)
+        if not url_is_valid:
+            raise ValidationError(("The following url failed the "
+                               f"validation test. Got: '{url}'"))
 
 
 class LengthValidator:
@@ -127,42 +127,35 @@ class LengthValidator:
             return convert_if_number(value_to_test)
 
         if isinstance(value_to_test, str):
-            return self._get_string_length(value_to_test)
-            
+            return len(value_to_test)
+
         return value_to_test
 
-    @staticmethod
-    def _get_string_length(value):
-        return len(value)
-
-    def should_return_result(self, value: Any, state: bool, expected: bool):
+    def should_return_result(self, value, state, expected):
         """
         Based on an expected value, raise an error if the
-        state is not equals to the expected one
+        state (which is `boolean`) is not equal to the expected one
+        (which is also a `boolean`)
 
-        Parameters
-        ----------
-
-            - value (Any): value to test
-            - state (bool): result of the comparision
-            - expected (bool): expected result from the comparision
+        >>> result = max_length(20, 15)
+        ... instance.should_return_result(20, result, True)
+        ... ValidationError(...)
         """
         if state != expected:
             message = self.error_message['length_error']
-            raise ValidationError(message %  {'value': value, 'validator': self.__class__.__name__})
+            raise ValidationError(
+                message % {'value': value, 'validator': self.__class__.__name__})
 
 
 class MinLengthValidator(LengthValidator):
-    def __call__(self, value_to_test: Any):
+    def __call__(self, value_to_test):
         value_length = super().__call__(value_to_test)
         result = min_length_validator(value_length, self.constraint)
         super().should_return_result(value_length, result, False)
-        return value_to_test
 
 
 class MaxLengthValidator(LengthValidator):
-    def __call__(self, value_to_test: Any):
+    def __call__(self, value_to_test):
         value_length = super().__call__(value_to_test)
         result = max_length_validator(value_length, self.constraint)
         super().should_return_result(value_length, result, False)
-        return value_to_test
