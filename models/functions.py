@@ -1,8 +1,5 @@
 import datetime
-import math
-from typing import Any, Callable, Union
 
-from zineb.exceptions import ModelNotImplementedError
 from zineb.models.fields import Value
 from zineb.settings import settings
 from zineb.utils.conversion import string_to_number
@@ -160,7 +157,9 @@ class Divide(Math):
         
 
 class When:
-    """Checks if a condition is met
+    """Checks if a condition is met. If True resolves
+    to `then_condition`, if False, resolves to `then_condition`
+    if provided otherwise the current value
 
     >>> model.add_case(20, When("age__gt=21", 24))
     ... [{"age": 20}]
@@ -172,7 +171,11 @@ class When:
     def __init__(self, if_condition, then_condition, else_condition=None):
         self.if_condition = if_condition
         self.then_condition = then_condition
-        self.else_condition = else_condition
+        # Return the default incoming value when if_condition
+        # fails and no else_condition is provided because if 
+        # else_condition stays None, breaks the field
+        # resolution process
+        self.else_condition = else_condition or self._cached_data
 
     def __repr__(self):
         template = "{class_name}({conditions})"
@@ -186,6 +189,10 @@ class When:
 
     def resolve(self):
         field_name, exp, value_to_compare = self.parse_expression(self.if_condition)
+        
+        if self.model is None:
+            raise ValueError('When-case needs to be attached to a model')
+
         field_object = self.model._meta.get_field(field_name)
         
         result = self.compare(exp, value_to_compare)
@@ -208,10 +215,12 @@ class When:
         try:
             exp, value_to_compare = rhs.split('=', maxsplit=1)
         except ValueError:
-            raise ValueError(f'Case requires a comparision value e.g. {field_name}__gt=??')
-
-        if exp not in allowed:
-            raise ValueError()
+            raise ValueError(f'Case requires a comparision '
+            'value e.g. {field_name}__gt=??')
+        else:
+            if exp not in allowed:
+                raise ValueError("Operator should be one of "
+                f"{''.join(allowed)}. Got {exp}")
 
         return field_name, exp, value_to_compare
 
