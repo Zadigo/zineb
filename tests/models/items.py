@@ -1,10 +1,15 @@
 from zineb.models import fields
 from zineb.models.constraints import UniqueConstraint
 from zineb.models.datastructure import Model
-
+from zineb.exceptions import ValidationError
 
 def simple_validator(value):
-    return value    
+    pass
+
+
+def error_validator(value):
+    if value == 0:
+        raise ValidationError('Value is 0')
 
 
 class BareModel(Model):
@@ -13,7 +18,7 @@ class BareModel(Model):
 
 class AgeModel(Model):
     age = fields.AgeField()
-    
+
 
 class SimpleModel(Model):
     name = fields.CharField()
@@ -23,6 +28,7 @@ class SimpleModel(Model):
 
 class ModelWithValidator(Model):
     height = fields.IntegerField(validators=[simple_validator])
+    weight = fields.IntegerField(validators=[error_validator])
 
 
 class DateModel(Model):
@@ -66,8 +72,8 @@ class SortedModel(Model):
     name = fields.NameField()
     age = fields.IntegerField()
     height = fields.EmailField()
-    
-    
+
+
 class ComplicatedModel(Model):
     name = fields.NameField()
     year_of_birth = fields.IntegerField()
@@ -77,18 +83,17 @@ class ComplicatedModel(Model):
 
 class RelatedModel2(Model):
     surname = fields.CharField()
-    
-    
+
+
 class RelatedModel1(Model):
     surname = fields.RelatedModel(RelatedModel2)
     age = fields.IntegerField()
-    
 
 
 class ConstrainedModel(Model):
     name = fields.CharField()
     surname = fields.CharField()
-    
+
     class Meta:
         constraints = [
             UniqueConstraint(['name', 'surname'], 'unique_name_and_surname'),
@@ -97,7 +102,7 @@ class ConstrainedModel(Model):
 
 class SuperModel(Model):
     name = fields.NameField()
-    
-    
+
+
 class SubModel(SuperModel):
     surname = fields.NameField()
