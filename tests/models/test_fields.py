@@ -2,7 +2,7 @@ import datetime
 import re
 import unittest
 from unittest.case import TestCase
-
+from tests.models import items
 from zineb.exceptions import ValidationError
 from zineb.models import fields
 
@@ -340,6 +340,12 @@ class TestValueField(TestCase):
             with self.subTest(value=value):
                 instance = fields.Value(value)
                 self.assertEqual(instance.result, 'Kendall')
+
+
+# class TestRelatedField(TestCase):
+#     def test_related_field(self):
+#         instance = fields.RelatedField(items.SimpleModel)
+#         instance.update_model_options()
 
 
 if __name__ == '__main__':
