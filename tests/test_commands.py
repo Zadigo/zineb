@@ -42,7 +42,7 @@ class TestCommandCollection(unittest.TestCase):
         self.assertIn('\\createspider.py', sample_path)
 
 
-class TestLoadCommands(unittest.TestCase):        
+class TestLoadCommands(unittest.TestCase):
     def test_can_load_command(self):
         command = load_command_class('start')
         self.assertTrue(isinstance(command, BaseCommand))
@@ -54,14 +54,16 @@ class TestUtility(unittest.TestCase):
 
     def test_registry_is_not_empty(self):
         self.assertGreater(len(self.utility.commands_registry), 0)
-    
+
     def test_command_calling_in_project(self):
-        os.environ.setdefault('ZINEB_SPIDER_PROJECT', 'zineb.tests.testproject')
+        os.environ.setdefault('ZINEB_SPIDER_PROJECT',
+                              'zineb.tests.testproject')
 
         settings()
 
-        ARGUMENTS = ['python', pathlib.Path(settings.PROJECT_PATH).joinpath('manage.py')]
-        ARGUMENTS.extend(['ping', 'https://example.com/'])
+        ARGUMENTS = ['python', pathlib.Path(
+            settings.PROJECT_PATH).joinpath('manage.py')]
+        ARGUMENTS.extend(['ping', '-n', '1', '167.114.222.149'])
         subprocess.call(ARGUMENTS, stderr=subprocess.STDOUT)
 
 
