@@ -17,7 +17,6 @@ class TestMathOperations(unittest.TestCase):
         return instance._cached_data
 
     def test_addition(self):
-        # BUG
         result = self._instantiate_function(functions.Add)
         self.assertEqual(result, 207)
 
