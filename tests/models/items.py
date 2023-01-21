@@ -24,6 +24,7 @@ class SimpleModel(Model):
     name = fields.CharField()
     date_of_birth = fields.DateField()
     age = fields.AgeField()
+    height = fields.IntegerField()
 
 
 class ModelWithValidator(Model):

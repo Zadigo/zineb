@@ -8,37 +8,30 @@ class TestMathOperations(unittest.TestCase):
     def setUp(self):
         self.model = items.SimpleModel()
 
-    def test_addition(self):
-        instance = functions.Add(5)
-        instance._cached_data = 30
-        instance.field_name = 'age'
+    def _instantiate_function(self, klass):
+        instance = klass(5)
+        instance._cached_data = 202
+        instance.field_name = 'height'
         instance.model = self.model
         instance.resolve()
-        self.assertEqual(instance._cached_data, 35)
+        return instance._cached_data
+
+    def test_addition(self):
+        # BUG
+        result = self._instantiate_function(functions.Add)
+        self.assertEqual(result, 207)
 
     def test_substraction(self):
-        instance = functions.Substract(5)
-        instance._cached_data = 30
-        instance.model = self.model
-        instance.field_name = 'age'
-        instance.resolve()
-        self.assertEqual(instance._cached_data, 25)
+        result = self._instantiate_function(functions.Substract)
+        self.assertEqual(result, 197)
 
     def test_multiplication(self):
-        instance = functions.Multiply(2)
-        instance._cached_data = 30
-        instance.model = self.model
-        instance.field_name = 'age'
-        instance.resolve()
-        self.assertEqual(instance._cached_data, 60)
+        result = self._instantiate_function(functions.Multiply)
+        self.assertEqual(result, 1010)
 
     def test_division(self):
-        instance = functions.Divide(2)
-        instance._cached_data = 30
-        instance.model = self.model
-        instance.field_name = 'age'
-        instance.resolve()
-        self.assertEqual(instance._cached_data, 15)
+        result = self._instantiate_function(functions.Divide)
+        self.assertEqual(result, 40.4)
 
     # def test_with_string(self):
     #     # TODO: Allow addition on strings ??
@@ -63,6 +56,13 @@ class TestWhen(unittest.TestCase):
         field_name, result = self.instance.resolve()
         self.assertIsInstance(field_name, str)
         self.assertEqual(result, 20)
+
+    # def test_can_add_case(self):
+    #     # BUG: "Could not find a valid format for date '23' on field 'age'."
+    #     from zineb.models.functions import When
+    #     self.model.add_case(21, When('age__eq=21', 23))
+    #     result = self.model._data_container.as_values()
+    #     self.assertDictEqual(result, {'age': [23]})
 
     # @unittest.expectedFailure
     # def test_cannot_compare_in_when(self):
@@ -96,7 +96,8 @@ class TestWhen(unittest.TestCase):
                 field_name, exp, value = self.instance.parse_expression(
                     expression)
                 self.assertEqual(field_name, 'age')
-                self.assertIn(exp, ['gt', 'lt', 'eq', 'lte', 'gte', 'contains'])
+                self.assertIn(
+                    exp, ['gt', 'lt', 'eq', 'lte', 'gte', 'contains'])
                 self.assertEqual(value, '15')
 
 
@@ -150,10 +151,10 @@ class TestExtractDates(unittest.TestCase):
     def test_field_should_not_be_a_datefield(self):
         self.model._meta.fields_map['age'] = fields.DateField()
         self.assertRaises(TypeError,
-            self.model.add_value,
-            name='age', 
-            value=functions.ExtractYear('11-1-2021')
-        )
+                          self.model.add_value,
+                          name='age',
+                          value=functions.ExtractYear('11-1-2021')
+                          )
 
 
 class TestComparision(unittest.TestCase):
@@ -161,11 +162,12 @@ class TestComparision(unittest.TestCase):
         instance = functions.Greatest(15, 31, 24)
         instance.resolve()
         self.assertEqual(instance._cached_data, 31)
-    
+
     def test_smallest(self):
         instance = functions.Smallest(15, 31, 24)
         instance.resolve()
         self.assertEqual(instance._cached_data, 15)
+
 
 if __name__ == '__main__':
     unittest.main()
