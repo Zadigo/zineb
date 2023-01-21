@@ -373,7 +373,7 @@ class Model(metaclass=Base):
         # self.html_document = html_document
         # self.response = response
 
-        self.parser = self._choose_parser()
+        # self.parser = self._choose_parser()
         
         # When the model is initialized, we bind it
         # to the constraint if there are any
