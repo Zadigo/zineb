@@ -37,6 +37,7 @@ BAD_URLS = [
 
 
 def create_simple_request(send=False):
+    """Create or return an HTTPRequest"""
     request = HTTPRequest('http://example.com')
     if send:
         request._send()
