@@ -5,7 +5,7 @@ from zineb.logger import logger
 from zineb.registry import registry
 from zineb.settings import settings
 from zineb.utils.formatting import LazyFormat
-from zineb.utils.iteration import RequestQueue
+from zineb.utils.iterations import RequestQueue
 
 DEFAULT_META_OPTIONS = {'domains', 'verbose_name', 'limit_requests_to'}
 

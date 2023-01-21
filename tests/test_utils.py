@@ -7,8 +7,8 @@ from zineb.utils.dateformating import extract_date_from_string
 from zineb.utils.formatting import (LazyFormat, remap_to_dict,
                                     reverse_remap_to_dict)
 from zineb.utils.functionnal import LazyObject
-from zineb.utils.iteration import (collect_files, drop_while, keep_while,
-                                   regex_iterator, split_while)
+from zineb.utils.iterations import (collect_files, drop_while, keep_while,
+                                    regex_iterator, split_while)
 
 
 class TestFormattingUtilities(unittest.TestCase):

@@ -1,7 +1,7 @@
 import unittest
 
 from zineb.tests.spiders import items
-from zineb.utils.iteration import RequestQueue
+from zineb.utils.iterations import RequestQueue
 
 
 class TestSpider(unittest.TestCase):

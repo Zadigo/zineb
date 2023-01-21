@@ -3,7 +3,7 @@ from operator import itemgetter
 
 from zineb.models.fields import Empty
 from zineb.utils.formatting import LazyFormat, remap_to_dict
-from zineb.utils.iteration import drop_while
+from zineb.utils.iterations import drop_while
 
 
 class SmartDict:
@@ -20,9 +20,9 @@ class SmartDict:
         self.fields = fields
         for field in fields:
             self.values[field]
-            
+
         self._last_created_row = []
-        
+
         self._id = 0
         self.order_by = order_by
 
@@ -38,7 +38,7 @@ class SmartDict:
 
     def _last_value(self, name):
         return self.get_container(name)[-1][-1]
-    
+
     def get_container(self, name: str):
         return self.values[name]
 
@@ -59,7 +59,7 @@ class SmartDict:
 
         if name not in self.fields:
             raise ValueError(LazyFormat("Field '{field}' is not present "
-            "on the declared container fields.", field=name))
+                                        "on the declared container fields.", field=name))
 
         def row_generator():
             # Generate a new list of values for all
@@ -79,7 +79,7 @@ class SmartDict:
             self.current_updated_fields.clear()
             self.current_updated_fields.add(name)
             self._last_created_row = None
-            
+
             self._last_created_row = list(row_generator())
 
             # Iterate over each values that were created and with
@@ -96,7 +96,8 @@ class SmartDict:
                     if field_name == name:
                         value_to_update = [self._last_created_row[i - 1]]
                         value_to_update[-1] = value
-                        self.update_last_item(field_name, tuple(value_to_update))
+                        self.update_last_item(
+                            field_name, tuple(value_to_update))
             else:
                 self._last_created_row = list(row_generator())
                 # Based on the position of the field name in the
@@ -111,7 +112,7 @@ class SmartDict:
     def update_multiple(self, attrs: dict):
         for key, value in attrs.items():
             self.update(key, value)
-            
+
     def apply_sort(self, values):
         """Sorting method needs to be introduced
         by the subclasses"""
@@ -128,7 +129,7 @@ class SmartDict:
     def as_list(self):
         """
         Return a sorted collection of dictionnaries
-        
+
         >>> [{a: 1}, {b: 2}, ...]
         """
         values = remap_to_dict(self.as_values())
@@ -137,7 +138,7 @@ class SmartDict:
     def as_csv(self):
         """
         Return the values under a csv format
-        
+
         >>> [[col1, col2], [..., ...]]
         """
         data = self.as_values()
@@ -146,7 +147,7 @@ class SmartDict:
 
         last_column = columns[-1]
         number_of_items = len(data[last_column])
-        # Create the amount of rows that will be 
+        # Create the amount of rows that will be
         # necessary for a single column
         canvas = [[] for _ in range(number_of_items)]
 
@@ -159,18 +160,20 @@ class SmartDict:
 
 class ModelSmartDict(SmartDict):
     """A SmartDict that is bound to a model"""
+
     def __init__(self, model, order_by=[], include_id_field=False):
         fields = model._meta.field_names
         super().__init__(*fields, order_by=order_by)
         self.include_id_field = include_id_field
         self.model = model
-        new_fields = list(drop_while(lambda x: x == 'id' and not self.include_id_field, fields))
+        new_fields = list(drop_while(
+            lambda x: x == 'id' and not self.include_id_field, fields))
         self.fields = new_fields
-        
+
     @classmethod
     def new_instance(cls, model, **kwargs):
         return cls(model, **kwargs)
-    
+
     def apply_sort(self, values):
         has_ordering = self.model._meta.has_ordering
         if has_ordering:
@@ -184,14 +187,16 @@ class ModelSmartDict(SmartDict):
             # is ascending or descending.
             for item in self.order_by:
                 if not isinstance(item, (list, tuple)):
-                    raise ValueError('Ordering method should be either an array or a tuple')  
-                
+                    raise ValueError(
+                        'Ordering method should be either an array or a tuple')
+
                 _, value = item
                 if not isinstance(value, bool):
-                    raise TypeError('Ordering direction for needs to be a boolean')
-                        
+                    raise TypeError(
+                        'Ordering direction for needs to be a boolean')
+
             ordering_booleans = self.order_by
-            
+
         if has_ordering:
             def multisort(values, sorting_methods):
                 for key, reverse in reversed(sorting_methods):
