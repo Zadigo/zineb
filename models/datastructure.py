@@ -31,7 +31,7 @@ class ModelRegistry:
     counter = 0
     registry = defaultdict(dict)
 
-    def __getitem__(self, name: str):
+    def __getitem__(self, name):
         return self.registry[name]
 
     @cached_property
@@ -357,7 +357,7 @@ class Model(metaclass=Base):
     
     _cached_resolved_data = None
     
-    def __init__(self, html_document=None, response=None):
+    def __init__(self):
         self._data_container = ModelSmartDict.new_instance(self)
         
         # When the class is instantiated, that's where
@@ -370,8 +370,8 @@ class Model(metaclass=Base):
                 if isinstance(field.related_model, type):
                     setattr(field, 'related_model', field.related_model())
 
-        self.html_document = html_document
-        self.response = response
+        # self.html_document = html_document
+        # self.response = response
 
         self.parser = self._choose_parser()
         
