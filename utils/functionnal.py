@@ -3,6 +3,10 @@ import operator
 
 
 def create_proxy_function(func):
+    """
+    Function that can create and return additional 
+    non-/dunder functions on the LazyObject class
+    """
     def inner(self, *args, **kwargs):
         if self.cached_object is None:
             self._init_object()
@@ -56,7 +60,7 @@ class LazyObject:
 
     def _init_object(self):
         """
-        Use this class to implement the element that
+        Use this class to implement the result that
         should stored in the cached_object attribute
         """
         

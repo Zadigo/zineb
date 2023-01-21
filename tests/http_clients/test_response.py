@@ -1,6 +1,7 @@
 import unittest
 
 import pandas
+from bs4.element import Tag
 from zineb.http.responses import HTMLResponse, ImageResponse, JsonResponse
 from bs4.element import Tag
 from zineb.http.request import HTTPRequest

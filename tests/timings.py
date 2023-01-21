@@ -47,4 +47,4 @@ def test_simple_project_timing():
     subprocess.call(cmd, stderr=subprocess.STDOUT)
 
 if __name__ == '__main__':
-    test_timing_model_creation()
+    test_simple_project_timing()
