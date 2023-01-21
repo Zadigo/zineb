@@ -123,25 +123,28 @@ class TestExtractDates(unittest.TestCase):
     def setUp(self):
         self.model = items.CalculatedModel()
 
-    def test_day_resolution(self):
-        instance = functions.ExtractDay('1987-1-1')
+    @unittest.expectedFailure
+    def test_field_should_not_be_a_datefield(self):
+        model = items.AgeModel()
+        model.add_value('age', functions.ExtractDay('11-1-2021'))
+
+    def _instantiate_function(self, klass, value='1987-1-1'):
+        instance = klass(value)
         instance.model = self.model
         instance.field_name = 'age'
         instance.resolve()
+        return instance
+
+    def test_day_resolution(self):
+        instance = self._instantiate_function(functions.ExtractDay)
         self.assertEqual(instance._cached_data, 1)
 
     def test_year_resolution(self):
-        instance = functions.ExtractYear('1987-1-1')
-        instance.model = self.model
-        instance.field_name = 'age'
-        instance.resolve()
+        instance = self._instantiate_function(functions.ExtractYear)
         self.assertEqual(instance._cached_data, 1987)
 
     def test_month_resolution(self):
-        instance = functions.ExtractMonth('1987-1-1')
-        instance.model = self.model
-        instance.field_name = 'age'
-        instance.resolve()
+        instance = self._instantiate_function(functions.ExtractMonth)
         self.assertEqual(instance._cached_data, 1)
 
     def test_can_extract_from_any_format(self):
@@ -165,17 +168,13 @@ class TestExtractDates(unittest.TestCase):
                 instance.resolve()
                 self.assertEqual(instance._cached_data, 1987)
 
-    @unittest.expectedFailure
-    def test_field_should_not_be_a_datefield(self):
-        self.model._meta.fields_map['age'] = fields.DateField()
-        self.assertRaises(TypeError,
-                          self.model.add_value,
-                          name='age',
-                          value=functions.ExtractYear('11-1-2021')
-                          )
-
 
 class TestComparision(unittest.TestCase):
+    @unittest.expectedFailure
+    def test_different_types_error(self):
+        instance = functions.Greatest('15', 15)
+        instance.resolve()
+
     def test_greatest(self):
         instance = functions.Greatest(15, 31, 24)
         instance.resolve()

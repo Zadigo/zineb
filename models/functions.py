@@ -10,12 +10,13 @@ class FunctionsMixin:
     _cached_data = None
     field_name = None
     model = None
-    
+
     def _to_python_object(self, value):
         return value
 
     def resolve(self):
-        raise NotImplementedError('Expression resolution should be implement by child classes')
+        raise NotImplementedError(
+            'Expression resolution should be implement by child classes')
 
 
 class Math(FunctionsMixin):
@@ -23,16 +24,16 @@ class Math(FunctionsMixin):
     SUBSTRACT = '-'
     DIVIDE = '/'
     MULTIPLY = '*'
-    
+
     error_message = ('You are trying to use a math function on two values '
-    'of different types. Got: {value1} with {value2}')
+                     'of different types. Got: {value1} with {value2}')
 
     def __init__(self, by):
         self.by = by
 
     def __repr__(self):
         class_name = self.__class__.__name__
-        
+
         if class_name == 'Add':
             result = f"{self._cached_data} {self.ADD} {self.by}"
         elif class_name == 'Substract':
@@ -45,9 +46,10 @@ class Math(FunctionsMixin):
             result = f"{self._cached_data} {self.by}"
 
         return f"{class_name}(<{result}>)"
-    
+
     def raise_error(self, source_field):
-        message = LazyFormat(self.error_message, value1=type(source_field._cached_result), value2=type(self.by))
+        message = LazyFormat(self.error_message, value1=type(
+            source_field._cached_result), value2=type(self.by))
         raise TypeError(message)
 
     def resolve(self):
@@ -55,11 +57,11 @@ class Math(FunctionsMixin):
 
         if self._cached_data is None:
             raise ValueError(LazyFormat("{func} requires a value. Got: '{value}'",
-            func=self.__class__.__name__, value=self._cached_data))
+                                        func=self.__class__.__name__, value=self._cached_data))
 
         source_field.resolve(self._cached_data)
         return source_field
-        
+
 
 class Substract(Math):
     """
@@ -68,6 +70,7 @@ class Substract(Math):
     >>> model.add_calculated_value('age', 21, Substract(3))
     ... 18
     """
+
     def resolve(self):
         source_field = super().resolve()
         try:
@@ -82,9 +85,10 @@ class Add(Math):
     >>> model.add_calculated_value('age', 21, Add(3))
     ... 24
     """
+
     def resolve(self):
         source_field = super().resolve()
-        
+
         # Allow the user to add even if the resolved data
         # is a string
         if isinstance(source_field._cached_result, str):
@@ -99,7 +103,7 @@ class Add(Math):
 class Multiply(Math):
     """
     Multiplies an incoming element to a value
-    
+
     >>> model.add_calculated_value('age', 21, Multiply(1))
     ... 21
     """
@@ -127,34 +131,34 @@ class Divide(Math):
         except:
             self.raise_error(source_field)
 
-        
+
 # class Mean(StatisticsMixin):
 #     """
 #     Returns the mean value from a list of
 #     numerical values
 #     """
-    
+
 #     def resolve(self):
 #         values = super().resolve()
-#         self._cached_data = sum(values) / len(values)        
+#         self._cached_data = sum(values) / len(values)
 #         return self._cached_data
-    
-    
+
+
 # class StDev(StatisticsMixin):
 #     """Returns the standard deviation of
 #     a list of numerical values"""
-    
+
 #     @staticmethod
 #     def calculate_variance(values, mean):
 #         a = map(lambda x: math.pow(x - mean, 2), values)
 #         return sum(a) / len(values)
-    
+
 #     def resolve(self):
 #         values = super().resolve()
 #         mean = sum(values) / len(values)
 #         variance = self.calculate_variance(values, mean)
 #         return math.sqrt(variance)
-        
+
 
 class When:
     """Checks if a condition is met. If True resolves
@@ -164,7 +168,7 @@ class When:
     >>> model.add_case(20, When("age__gt=21", 24))
     ... [{"age": 20}]
     """
-    
+
     _cached_data = None
     model = None
 
@@ -172,7 +176,7 @@ class When:
         self.if_condition = if_condition
         self.then_condition = then_condition
         # Return the default incoming value when if_condition
-        # fails and no else_condition is provided because if 
+        # fails and no else_condition is provided because if
         # else_condition stays None, breaks the field
         # resolution process
         self.else_condition = else_condition or self._cached_data
@@ -188,39 +192,41 @@ class When:
         )
 
     def resolve(self):
-        field_name, exp, value_to_compare = self.parse_expression(self.if_condition)
-        
+        field_name, exp, value_to_compare = self.parse_expression(
+            self.if_condition
+        )
+
         if self.model is None:
             raise ValueError('When-case needs to be attached to a model')
 
         field_object = self.model._meta.get_field(field_name)
-        
+
         result = self.compare(exp, value_to_compare)
         if result:
             field_object.resolve(self.then_condition)
             return field_name, self.then_condition
-        
+
         field_object.resolve(self.else_condition)
-        return field_name, field_object._cached_result 
+        return field_name, field_object._cached_result
 
     def parse_expression(self, expression: str):
         allowed = ['gt', 'lt', 'lte', 'gte', 'eq', 'contains']
-        
+
         try:
             field_name, rhs = expression.split('__', maxsplit=1)
         except ValueError:
             raise ValueError((f'Case requires a valid operator '
-            'e.g. value__gt or value__eq.'))
+                              'e.g. value__gt or value__eq.'))
 
         try:
             exp, value_to_compare = rhs.split('=', maxsplit=1)
         except ValueError:
             raise ValueError(f'Case requires a comparision '
-            'value e.g. {field_name}__gt=??')
+                             'value e.g. {field_name}__gt=??')
         else:
             if exp not in allowed:
                 raise ValueError("Operator should be one of "
-                f"{''.join(allowed)}. Got {exp}")
+                                 f"{''.join(allowed)}. Got {exp}")
 
         return field_name, exp, value_to_compare
 
@@ -228,7 +234,7 @@ class When:
         result = False
 
         # If there's nothing in the
-        # _cached_result attribute, just force 
+        # _cached_result attribute, just force
         # the then/else condition directly
         if self._cached_data is None:
             return result
@@ -243,10 +249,14 @@ class When:
         # we should not run a comparision
         # otherwise this will raise a TypeError
         if type(value) != type(self._cached_data):
-            template = ('Comparision is not support betweet {type1} and {type2}. ' 
+            template = ('Comparision is not support betweet {type1} and {type2}. '
                         'Make sure the data types of the value to compare are the '
                         'same when using the When-function.')
-            message = LazyFormat(template, type1=type(value), type2=type(self._cached_data))
+            message = LazyFormat(
+                template,
+                type1=type(value),
+                type2=type(self._cached_data)
+            )
             raise TypeError(message)
 
         # TODO: Maybe if the value is a string,
@@ -259,13 +269,13 @@ class When:
 
         if exp == 'lt':
             result = self._cached_data < value
-        
+
         if exp == 'eq':
             result = self._cached_data == value
-        
+
         if exp == 'gte':
             result = self._cached_data >= value
-        
+
         if exp == 'lte':
             result = self._cached_data <= value
 
@@ -274,7 +284,7 @@ class When:
                 result = value == self._cached_data
             else:
                 result = value in self._cached_data
-        
+
         return result
 
 
@@ -284,13 +294,13 @@ class DateExtractorMixin:
     def __init__(self, value, date_format=None):
         self.value = Value(value)
         self._datetime_object = None
-        
+
         self.date_parser = datetime.datetime.strptime
-        
+
         formats = set(getattr(settings, 'DEFAULT_DATE_FORMATS'))
         formats.add(date_format)
         self.date_formats = formats
-        
+
     def _to_python_object(self, value):
         for date_format in self.date_formats:
             try:
@@ -303,31 +313,31 @@ class DateExtractorMixin:
 
         if d is None:
             message = LazyFormat("Could not find a valid format for "
-            "date '{d}' on field '{name}'.", d=value, name=self._meta_attributes.get('field_name'))
+                                 "date '{d}' on field '{name}'.", d=value, name=self._meta_attributes.get('field_name'))
             raise ValueError(message)
         return d.date()
 
-    def resolve(self):        
+    def resolve(self):
         self._datetime_object = self._to_python_object(self.value)
         self._cached_data = getattr(self._datetime_object, self.lookup_name)
-                
+
         source_field = self.model._meta.get_field(self.field_name)
-        
+
         # NOTE: It makes no sense to use
-        # a date extractor on a DateField 
+        # a date extractor on a DateField
         from zineb.models.fields import DateField
         if isinstance(source_field, DateField):
             raise TypeError(LazyFormat("Cannot use '{function}' "
-            "with a DateField bbject", function=self.__class__.__name__))
-        
+                                       "with a DateField object", function=self.__class__.__name__))
+
         # We have already resolved the date and for these
         # specific two fields, we want to implement the
         # resolved value without passing through the whole
         # resolution process of these field
         source_field._simple_resolve(self._cached_data)
         self._cached_data = source_field._cached_result
-        
-        
+
+
 class ExtractYear(DateExtractorMixin, FunctionsMixin):
     """
     >>> model.add_value("year", ExtractYear("1569-1-1"))
@@ -350,29 +360,29 @@ class ExtractDay(DateExtractorMixin, FunctionsMixin):
     ... 1
     """
     lookup_name = 'day'
-    
-    
+
+
 class ComparisionMixin(FunctionsMixin):
     def __init__(self, *values):
         values = list(values)
         values_length = len(values)
-        
+
         # Make sure that each value is of the same
         # type by comparing the previous one to the one
         # ahead of it. If one comparision fails,
-        # does not matter, everything fails        
+        # does not matter, everything fails
         types = [type(value).__name__ for value in values]
         results = []
         for i, name in enumerate(types):
             if i == values_length - 1:
                 break
             results.append(name == types[i + 1])
-            
+
         if not all(results):
             raise ValueError('All the values should be of the same type')
 
-        self.values = values 
-    
+        self.values = values
+
     def __repr__(self):
         return f"{self.__class__.__name__}({self.values})"
 
@@ -380,22 +390,22 @@ class ComparisionMixin(FunctionsMixin):
 class Greatest(ComparisionMixin):
     """Takes a list of values and returns the greatest
     one. Each values should be of the same type
-    
+
     >>> model.add_value("age", Greatest(15, 31, 21))
     ... [{"age": 15}]
     """
-        
+
     def resolve(self):
         self._cached_data = max(self.values)
-        
-        
+
+
 class Smallest(ComparisionMixin):
     """Takes a list of values and returns the smallest
     one. Each values should be of the same type
-    
+
     >>> model.add_value("age", Smallest(15, 31, 21))
     ... [{"age": 31}]
     """
-    
+
     def resolve(self):
         self._cached_data = min(self.values)
