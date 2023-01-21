@@ -1,16 +1,30 @@
-FROM python
+FROM ubuntu:latest
 
-COPY . ./spider
+RUN apt update
 
-WORKDIR ./spider
+RUN apt upgrade
 
-RUN pipenv shell &&
-    pip install zineb-scrapper
+RUN sudo adduser "zineb"
 
-RUN python manage.py test
+RUN sudo addgrp "zineb"
 
-PORT 8000
+RUN sudo add user to group
 
-CMD ["start"]
+COPY . home
 
-ENTRYPOINT ["python", "manage.py"]
+WORKDIR /home
+
+RUN chown zineb "/home"
+RUN chmod zineb 770 "/home"
+
+RUN apt install python
+
+RUN pipenv shell
+
+RUN pipenv install zineb-scrapper
+
+EXPOSE 8000
+
+CMD [ "start" ]
+
+ENTRYPOINT [ "python", "manage.py" ]

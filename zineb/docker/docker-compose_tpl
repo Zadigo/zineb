@@ -1,9 +1,19 @@
 version: '3'
 
 services:
-    spider:
+    zineb:
         build: .
+        container_name: app_zineb
+        environment:
+            - DEBUG=False
+            - ZINEB_RATE_LIMIT=5
         ports:
-            - 80:80
+            - 80:770
         volumes:
-            - ./zineb.log:/logs/zineb.log
+            - ./zineb.log:/var/log/zineb.log
+            - ./media:/media
+
+    redis:
+        image: redis
+        contaniner_name: app_redis
+        
