@@ -395,12 +395,6 @@ class Model(metaclass=Base):
         attrs = [self._meta.verbose_name, len(self._meta.field_names)]
         return hash(tuple(attrs))
 
-    def __getattr__(self, name):
-        id_names = ['id', 'pk']
-        if name in id_names:
-            field = self._meta.get_field('id')
-            return field._tracked_id
-        
     def __reduce__(self):
         return self.__class__, (self._meta.verbose_name,), {}
     
