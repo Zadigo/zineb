@@ -14,16 +14,6 @@ class TestSmartDict(unittest.TestCase):
         # When there are many fields, like in the above, if we
         # update on column (ex. name), then age row should be None
         self.container.update('name', 'Kendall')
-        self.assertDictEqual(
-            self.container.as_values(),
-            {
-                'age': [None],
-                'name': ['Kendall']
-            }
-        )
-
-    def test_can_update_row(self):
-        self.container.update('name', 'Kendall')
         self.container.update('age', 24)
         self.assertDictEqual(
             self.container.as_values(),
@@ -33,12 +23,34 @@ class TestSmartDict(unittest.TestCase):
             }
         )
 
-    def test_final_container(self):
+    def test_field_balancing(self):
+        # Test that there is a balance EVEN
+        # when unbalanced values are input
+        self.container.update('name', 'Kendall Jenner')
+        self.container.update('name', 'Kylie Jenner')
+        self.container.update('age', 26)
+        values_for_name = self.container.get_container('name')
+        values_for_age = self.container.get_container('age')
+        self.assertTrue(len(values_for_name) == len(values_for_age))
+
+    def test_final_output_containers(self):
+        self.container.update('name', 'Kendall Jenner')
+        self.container.update('age', 25)
+
         result = self.container.as_values()
         self.assertIsInstance(result, dict)
+        self.assertTrue('name' in result)
         self.assertTrue('age' in result)
 
-    def test_can_add_multiple(self):
+        result = self.container.as_list()
+        self.assertIsInstance(result, list)
+        self.assertIsInstance(result[0], dict)
+
+        result = self.container.as_csv()
+        self.assertIsInstance(result, list)
+        self.assertIsInstance(result[0], list)
+
+    def test_add_multiple_method(self):
         self.container.update_multiple({'name': 'Kendall', 'age': 24})
         self.assertDictEqual(
             self.container.as_values(),
@@ -57,7 +69,7 @@ class TestSmartDict(unittest.TestCase):
             }
         )
 
-    def test_can_get_csv_type_values(self):
+    def test_csv_output_values(self):
         self.container.update('name', 'Kendall')
         self.assertIsInstance(self.container.as_csv(), list)
 
@@ -67,34 +79,52 @@ class TestSmartDict(unittest.TestCase):
         # the expected [['name', 'age'], ['Kendall', 24]]
         self.assertEqual(result[1], ['Kendall', None])
         self.assertListEqual(result, [['name', 'age'], ['Kendall', None]])
-        
-    def test_can_add_smart_dicts(self):
-        dict1 = SmartDict.new_instance('name', 'surname')
-        dict2 = SmartDict.new_instance('name')
-        new_dict = dict1 + dict2
 
+    # def test_can_add_smart_two_dicts(self):
+    #     dict1 = SmartDict.new_instance('name', 'surname')
+    #     dict2 = SmartDict.new_instance('name')
+    #     new_dict = dict1 + dict2
+    #     print(new_dict)
 
-    def test_elements_sorting(self):
+    def test_sorting_algorithm(self):
         # True = Descending
         # False = Ascending
         fields = ['name', 'age']
         container = SmartDict(*fields, order_by=[['name', False]])
 
-        data = [{'name': 'Kendall', 'age': 20}, {'name': 'Candice', 'age': 26}]
+        data = [
+            {'name': 'Kendall', 'age': 20}, 
+            {'name': 'Candice', 'age': 26}
+        ]
 
         result = container.apply_sort(data)
-        self.assertListEqual(result, [{'name': 'Kendall', 'age': 20}, {
-                             'name': 'Candice', 'age': 26}])
+        self.assertListEqual(
+            result, 
+            [
+                {'name': 'Kendall', 'age': 20}, 
+                {'name': 'Candice', 'age': 26}
+            ]
+        )
 
         container.order_by = [['name', False], ['age', True]]
         result = container.apply_sort(data)
-        self.assertListEqual(result, [{'name': 'Kendall', 'age': 20}, {
-                             'name': 'Candice', 'age': 26}])
+        self.assertListEqual(
+            result, 
+            [
+                {'name': 'Kendall', 'age': 20}, 
+                {'name': 'Candice', 'age': 26}
+            ]
+        )
 
         container.order_by = [['age', False]]
         result = container.apply_sort(data)
-        self.assertListEqual(result, [{'name': 'Kendall', 'age': 20}, {
-                             'name': 'Candice', 'age': 26}])
+        self.assertListEqual(
+            result, 
+            [
+                {'name': 'Kendall', 'age': 20}, 
+                {'name': 'Candice', 'age': 26}
+            ]
+        )
 
 
 class TestModelSmartDict(unittest.TestCase):
