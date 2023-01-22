@@ -65,7 +65,7 @@ class SmartDict:
             # the fields. For example if we have
             # fields [name, surname] then the expected
             # result would be [value_for_name, value_for_surname]
-            for _, field_name in enumerate(self.fields, start=1):
+            for field_name in self.fields:
                 if field_name == 'id':
                     yield (id_value or None)
                 else:
