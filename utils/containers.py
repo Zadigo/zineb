@@ -49,7 +49,7 @@ class SmartDict:
         else:
             container[-1] = (value)
 
-    def update(self, name, value):
+    def update(self, name, value, id_value=None):
         """
         Generates a new row and then implements them on
         the overall data placeholder
