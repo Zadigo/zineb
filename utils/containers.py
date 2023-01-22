@@ -67,7 +67,7 @@ class SmartDict:
     def _last_value(self, name):
         return self.get_container(name)[-1][-1]
 
-    def get_container(self, name: str):
+    def get_container(self, name):
         return self.values[name]
 
     def update_last_item(self, name, value):
