@@ -161,14 +161,10 @@ class SmartDict:
 class ModelSmartDict(SmartDict):
     """A SmartDict that is bound to a model"""
 
-    def __init__(self, model, order_by=[], include_id_field=False):
+    def __init__(self, model, order_by=[]):
         fields = model._meta.field_names
         super().__init__(*fields, order_by=order_by)
-        self.include_id_field = include_id_field
         self.model = model
-        new_fields = list(drop_while(
-            lambda x: x == 'id' and not self.include_id_field, fields))
-        self.fields = new_fields
 
     @classmethod
     def new_instance(cls, model, **kwargs):
