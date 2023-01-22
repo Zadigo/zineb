@@ -22,8 +22,6 @@ class SmartDict:
             self.values[field]
 
         self._last_created_row = []
-
-        self._id = 0
         self.order_by = order_by
 
     def __repr__(self):
