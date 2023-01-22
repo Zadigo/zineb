@@ -391,7 +391,6 @@ class Model(metaclass=Base):
         self.global_errors = []
 
     def __str__(self):
-        # data = self._data_container.as_list()
         return str(self.resolve_all_related_fields())
 
     def __repr__(self):
