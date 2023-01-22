@@ -38,23 +38,26 @@ class TestModel(unittest.TestCase):
 
     def test_can_add_simple_value_to_model(self):
         self.model.add_value('date_of_birth', '1-1-2002')
-        self.assertIsInstance(self.model._data_container.as_values(), dict)
+        output_values = dict(self.model._data_container.as_values())
+        print(output_values)
+        self.assertIsInstance(output_values, dict)
         expected_result = {
             'age': [None],
-            'id': [],
             'date_of_birth': ['2002-01-01'],
+            'height': [None],
+            'id': [1],
             'name': [None]
         }
-        self.assertDictEqual(
-            dict(self.model._data_container.as_values()), expected_result)
+        self.assertDictEqual(output_values, expected_result)
 
     def test_can_add_value_via_iteration(self):
         for i in range(4):
             self.model.add_value('name', f'Kendall{i}')
 
         expected_result = {
-            'id': [],
+            'id': [1, 2, 3, 4],
             'age': [None, None, None, None],
+            'height': [None, None, None, None],
             'date_of_birth': [None, None, None, None],
             'name': ['Kendall0', 'Kendall1', 'Kendall2', 'Kendall3']
         }
@@ -66,18 +69,19 @@ class TestModel(unittest.TestCase):
         # of the iteration if the user instanciates the model
         # repeteadly in a loop since this would be the normal
         # behaviour for adding values
-        for i in range(1, 4):
+        for i in range(4):
             model = items.SimpleModel()
             model.add_value('name', f'Kendall{i}')
 
         expected_result = {
-            'id': [],
-            'age': [None],
-            'date_of_birth': [None],
-            'name': ['Kendall3']
+            'id': 4,
+            'age': None,
+            'date_of_birth': None,
+            'height': None,
+            'name': 'Kendall3'
         }
-        self.assertDictEqual(
-            dict(model._data_container.as_values()), expected_result)
+        first_item = model._data_container.as_list()[0]
+        self.assertDictEqual(first_item, expected_result)
 
     def test_row_balancing(self):
         # Even when we add a value to only one of the
@@ -139,6 +143,8 @@ class TestModel(unittest.TestCase):
             {
                 'age': current_age,
                 'date_of_birth': '1992-01-24',
+                'height': None,
+                'id': 1,
                 'name': 'Kendall'
             }
         ]
@@ -155,8 +161,6 @@ class TestModel(unittest.TestCase):
     #     model = SimpleModel(html_document=None)
     #     model.add_using_expression('age', 'span', attrs={'id': 'age'})
     #     self.assertDictEqual(model._data_container, {'age': 23})
-
-
 
     def test_adding_types_of_different_values(self):
         model = items.ComplicatedModel()
@@ -184,6 +188,18 @@ class TestModel(unittest.TestCase):
         result = model.save(commit=False)
         expected = [{'name': 'Candice'}, {'name': 'Kendall'}]
         self.assertListEqual(result, expected)
+
+    def test_can_add_multiple_consecutive_values(self):
+        self.model.add_value('name', 'Kendall Jenner')
+        self.model.add_value('name', 'Kylie Jenner')
+        self.model.add_value('name', 'Aurélie Konaté')
+        self.model.add_value('name', 'Julien Koréa')
+        self.model.add_value('height', 156)
+        values_for_name = self.model._data_container.get_container('name')
+        number_of_items_for_name = len(values_for_name)
+        self.assertTrue(number_of_items_for_name == 4)
+        values_for_height = self.model._data_container.get_container('height')
+        self.assertTrue(len(values_for_name), len(values_for_height))
 
     def test_relationships(self):
         # 1. We should be able to get the related
