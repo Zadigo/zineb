@@ -431,7 +431,7 @@ class CharField(Field):
 
 
 class TextField(CharField):
-    def __init__(self, max_length = 500, **kwargs):
+    def __init__(self, max_length=500, **kwargs):
         super().__init__(max_length=max_length, **kwargs)
 
     @property
@@ -887,7 +887,13 @@ class RelatedModel(RelatedField):
     and the related model. In other words, all the data
     from the related model will be included in the model
     
-    >>> model.related_field.add_value("field_name", "...")
+    Forward resolution:
+
+    >>> model1.related_field.add_value(...)
+
+    Backward resolution:
+
+    >>> model2.related_field_set.add_value(...)
     """
     field_descriptor = OneToOneDescriptor
 
