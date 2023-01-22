@@ -3,7 +3,6 @@ from io import StringIO
 
 from zineb.logger import logger
 from zineb.registry import registry
-from zineb.settings import settings
 from zineb.utils.formatting import LazyFormat
 from zineb.utils.iterations import RequestQueue
 
