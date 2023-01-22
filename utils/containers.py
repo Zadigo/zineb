@@ -67,7 +67,7 @@ class SmartDict:
             # result would be [value_for_name, value_for_surname]
             for field_name in self.fields:
                 if field_name == 'id':
-                    yield (id_value or None)
+                    yield (id_value)
                 else:
                     if name == field_name:
                         yield (value)
