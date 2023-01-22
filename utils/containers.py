@@ -4,6 +4,13 @@ from operator import itemgetter
 from zineb.models.fields import Empty
 from zineb.utils.formatting import LazyFormat, remap_to_dict
 
+class Column:
+    pass
+
+
+class Row:
+    pass
+
 
 class SmartDict:
     """
