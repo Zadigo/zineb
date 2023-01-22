@@ -88,7 +88,6 @@ class SmartDict:
             for i, field_name in enumerate(self.fields, start=1):
                 container = self.get_container(field_name)
                 container.append(self._last_created_row[i - 1])
-            self._id = self._id + 1
         else:
             self.current_updated_fields.add(name)
             if self._last_created_row:
@@ -106,7 +105,6 @@ class SmartDict:
                 for i, field_name in enumerate(self.fields, start=1):
                     container = self.get_container(field_name)
                     container.append(self._last_created_row[i - 1])
-                self._id = self._id + 1
             # self.run_constraints(container)
 
     def update_multiple(self, attrs: dict):
