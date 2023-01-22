@@ -9,7 +9,26 @@ class SmartDict:
     """
     A container that regroups data under multiple keys by ensuring that
     when one key is updated, the other keys are in the same way therefore
-    creating balanced data
+    creating balanced data. It uses the synchronous step-by-step state of Python 
+    to intelligently update every values in the container
+
+    This first example shows how adding a value to the field "name" and nothing
+    to the field "surname" still creates a balanced output:
+
+    >>> instance = SmartDict("name", "surname")
+    ... instance.update("name", "Kendall")
+    ... str(instance)
+    ... [{"name": "Kendall Jenner", "surname": None}]
+
+    This example shows when the user adds both fields:
+
+    >>> instance.update("name", "Kendall")
+    ... instance.update("surname", "Jenner")
+    ... str(instance)
+    ... [{"name": "Kendall Jenner", "surname": "Jenner"}]
+
+    Multiple values can be updated at once:
+    >>> instance.update_multiple({"name": "Kendall", "surname": "Jenner"})
     """
 
     current_updated_fields = set()
@@ -49,10 +68,7 @@ class SmartDict:
             container[-1] = (value)
 
     def update(self, name, value, id_value=None):
-        """
-        Generates a new row and then implements them on
-        the overall data placeholder
-        """
+        """Creates or updates the internal container"""
         if value == Empty:
             value = None
 
@@ -76,7 +92,7 @@ class SmartDict:
 
         # When the name is already present
         # in "current_updated_fields", it means
-        # that we are creating/updating a new row
+        # that we are creating a new row
         if name in self.current_updated_fields:
             self.current_updated_fields.clear()
             self.current_updated_fields.add(name)
@@ -92,6 +108,8 @@ class SmartDict:
                 container.append(self._last_created_row[i - 1])
         else:
             self.current_updated_fields.add(name)
+            # Otherwise, we are updating the current
+            # row with additional values
             if self._last_created_row:
                 for i, field_name in enumerate(self.fields, start=1):
                     if field_name == name:
