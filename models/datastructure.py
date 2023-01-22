@@ -392,9 +392,9 @@ class Model(metaclass=Base):
         return f"{self.__class__.__name__}"
     
     def __hash__(self):
-        attrs = [self._meta.verbose_name, len(self._meta.field_names), self.id]
+        attrs = [self._meta.verbose_name, len(self._meta.field_names)]
         return hash(tuple(attrs))
-    
+
     def __getattr__(self, name):
         id_names = ['id', 'pk']
         if name in id_names:
