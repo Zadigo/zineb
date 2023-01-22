@@ -486,12 +486,13 @@ class Model(metaclass=Base):
         return [
             *self._checks_for_fields()
         ]
-        
+
     def update_id_field(self):
-        # TODO: Maybe move this to the
-        # options class
+        """Updates the incrementation of 
+        the AutoField created by each model"""
         field = self._meta.get_field('id')
         field.resolve()
+        return field
     
     def add_calculated_value(self, name, value, *funcs):
         """Adds a value to the model after running an 
