@@ -828,14 +828,14 @@ class AutoField(Field):
     def __init__(self, auto_created=False):
         super().__init__()
         self.auto_created = auto_created
-        self._tracked_id = 0
+        self._cached_result = 0
 
     @property
     def internal_name(self):
         return 'AutoField'
 
     def resolve(self):
-        self._tracked_id = self._tracked_id + 1
+        self._cached_result = self._cached_result + 1
 
 
 class RelatedField(Field):
