@@ -564,7 +564,6 @@ class Model(metaclass=Base):
         case.model = self
         field_name, value = case.resolve()
         self.add_value(field_name, value)
-        self.update_id_field()
 
     def add_using_expression(self, name, tag, attrs={}):
         """
@@ -582,7 +581,6 @@ class Model(metaclass=Base):
         obj.resolve(tag_value.string)
         resolved_value = obj._cached_result
         self._data_container.update(name, resolved_value)
-        self.update_id_field()
 
     def add_values(self, **attrs):
         """
@@ -598,7 +596,6 @@ class Model(metaclass=Base):
         # formatted correctly for consistency
         self._fields.has_fields(list(attrs.keys()), raise_exception=True)
         self._data_container.update_multiple(**attrs)
-        self.update_id_field()
 
     def add_value(self, name, value):
         """
@@ -645,7 +642,6 @@ class Model(metaclass=Base):
         result = self.check_constraints(resolved_value)
         if result:
             self._data_container.update(name, resolved_value)
-            self.update_id_field()
 
     def check_constraints(self, clean_value):
         constraint_errors = []

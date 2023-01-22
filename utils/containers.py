@@ -174,6 +174,10 @@ class ModelSmartDict(SmartDict):
     def new_instance(cls, model, **kwargs):
         return cls(model, **kwargs)
 
+    def update(self, name, value):
+        auto_id_field = self.model.update_id_field()
+        super().update(name, value, id_value=auto_id_field._cached_result)
+
     def apply_sort(self, values):
         has_ordering = self.model._meta.has_ordering
         if has_ordering:
