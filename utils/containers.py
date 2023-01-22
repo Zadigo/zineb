@@ -54,6 +54,16 @@ class SmartDict:
     def new_instance(cls, *fields):
         return cls(*fields)
 
+    @property
+    def number_of_items(self):
+        """Return the current number of items
+        present in the container. Since the data is
+        balanced, we can just select any field
+        in order to evaluate the current length
+        of a column"""
+        first_field = self.fields[-0]
+        return len(self.get_container(first_field))
+
     def _last_value(self, name):
         return self.get_container(name)[-1][-1]
 
