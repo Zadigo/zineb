@@ -1,7 +1,6 @@
 import bisect
 import csv
 import json
-import os
 import secrets
 from collections import defaultdict, namedtuple
 from functools import cached_property, lru_cache
@@ -9,7 +8,7 @@ from pathlib import Path
 
 from zineb.exceptions import FieldError, ModelExistsError
 from zineb.http.responses import HTMLResponse
-from zineb.models.fields import Value, Field
+from zineb.models.fields import Value
 from zineb.models.functions import (Add, Divide, ExtractDay, ExtractMonth,
                                     ExtractYear, Multiply, Substract, When)
 from zineb.utils.containers import ModelSmartDict
@@ -665,7 +664,7 @@ class Model(metaclass=Base):
         self._cached_resolved_data = data
         self.clean(data)
 
-    def clean(self, dataframe, **kwargs):
+    def clean(self, data, **kwargs):
         """
         Put all additional functionnalities that you wish to
         run on the data here before calling the save
@@ -674,11 +673,10 @@ class Model(metaclass=Base):
 
     def save(self, commit=True, filename=None, extension='json', **kwargs):
         """
-        Transform the collected data to a DataFrame which
-        in turn can be saved to a JSON file.
+        Saves the values of of the underlying container.
 
         By setting commit to False, you will get a copy of the
-        dataframe in order to run additional actions on it
+        data in order to run additional actions on it
         otherwise, the default behaviour will be to output
         to a file within your project.
         """
