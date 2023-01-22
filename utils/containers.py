@@ -67,10 +67,13 @@ class SmartDict:
             # fields name, surname then we'll get
             # a list [value_for_name, value_for_surname]
             for _, field_name in enumerate(self.fields, start=1):
-                if name == field_name:
-                    yield (value)
+                if field_name == 'id':
+                    yield (id_value or None)
                 else:
-                    yield (None)
+                    if name == field_name:
+                        yield (value)
+                    else:
+                        yield (None)
 
         # When the name is already present
         # in current_updated_fields, it means
