@@ -44,9 +44,10 @@ class Empty:
 
 class Value:
     """
-    Interface that represents the raw value 
+    Interface that represents a raw value 
     that comes from the internet. It is stripped 
-    from whitespace and the html tags are removed
+    from whitespace and html tags are removed
+    if present
 
     >>> Value("some data")
     ... "some data"
