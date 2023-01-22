@@ -196,6 +196,9 @@ class ModelSmartDict(SmartDict):
         super().__init__(*fields, order_by=order_by)
         self.model = model
 
+    def __repr__(self):
+        return f'<{self.__class__.__name__}(for={self.model._meta.verbose_name})>'
+
     @classmethod
     def new_instance(cls, model, **kwargs):
         return cls(model, **kwargs)
