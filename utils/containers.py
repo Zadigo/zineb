@@ -45,7 +45,7 @@ class SmartDict:
         self.order_by = order_by
 
     def __repr__(self):
-        return str(dict(self.values))
+        return f'<{self.__class__.__name__}[{self.as_list()}]>'
 
     def __str__(self):
         return str(self.as_list())
