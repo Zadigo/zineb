@@ -130,7 +130,7 @@ class DeferredAttribute:
     of a model field
 
     >>> class MyModel(Model):
-            name = fields.CharField()  
+    ...     name = fields.CharField()  
     ... model.name
     ... [..., ...]
     """
@@ -155,6 +155,10 @@ class OneToOneDescriptor(DeferredAttribute):
         if instance is None:
             return self
 
+        # This section dynamically adds the
+        # field that is called as an attribute
+        # to the instance's dict and then
+        # returns the related model to that field
         data = instance.__dict__
         field_name = self.field.field_name
         if field_name not in data:
@@ -873,13 +877,6 @@ class RelatedField(Field):
         raise Exception(
             f"A RelatedModel field cannot resolve data directly. Use {self.model._meta.model_name}.{self.field_name}.add_value(...) for example to add a value to the related model.")
 
-
-# TODO: When the related field is set on the model
-# we get [{'ages': [{'age': 30}], 'name': 'Kendall'}]
-# for example. I think we should get instead
-# [{'ages': {'age': 30}, 'name': 'Kendall'}] and create
-# as many fields as the initial result that we
-# are getting
 
 # FIXME: Maybe find a better name for this field
 # so that we know explicitly what it does

@@ -161,3 +161,22 @@
 # constraint.prepare(m)
 # # print(constraint.check_constraint('Kendall'))
 # print(constraint)
+
+from zineb.models import fields
+from zineb.models.datastructure import Model
+
+
+class Location(Model):
+    name = fields.CharField()
+
+
+class Celebrity(Model):
+    fullname = fields.CharField()
+    location = fields.RelatedModel(Location)
+
+
+model = Celebrity()
+
+model.add_value('fullname', 'Kendall Jenner')
+model.location.add_value('name', 'Paris')
+print(model.save(commit=False))

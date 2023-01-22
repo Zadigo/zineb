@@ -3,7 +3,6 @@ from operator import itemgetter
 
 from zineb.models.fields import Empty
 from zineb.utils.formatting import LazyFormat, remap_to_dict
-from zineb.utils.iterations import drop_while
 
 
 class SmartDict:
@@ -18,6 +17,8 @@ class SmartDict:
     def __init__(self, *fields, order_by=[]):
         self.values = defaultdict(list)
         self.fields = fields
+        # Creates the respective data 
+        # containers for each provided field
         for field in fields:
             self.values[field]
 
@@ -40,7 +41,7 @@ class SmartDict:
     def get_container(self, name: str):
         return self.values[name]
 
-    def update_last_item(self, name: str, value):
+    def update_last_item(self, name, value):
         container = self.get_container(name)
         if isinstance(value, tuple):
             container[-1] = value[-1]
@@ -62,8 +63,8 @@ class SmartDict:
         def row_generator():
             # Generate a new list of values for all
             # the fields. For example if we have
-            # fields name, surname then we'll get
-            # a list [value_for_name, value_for_surname]
+            # fields [name, surname] then the expected
+            # result would be [value_for_name, value_for_surname]
             for _, field_name in enumerate(self.fields, start=1):
                 if field_name == 'id':
                     yield (id_value or None)
@@ -74,8 +75,8 @@ class SmartDict:
                         yield (None)
 
         # When the name is already present
-        # in current_updated_fields, it means
-        # that we creating/updating a new row
+        # in "current_updated_fields", it means
+        # that we are creating/updating a new row
         if name in self.current_updated_fields:
             self.current_updated_fields.clear()
             self.current_updated_fields.add(name)
@@ -97,7 +98,9 @@ class SmartDict:
                         value_to_update = [self._last_created_row[i - 1]]
                         value_to_update[-1] = value
                         self.update_last_item(
-                            field_name, tuple(value_to_update))
+                            field_name, 
+                            tuple(value_to_update)
+                        )
             else:
                 self._last_created_row = list(row_generator())
                 # Based on the position of the field name in the
