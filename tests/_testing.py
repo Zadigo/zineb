@@ -162,21 +162,97 @@
 # # print(constraint.check_constraint('Kendall'))
 # print(constraint)
 
-from zineb.models import fields
+# from zineb.utils.containers import SmartDict
+# from zineb.models import fields
+# from zineb.models.datastructure import Model
+
+
+# class Location(Model):
+#     name = fields.CharField()
+
+
+# class Celebrity(Model):
+#     fullname = fields.CharField()
+#     location = fields.RelatedModel(Location)
+
+
+# model = Celebrity()
+
+# model.add_value('fullname', 'Kendall Jenner')
+# model.location.add_value('name', 'Paris')
+# print(model.save(commit=False))
+
+
 from zineb.models.datastructure import Model
+from zineb.models import fields
+from zineb.models.relationships import OneToOneRelationship
 
 
 class Location(Model):
     name = fields.CharField()
 
 
+class Height(Model):
+    value = fields.IntegerField()
+
+
 class Celebrity(Model):
     fullname = fields.CharField()
+    # Resolve the fact that attributes point
+    # to the wrong things
     location = fields.RelatedModel(Location)
+    height = fields.RelatedModel(Height)
 
 
-model = Celebrity()
+# model1 = Location()
+model2 = Celebrity()
 
-model.add_value('fullname', 'Kendall Jenner')
-model.location.add_value('name', 'Paris')
-print(model.save(commit=False))
+# FIXME: Why does the first addition to the related model
+# is successful while there is no related value ?
+# Expected: Should not be able to add any value in the
+# in the model if there is no corresponding value in
+# the related model
+# model2.add_value('fullname', 'Kendall Jenner')
+# model2.location.add_value('name', 'USA')
+# model2.height.add_value('value', 174)
+# model2.add_value('fullname', 'Kylie Jenner')
+# model2.height.add_value('value', 156)
+# print(model2)
+
+# FIXME: There's an unbalance between two different
+# related models when the values are added as below.
+# "location" has 2 values while "height" has only one.
+# Solution 1: Either we have an orchestrator that can
+# see both models who know nothing about one another
+# ensure that when one field is added in one, the other
+# gets the same field
+# Solution 2: Either we leave the unbalance and when the
+# would want to to resolve the fields, raise
+# a ForeignKey error
+# model2.height.add_value('value', 156)
+# model2.location.add_value('name', 'FRA')
+# model2.location.add_value('name', 'ITA')
+# print(model2.location)
+
+model2.add_value('fullname', 'Kendall Jenner')
+model2.location.add_value('name', 'FRA')
+model2.height.add_value('value', 180)
+model2.add_value('fullname', 'Kylie Jenner')
+# FIXME: In this configuration, we only get one item
+# in the column height, the one from above. This one
+# does not get saved in the model
+# Expected: We should be creating a new row
+# not updating the last one
+# BUG: SmartDict.update both the self._last_created_row 
+# is True and the name is not in self._current_updated_field and
+# since there is a last_created_row, the logic
+# moves to updating the last created row
+model2.height.add_value('value', 150)
+print(model2.height)
+
+# r = OneToOneRelationship()
+# r.update_relationship_options(model2)
+# print(r.resolve_relationships())
+
+# TODO: Check is there are checks for when an item that is not
+# a model is passed in the RelatedModel field
