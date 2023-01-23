@@ -2,7 +2,7 @@ from collections import defaultdict
 from functools import cached_property, total_ordering
 from operator import itemgetter
 
-from zineb.exceptions import IntegrityError
+from zineb.exceptions import IntegrityError, FieldError
 
 
 class Synchronizer:
@@ -26,6 +26,9 @@ class Synchronizer:
             return self.column_rows[-1]
         except:
             return False
+
+    def reset(self):
+        self.column_rows = []
 
     def enforce_uniqueness(self, last_row):
         """Each row ID should be unique in
@@ -91,7 +94,7 @@ class Columns:
             yield column
 
     def __len__(self):
-        return len(self.first)
+        return len(self.columns)
 
     @cached_property
     def number_of_items(self):
@@ -191,6 +194,26 @@ class Column:
                 items[field] = row[field]
         return items
 
+    @cached_property
+    def first_row(self):
+        try:
+            return self.column_rows[0]
+        except:
+            return False
+
+    @cached_property
+    def last_row(self):
+        try:
+            return self.column_rows[-1]
+        except:
+            return False
+
+    # def get_by_id(self, row_id):
+    #     result = list(filter(lambda x: x.id == row_id, self.column_rows))
+    #     if not result:
+    #         raise ValueError(f"Row with ID {row_id} does not exist")
+    #     return result[-1]
+
     def add_new_row(self, name, value, id_value=None):
         creation = True
         synchronizer = self._columns_instance.synchronizer
@@ -257,6 +280,11 @@ class Row:
 
     def __getitem__(self, column):
         return self.row_values[column]
+
+    def __getattr__(self, name):
+        if name not in self._declared_fields and name != 'id':
+            raise FieldError(name, self._declared_fields)
+        return self.row_values[name]
 
     def __eq__(self, item):
         if isinstance(item, Row):
@@ -386,7 +414,7 @@ class ModelSmartDict(SmartDict):
         return values
 
 
-s = SmartDict('name', 'age')
+# s = SmartDict('name', 'age')
 
 # Test 1: name, name, age
 # s.update('name', 'Kendall Jenner', id_value=1)
@@ -405,12 +433,12 @@ s = SmartDict('name', 'age')
 # s.update('age', 28, id_value=2)
 
 # Test 4: Integrity
-s.update('name', 'Kendall Jenner', id_value=1)
-s.update('name', 'Anya Taylor Joy', id_value=2)
-s.update('name', 'Kylie Jenner', id_value=1)
+# s.update('name', 'Kendall Jenner', id_value=1)
+# s.update('name', 'Anya Taylor Joy', id_value=2)
+# s.update('name', 'Kylie Jenner', id_value=1)
 
 
 # FIXME: We can add a similar ID key in
 # the columns
 
-print(s.columns.as_records)
+# print(s.columns.as_records)

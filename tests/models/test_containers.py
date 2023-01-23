@@ -1,7 +1,8 @@
 import unittest
 
 from zineb.tests.models import items
-from zineb.utils.containers import ModelSmartDict, SmartDict
+from zineb.utils.containers import (Column, Columns, ModelSmartDict, Row,
+                                    SmartDict)
 
 
 class TestSmartDict(unittest.TestCase):
@@ -9,6 +10,101 @@ class TestSmartDict(unittest.TestCase):
         fields = ['name', 'age']
         container = SmartDict(*fields)
         self.container = container
+
+    def test_columns(self):
+        instance = Columns(self.container)
+        self.assertEqual(instance.__len__(), 2)
+        self.assertIsInstance(instance.get_column('name'), Column)
+        self.assertListEqual(instance.declared_fields, ['name', 'age'])
+        self.assertFalse(instance.synchronizer.get_last_row)
+        self.assertEqual(instance.first.index, 0)
+
+    def test_column(self):
+        columns = Columns(self.container)
+        instance = Column(columns, 1, 'name')
+        self.assertEqual(instance._column_name, 'Name')
+        self.assertEqual(instance.__len__(), 0)
+
+    def test_row(self):
+        columns = Columns(self.container)
+        instance = Column(columns, 1, 'name')
+        # Test on new row
+        instance.add_new_row('name', 'Kendall Jenner', id_value=1)
+
+        # Test on Column
+        self.assertListEqual(instance.colum_values, ['Kendall Jenner'])
+        expected_list = [
+            Row(1, 'name', 'Kendall Jenner', ['name', 'age'])
+        ]
+        self.assertListEqual(instance.column_rows, expected_list)
+        self.assertListEqual(instance.get_column_values, ['Kendall Jenner'])
+        self.assertDictEqual(
+            instance.get_row_values,
+            {'name': 'Kendall Jenner', 'age': None}
+        )
+        self.assertTrue(instance == 'name')
+        self.assertEqual(instance.__len__(), 1)
+
+        # Test on synchronizer
+        synchronizer = instance._columns_instance.synchronizer
+        self.assertSetEqual(synchronizer.current_updated_columns, {'name'})
+        self.assertEqual(len(synchronizer.column_rows), 1)
+        self.assertTrue(synchronizer.get_last_row['id'] == 1)
+
+        # Test when updating the same column - Expected:
+        # since we're updating the same column, then a
+        # new row is created which makes that we should
+        # still have name
+        self.assertSetEqual(synchronizer.current_updated_columns, {'name'})
+        # Which is different from this case where we are
+        # updating the same row but a different column and
+        # in this case we should be updating the last created
+        # row as opposed to creating a new one
+        instance.add_new_row('age', 24, id_value=2)
+        self.assertSetEqual(
+            synchronizer.current_updated_columns, {'name', 'age'})
+        self.assertEqual(len(synchronizer.column_rows), 1)
+
+        synchronizer.reset()
+        self.assertListEqual(synchronizer.column_rows, [])
+
+    def test_row_class(self):
+        row = Row(1, 'name', 'Kendall Jenner', ['name', 'age'])
+        self.assertTrue(row.id == 1)
+        self.assertTrue(row.name == 'Kendall Jenner')
+        self.assertTrue(1 in row)
+        self.assertFalse(row > 2)
+        self.assertTrue(row >= 1)
+        other_row = Row(2, 'name', 'Kylie Jenner', ['name', 'age'])
+        self.assertTrue(row != other_row)
+
+    def test_high_profile_load(self):
+        instance = SmartDict.new_instance('name')
+
+        celebrities = [
+            'Kendall Jenner',
+            'Kylie Jenner',
+            'Anya Maya Taylor',
+            'Maria Sharapova',
+            'Greta Thunberg',
+            'Victoria Azarenka',
+            'Eugenie Bouchard',
+            'Lucie Safarova',
+            'Pia Mia',
+            'Coy Leray',
+            'Margot Robie'
+        ]
+
+        for i, celebrity in enumerate(celebrities):
+            with self.subTest(celebrity=celebrity):
+                instance.update('name', celebrity, id_value=i)
+        rows = instance.columns.synchronizer.column_rows
+        self.assertTrue(len(rows) == len(celebrities))
+        self.assertTrue(instance.columns.first.first_row['id'] == 0)
+        self.assertTrue(instance.columns.last.last_row['id'] == 10)
+
+    def test_data_integrity(self):
+        pass
 
     def test_can_update_field(self):
         # When there are many fields, like in the above, if we
@@ -93,15 +189,15 @@ class TestSmartDict(unittest.TestCase):
         container = SmartDict(*fields, order_by=[['name', False]])
 
         data = [
-            {'name': 'Kendall', 'age': 20}, 
+            {'name': 'Kendall', 'age': 20},
             {'name': 'Candice', 'age': 26}
         ]
 
         result = container.apply_sort(data)
         self.assertListEqual(
-            result, 
+            result,
             [
-                {'name': 'Kendall', 'age': 20}, 
+                {'name': 'Kendall', 'age': 20},
                 {'name': 'Candice', 'age': 26}
             ]
         )
@@ -109,9 +205,9 @@ class TestSmartDict(unittest.TestCase):
         container.order_by = [['name', False], ['age', True]]
         result = container.apply_sort(data)
         self.assertListEqual(
-            result, 
+            result,
             [
-                {'name': 'Kendall', 'age': 20}, 
+                {'name': 'Kendall', 'age': 20},
                 {'name': 'Candice', 'age': 26}
             ]
         )
@@ -119,9 +215,9 @@ class TestSmartDict(unittest.TestCase):
         container.order_by = [['age', False]]
         result = container.apply_sort(data)
         self.assertListEqual(
-            result, 
+            result,
             [
-                {'name': 'Kendall', 'age': 20}, 
+                {'name': 'Kendall', 'age': 20},
                 {'name': 'Candice', 'age': 26}
             ]
         )
