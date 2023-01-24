@@ -1,6 +1,7 @@
 import re
 from collections import OrderedDict
 from typing import Union
+import time
 from urllib import parse
 
 import requests
@@ -18,6 +19,7 @@ from zineb.utils.conversion import transform_to_bytes
 EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9-_.]+@\w+\.\w+$')
 
 USER_AGENT = UserAgent()
+
 
 class BaseRequest:
     """
@@ -39,7 +41,7 @@ class BaseRequest:
 
         if method not in self.http_methods:
             raise ValueError("The provided method is not valid. Should be "
-            f"one of {''.join(self.http_methods)}.")
+                             f"one of {''.join(self.http_methods)}.")
 
         # Calling "str" on the pseudo-url allows
         # us to get the string contained in classes
@@ -58,7 +60,8 @@ class BaseRequest:
         self.url = self._precheck_url(url)
 
         request = Request(method=method, url=self.url)
-        self._unprepared_request = self._set_headers(request, **kwargs.get('headers', {}))
+        self._unprepared_request = self._set_headers(
+            request, **kwargs.get('headers', {}))
 
         # Use this error class to add any errors that
         # would have occured during the HTTP request
@@ -73,12 +76,13 @@ class BaseRequest:
             # whole process for just one badly formed url, just pass that
             # given url and use the self.resolved flag to determine if
             # a request should indeed be sent with the given class
-            self.prepared_request = session.prepare_request(self._unprepared_request)
+            self.prepared_request = session.prepare_request(
+                self._unprepared_request)
         except requests.exceptions.MissingSchema as e:
             self.errors.extend([e.args])
         except Exception as e:
             self.errors.extend([e.args])
-            
+
         self.resolved = False
         self._http_response = None
 
@@ -105,12 +109,12 @@ class BaseRequest:
 
     def _set_headers(self, request, **extra_headers):
         headers = settings.get('DEFAULT_REQUEST_HEADERS', {})
-        
+
         user_agent = USER_AGENT.get_random_agent()
         headers.update({'User-Agent': user_agent})
-        
+
         extra_headers.update(headers)
-        request.headers = headers        
+        request.headers = headers
         return request
 
     def _precheck_url(self, url):
@@ -150,16 +154,17 @@ class BaseRequest:
             # if not all(logic):
 
             if 'https' not in parsed_url.scheme:
-                self.local_logger.instance.critical(f"{url} is not secured. No HTTPS scheme is present.")
+                self.local_logger.instance.critical(
+                    f"{url} is not secured. No HTTPS scheme is present.")
                 self.can_be_sent = False
 
         if self.only_domains:
             if parsed_url.netloc not in self.only_domains:
                 self.local_logger.instance.critical((f"{url} is not a memeber of the allowed "
-                "domains settings list and will not be sent. Adjust your settings if you "
-                "want to prevent this security check on his domain."))
+                                                     "domains settings list and will not be sent. Adjust your settings if you "
+                                                     "want to prevent this security check on his domain."))
                 self.can_be_sent = False
-            
+
         return safe_url_string(url)
 
     def _send(self):
@@ -167,19 +172,19 @@ class BaseRequest:
 
         if not self.can_be_sent:
             self.local_logger.instance.logger.info(("A request cannot be sent for the following "
-            f"url {self.url} because self.can_be_sent is marked as False. Ensure that "
-            "the url is not part of a restricted DOMAIN or that ENSURE_HTTPS does not"
-            "force only secured requests."))
+                                                    f"url {self.url} because self.can_be_sent is marked as False. Ensure that "
+                                                    "the url is not part of a restricted DOMAIN or that ENSURE_HTTPS does not"
+                                                    "force only secured requests."))
             return None
 
         # TODO: Send signal before the request
         # is sent by the class
-        
+
         try:
             response = self.session.send(self.prepared_request)
         except requests.exceptions.HTTPError as e:
             self.local_logger.instance.logger.error(f"An error occured while processing "
-            "request for {self.prepared_request}", stack_info=True)
+                                                    "request for {self.prepared_request}", stack_info=True)
             self.errors.append([e.args])
         except Exception as e:
             self.errors.extend([e.args])
@@ -199,8 +204,9 @@ class BaseRequest:
         # that the url was valid
         self.root_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
 
+        # time.sleep(settings.RATE_LIMIT)
         return response
-    
+
 
 class HTTPRequest(BaseRequest):
     """
@@ -237,8 +243,8 @@ class HTTPRequest(BaseRequest):
         is_download_url = kwargs.get('is_download_url', False)
         if is_download_url:
             url = safe_download_url(url)
-            
-        # Use this to pass additional parameters 
+
+        # Use this to pass additional parameters
         # into the HTTPRequest object
         self.options = OrderedDict()
 
@@ -259,9 +265,11 @@ class HTTPRequest(BaseRequest):
                 self.session.close()
             else:
                 response_code = http_response.status_code
-                self.local_logger.instance.error(f'Response failed with code {response_code}.')
+                self.local_logger.instance.error(
+                    f'Response failed with code {response_code}.')
         else:
-            self.local_logger.instance.error(f'An error occured on this request: {self.url} with status code {http_response.status_code}')
+            self.local_logger.instance.error(
+                f'An error occured on this request: {self.url} with status code {http_response.status_code}')
 
     def urljoin(self, path, use_domain=False):
         """
@@ -272,7 +280,7 @@ class HTTPRequest(BaseRequest):
         if use_domain:
             return parse.urljoin(self.root_url, str(path))
         return safe_url_string(parse.urljoin(self._http_response.url, str(path)))
-    
+
     def json(self, sort_by=None, filter_func=None):
         """If the expected response is not an HTML object, 
         return the JSON content via this method"""
@@ -285,12 +293,13 @@ class HTTPRequest(BaseRequest):
 
 
 class FormRequest(BaseRequest):
-    def __init__(self, url: Union[Link, str], data: dict, method: str='POST', **attrs):
+    def __init__(self, url: Union[Link, str], data: dict, method: str = 'POST', **attrs):
         super().__init__(url, method=method)
 
         encoded_data = parse.urlencode(data, encoding='utf-8')
         if method == 'POST':
-            self.prepared_request.headers.setdefault(b'Content-Type', b'application/x-www-form-urlencoded')
+            self.prepared_request.headers.setdefault(
+                b'Content-Type', b'application/x-www-form-urlencoded')
             self.prepared_request.body = transform_to_bytes(encoded_data)
         elif method == 'GET':
             url_to_get = self.prepared_request.url
@@ -308,7 +317,7 @@ class SitemapRequest(BaseRequest):
 # class FormRequestFromResponse(FormRequest):
 #     fields = []
 
-#     def __init__(self, form_or_soup: BeautifulSoup, url: Union[Link, str], 
+#     def __init__(self, form_or_soup: BeautifulSoup, url: Union[Link, str],
 #                  data: dict, method='POST', **attrs):
 #         if form_or_soup.name != 'form':
 #             form_or_soup = form_or_soup.get('form')

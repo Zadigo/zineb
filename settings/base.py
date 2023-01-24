@@ -84,7 +84,7 @@ DEFAULT_REQUEST_HEADERS = {
 
 
 # Set a list of proxies to use
-# structured as (http, 1.1.1.1) 
+# structured as (http, 1.1.1.1)
 # or (http, http://1.1.1.1)
 
 PROXIES = []
@@ -159,3 +159,9 @@ DEFAULT_DATE_FORMATS = (
 # found at https://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 
 TIME_ZONE = 'America/Chicago'
+
+
+# The rate at which the web scrapper should
+# fetch data from the internet
+
+RATE_LIMIT = 5

@@ -1,12 +1,9 @@
-import pathlib
 import os
 import re
-from collections import defaultdict
-from functools import lru_cache, wraps
-from typing import Callable, Iterable, OrderedDict, Union
+from collections import Counter, defaultdict
+from functools import lru_cache
+from typing import OrderedDict
 from urllib.parse import urlparse
-
-from collections import Counter
 
 from zineb import exceptions
 from zineb.utils.formatting import LazyFormat
@@ -50,7 +47,7 @@ def drop_while(func, values):
 
     Yields
     ------
-    
+
         Any: value to return
 
     >>> items = drop_while(lambda x: x == 1, [1, 2])
@@ -88,7 +85,7 @@ def split_while(func, values):
 
 
 @lru_cache(maxsize=0)
-def collect_files(dir_name, filter_func = None):
+def collect_files(dir_name, filter_func=None):
     """
     Collect all the files within a specific
     directory of your project. This utility function
@@ -98,13 +95,14 @@ def collect_files(dir_name, filter_func = None):
             start_files = collect_files('some/path')
     """
     from zineb.settings import settings
-    
+
     if settings.PROJECT_PATH is None:
         raise exceptions.ProjectNotConfiguredError()
 
     full_path = os.path.join(settings.PROJECT_PATH, dir_name)
     if not os.path.isdir(full_path):
-        raise ValueError(LazyFormat("Path should be a directory. Got '{path}'", path=full_path))
+        raise ValueError(LazyFormat(
+            "Path should be a directory. Got '{path}'", path=full_path))
 
     root, _, files = list(os.walk(full_path))[0]
     if full_path:
@@ -137,7 +135,7 @@ def regex_iterator(text, regexes):
 class RequestQueue:
     """Class that stores and manages all the
     starting urls for a given spider
-    
+
     >>> queue = RequestQueue(*urls)
     """
 
@@ -150,7 +148,7 @@ class RequestQueue:
         self.request_params = request_params
         self.url_strings = list(urls)
         self.retry_policies = {}
-        
+
     def __repr__(self):
         return f"<{self.__class__.__name__}(urls={len(self.request_queue)})>"
 
@@ -159,9 +157,10 @@ class RequestQueue:
         for url, request in self.request_queue.items():
             try:
                 if not self.is_valid_domain(url):
-                    logger.instance.info(f"Skipping url '{url}' because it violates constraints on domain")
+                    logger.instance.info(
+                        f"Skipping url '{url}' because it violates constraints on domain")
                     continue
-                
+
                 request._send()
             except:
                 self.history[url].update({'failed': True, 'request': request})
@@ -190,7 +189,7 @@ class RequestQueue:
     def __add__(self, instance):
         if not isinstance(instance, RequestQueue):
             raise TypeError('Instance should be an instance of RequestQueue')
-        
+
         self_urls = self.urls
         self_urls.extend(instance.urls)
         return RequestQueue(self.spider, *self_urls)
@@ -210,11 +209,12 @@ class RequestQueue:
     @property
     def failed_requests(self):
         return keep_while(lambda x: x['failed'], self.history.items())
-    
+
     def _iter(self):
-        from zineb.logger import logger
         import asyncio
-        
+
+        from zineb.logger import logger
+
         async def sender(request):
             history = {'failed': False, 'request': request}
             try:
@@ -224,18 +224,19 @@ class RequestQueue:
             finally:
                 self.history[request.url].update(history)
                 return request
-        
+
         async def main():
             tasks = []
             for url, request in self.request_queue.items():
                 if not self.is_valid_domain(url):
-                    logger.instance.info(f"Skipping url '{url}' because it violates constraints on domain")
+                    logger.instance.info(
+                        f"Skipping url '{url}' because it violates constraints on domain")
                     continue
-                
+
                 task = asyncio.create_task(sender(request))
                 tasks.append(task)
             return await asyncio.gather(*tasks)
-        
+
         return asyncio.run(main())
 
     def _retry(self):
@@ -248,7 +249,7 @@ class RequestQueue:
                         if instance.request.status_code == 200:
                             successful_retries.add(instance)
         return successful_retries
-    
+
     def duplicates(self):
         duplicate_urls = []
         counter = Counter(self.url_strings)
@@ -258,11 +259,11 @@ class RequestQueue:
             if count > 1:
                 duplicate_urls.append(url)
         return True if duplicate_urls else False
-        
+
     def prepare(self, spider):
         from zineb.http.request import HTTPRequest
         from zineb.settings import settings
-        
+
         self.spider = spider
         self.domain_constraints = spider.meta.domains
         for i, url in enumerate(self.url_strings):
@@ -272,7 +273,7 @@ class RequestQueue:
                 spider=self.spider,
                 **self.request_params
             )
-            
+
         settings_values = ['RETRY', 'RETRY_TIMES', 'RETRY_HTTP_CODES']
         for value in settings_values:
             self.retry_policies[value] = getattr(settings, value)
@@ -295,7 +296,7 @@ class RequestQueue:
         result = self.get(url_to_compare, parsed=True)
         url = urlparse(url)
         return result.netloc == url.netloc
-    
+
     def is_valid_domain(self, url):
         url = self.get(url, parsed=True)
         if self.domain_constraints:
@@ -312,7 +313,7 @@ class RequestQueue:
 
 # def urls_from_file(filename, **kwargs):
 #     from zineb.settings import settings
-    
+
 #     path = pathlib.Path(settings.PROJECT_PATH, filename)
 #     if not path.exists():
 #         return []
