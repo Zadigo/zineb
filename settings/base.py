@@ -89,6 +89,11 @@ DEFAULT_REQUEST_HEADERS = {
 
 PROXIES = []
 
+# Indicates a CSV file from which
+# the proxies should be loaded
+
+PROXY_FILE = None
+
 
 # How to handle HTTP retries when a request
 # fails based on a given HTTP code
