@@ -40,6 +40,11 @@ class Command(BaseCommand):
         current_dir = os.path.abspath(os.curdir)
         full_project_path_dir = os.path.join(current_dir, project_name)
         
+        # The directory should be created when
+        # the project does not exist yet
+        if not os.path.exists(full_project_path_dir):
+            os.mkdir(full_project_path_dir)
+
         # FIXME: This blocks the creation of new project
         # directory. What's the necessity?
         # if not os.path.exists(full_project_path_dir):
