@@ -19,27 +19,30 @@ class Command(BaseCommand):
         """Helper for creating a new file"""
         with open(source, mode='rb') as f:
             base_name = self._clean_file_name(source)
-            
+
             file_to_create = os.path.join(destination, base_name)
             content = f.read().decode('utf-8')
-            
+
             if base_name == 'manage.py':
                 project_name = kwargs.get('project_name', None)
-                content = re.sub(r'(project_name_placeholder)', project_name, content)
+                content = re.sub(
+                    r'(project_name_placeholder)',
+                    project_name, content
+                )
 
             with open(file_to_create, mode='wb') as d:
                 d.write(content.encode('utf-8'))
-    
+
     def execute(self, namespace):
         project_name = namespace.project
         if project_name is None:
             raise ValueError('Project does not have a name')
 
-        # Construct a full path to the 
+        # Construct a full path to the
         # project's root directory
         current_dir = os.path.abspath(os.curdir)
         full_project_path_dir = os.path.join(current_dir, project_name)
-        
+
         # The directory should be created when
         # the project does not exist yet
         if not os.path.exists(full_project_path_dir):
@@ -50,7 +53,10 @@ class Command(BaseCommand):
         # if not os.path.exists(full_project_path_dir):
         #     raise FileExistsError('Project directory does not exist')
 
-        zineb_templates_dir_path = os.path.join(settings.GLOBAL_ZINEB_PATH, 'templates/project')
+        zineb_templates_dir_path = os.path.join(
+            settings.GLOBAL_ZINEB_PATH, 
+            'templates/project'
+        )
         zineb_template_items = list(os.walk(zineb_templates_dir_path))
         root_path, folders, root_files = zineb_template_items.pop(0)
 
@@ -73,5 +79,8 @@ class Command(BaseCommand):
             for file in files:
                 self._create_new_file(
                     os.path.join(full_path, file),
-                    os.path.join(full_project_path_dir, os.path.basename(full_path))
+                    os.path.join(
+                        full_project_path_dir,
+                        os.path.basename(full_path)
+                    )
                 )
