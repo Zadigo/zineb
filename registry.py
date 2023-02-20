@@ -194,6 +194,23 @@ class MasterRegistry:
             else:
                 settings.TIME_ZONE = instance
                     
+        # If the user specified a proxy file to load
+        # then we'll be loading the file here
+        file_name = settings.PROXY_FILE
+        if file_name is not None:
+            if file_name.endswith('csv'):
+                file_path = self.absolute_path.joinpath(file_name)
+                with open(file_path) as f:
+                    csv_reader = csv.reader(f)
+                    # We do not check the proxies. Responsibility
+                    # is on the user to provide correct values
+                    proxies = itertools.chain(*list(csv_reader))
+                    proxies = list(map(lambda x: ('http', x), proxies))
+                    # Update the current list of proxies
+                    old_proxies = settings.PROXIES
+                    old_proxies.extend(proxies)
+                    settings.PROXIES = old_proxies
+
         self.is_ready = True
         
         # TODO: Load all the middlewares once everything
