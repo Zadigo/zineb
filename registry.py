@@ -118,7 +118,7 @@ class MasterRegistry:
         self.all_models = defaultdict(dict)
         self.project_name = None
         self.absolute_path = None
-        self.middlewares = []
+        self.middlewares = None
         self.storages = {'default': {}}
 
     def __repr__(self):
@@ -143,14 +143,14 @@ class MasterRegistry:
     def check_spider_exists(self, name):
         return name in self.spiders.keys()
 
-    def get_spider(self, spider_name: str):
+    def get_spider(self, spider_name):
         self.check_spiders_ready()
         try:
             return self.spiders[spider_name]
         except KeyError:
-            self.local_logger.logger.error((f"The spider with the name '{spider_name}' does not "
-                                            f"exist in the registry. Available spiders are {', '.join(self.spiders.keys())}. "
-                                            f"If you forgot to register {spider_name}, check your settings file."), stack_info=True)
+            logger.instance.error((f"The spider with the name '{spider_name}' does not "
+                                   f"exist in the registry. Available spiders are {', '.join(self.spiders.keys())}. "
+                                   f"If you forgot to register {spider_name}, check your settings file."), stack_info=True)
             raise SpiderExistsError(spider_name)
 
     def get_default_storage(self):
@@ -202,11 +202,18 @@ class MasterRegistry:
                 settings.TIME_ZONE = instance
 
         # If the user specified a proxy file to load
-        # then we'll be loading the file here
+        # then we'll be loading it's content there
         file_name = settings.PROXY_FILE
         if file_name is not None:
             if file_name.endswith('csv'):
                 file_path = self.absolute_path.joinpath(file_name)
+
+                # Cache the full proxy file path for
+                # convience reasons
+                # _cache = getattr(settings, '_cache')
+                # _cache['proxy_file_path'] = file_path
+                # setattr(settings, '_cache', _cache)
+
                 with open(file_path) as f:
                     csv_reader = csv.reader(f)
                     # We do not check the proxies. Responsibility
@@ -304,7 +311,7 @@ class MasterRegistry:
         # Check that there are class objects that can be used
         # and are subclasses of the main Spider class object
         elements = inspect.getmembers(
-            spiders_module, 
+            spiders_module,
             predicate=inspect.isclass
         )
 
@@ -330,6 +337,12 @@ class MasterRegistry:
         # Cache the registry in the settings
         # file for performance reasons
         settings['REGISTRY'] = self
+
+        # Set the project's internal cache
+        # for storing other project related variables
+        # that we do not want to integrate as pure
+        # settings constants (prevent pollution)
+        settings['_cache'] = {}
 
         # TODO: Send a signal when the spider
         # registry has been populated

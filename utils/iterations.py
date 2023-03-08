@@ -154,13 +154,17 @@ class RequestQueue:
 
     def __iter__(self):
         from zineb.logger import logger
+        from zineb.registry import registry
+        
         for url, request in self.request_queue.items():
             try:
                 if not self.is_valid_domain(url):
-                    logger.instance.info(
-                        f"Skipping url '{url}' because it violates constraints on domain")
+                    logger.instance.info(f"Skipping url '{url}' because "
+                                         "it violates constraints on domain")
                     continue
 
+                registry.middlewares.run_middlewares(request)
+                
                 request._send()
             except:
                 self.history[url].update({'failed': True, 'request': request})

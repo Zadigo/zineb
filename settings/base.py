@@ -51,6 +51,7 @@ LOGGING = {
 # certain specific actions within the application
 
 MIDDLEWARES = [
+    'zineb.middlewares.rotators.RotatingProxies'
     # 'zineb.middlewares.referer.Referer',
     # 'zineb.middlewares.history.History',
     # 'zineb.middlewares.statistics.GeneralStatistics'

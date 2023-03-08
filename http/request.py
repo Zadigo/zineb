@@ -36,6 +36,8 @@ class BaseRequest:
     can_be_sent = True
     http_methods = ['GET', 'POST']
 
+    _proxy = {}
+
     def __init__(self, url, method='GET', **kwargs):
         self.local_logger = Logger(self.__class__.__name__)
 
@@ -50,9 +52,6 @@ class BaseRequest:
 
         session = Session()
 
-        proxy_list = dict(set(settings.PROXIES))
-        session.proxies.update(proxy_list)
-
         self.only_domains = settings.DOMAINS
         self.only_secured_requests = settings.get('ENSURE_HTTPS', False)
 
@@ -61,7 +60,8 @@ class BaseRequest:
 
         request = Request(method=method, url=self.url)
         self._unprepared_request = self._set_headers(
-            request, **kwargs.get('headers', {}))
+            request, **kwargs.get('headers', {})
+        )
 
         # Use this error class to add any errors that
         # would have occured during the HTTP request
@@ -94,7 +94,17 @@ class BaseRequest:
 
     @classmethod
     def follow(cls, url):
+        # When running external requests to the
+        # main request loop, the IP address resets
+        #
+        from zineb.registry import registry
+        # TODO: This reverts to the user's IP address
+        # as opposed to using the proxy IP
+        # print(cls._proxy)
         instance = cls(str(url))
+        # setattr(instance, '_proxy', cls._proxy)
+        registry.middlewares.run_middlewares(instance)
+        # print(instance._proxy)
         instance._send()
         return instance
 
@@ -170,6 +180,9 @@ class BaseRequest:
     def _send(self):
         response = None
 
+        if self._proxy:
+            self.session.proxies.update(self._proxy)
+
         if not self.can_be_sent:
             self.local_logger.instance.logger.info(("A request cannot be sent for the following "
                                                     f"url {self.url} because self.can_be_sent is marked as False. Ensure that "
@@ -190,6 +203,10 @@ class BaseRequest:
             self.errors.extend([e.args])
 
         if self.errors or response is None:
+            raise ResponseFailedError(self.errors)
+
+        # Handle 400 and 500 codes
+        if response.status_code >= 400:
             raise ResponseFailedError(self.errors)
 
         if response.status_code == 200:
