@@ -149,6 +149,14 @@ class Columns:
         result = list(filter(lambda x: x == name, self.columns))
         try:
             return result[-1]
+        except IndexError:
+            raise
+
+    def get_column_at_index(self, index):
+        try:
+            return self.columns[index]
+        except IndexError:
+            raise ValueError('Column index out of range')
 
 
 class Column:
