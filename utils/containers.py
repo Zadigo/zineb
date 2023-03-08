@@ -63,7 +63,9 @@ class Synchronizer:
         for column in self.columns:
             if column == current_column:
                 continue
-            setattr(column, 'column_rows', column_rows)
+
+            if not column.column_rows:
+                setattr(column, 'column_rows', column_rows)
 
 
 class Columns:
