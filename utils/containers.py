@@ -222,6 +222,16 @@ class Column:
         except:
             return False
 
+    def get_row_by_index(self, index):
+        try:
+            return self.column_rows[index]
+        except IndexError:
+            raise IndexError(f"Row does not exist at index {index}")
+
+    # @cached_property
+    # def slice(self, top, bottom):
+    #     return self.column_rows[top:bottom]
+
     # def get_by_id(self, row_id):
     #     result = list(filter(lambda x: x.id == row_id, self.column_rows))
     #     if not result:
