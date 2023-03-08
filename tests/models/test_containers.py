@@ -18,12 +18,18 @@ class TestSmartDict(unittest.TestCase):
         self.assertListEqual(instance.declared_fields, ['name', 'age'])
         self.assertFalse(instance.synchronizer.get_last_row)
         self.assertEqual(instance.first.index, 0)
+        self.assertIsNotNone(instance.get_column_at_index(0))
 
     def test_column(self):
         columns = Columns(self.container)
         instance = Column(columns, 1, 'name')
         self.assertEqual(instance._column_name, 'Name')
         self.assertEqual(instance.__len__(), 0)
+
+    # def test_column_exists(self):
+    #     columns = Columns(self.container)
+    #     instance1 = Column(columns, 1, 'name')
+    #     instance2 = Column(columns, 1, 'name')
 
     def test_row(self):
         columns = Columns(self.container)
@@ -62,7 +68,9 @@ class TestSmartDict(unittest.TestCase):
         # row as opposed to creating a new one
         instance.add_new_row('age', 24, id_value=2)
         self.assertSetEqual(
-            synchronizer.current_updated_columns, {'name', 'age'})
+            synchronizer.current_updated_columns, 
+            {'name', 'age'}
+        )
         self.assertEqual(len(synchronizer.column_rows), 1)
 
         synchronizer.reset()
