@@ -2,13 +2,13 @@ from collections import defaultdict
 from functools import cached_property, total_ordering
 from operator import itemgetter
 
-from zineb.exceptions import IntegrityError, FieldError
+from zineb.exceptions import FieldError, IntegrityError
 
 
 class Synchronizer:
     """A class that can synchronize multiple
-    columns together and therefore allows balanced
-    rows between each elements of the container
+    columns together and therefore allow 
+    balanced rows
     """
 
     def __init__(self, columns):
@@ -26,6 +26,10 @@ class Synchronizer:
             return self.column_rows[-1]
         except:
             return False
+        
+    @property
+    def index_tracker(self):
+        return len(self.column_rows)
 
     def reset(self):
         self.column_rows = []
@@ -60,6 +64,11 @@ class Synchronizer:
         # column_rows function
         # self.enforce_uniqueness(column_rows[-1])
         self.column_rows = column_rows
+        # NOTE: Apparently a reference to the column
+        # exists and there's no need to consistently
+        # update the column_rows because when we update
+        # the values in them, they are reflected automatically
+        # vars(vars(self._columns_instance.get_column('name'))['column_rows'][0])
         for column in self.columns:
             if column == current_column:
                 continue
@@ -81,6 +90,8 @@ class Columns:
         self.smart_dict = smart_dict
         self.model = getattr(smart_dict, 'model', None)
         self.declared_fields = list(smart_dict.fields)
+        self.declared_fields_with_id = ['id']
+        self.declared_fields_with_id.extend(self.declared_fields)
         self.columns = [
             Column(self, i, field_name)
             for i, field_name in enumerate(self.declared_fields)
@@ -167,7 +178,7 @@ class Column:
     ... column.column_values
     ... ["Kendall jenner", "Kylie Jenner", ...]
     ... column.column_rows
-    ... [Row({id: 1, name: "Kendall Jenner"})]
+    ... [Row({"id": 1, "name": "Kendall Jenner"})]
     """
 
     def __init__(self, columns_instance, index, field_name):
@@ -274,7 +285,7 @@ class Column:
 @total_ordering
 class Row:
     """Represents a row and all the values present
-    in the on that specific line
+    on that specific line
 
     >>>    ID    col1    col2
     ...     1      A       B
@@ -299,8 +310,11 @@ class Row:
                 continue
             self.row_values[field] = None
 
+    # def __hash__(self):
+    #     return hash((self.field_id, self.row_values))
+
     def __repr__(self):
-        return f'<Row: [{self.row_values}]>'
+        return f'<Row: id: {self.field_id} [{self.row_values}]>'
 
     def __getitem__(self, column):
         return self.row_values[column]
@@ -334,7 +348,7 @@ class SmartDict:
     creating balanced data.
 
     The data creation and updating proces uses the synchronous step-by-step 
-    state of Python to add data to the container. In order words, if the field name
+    state of Python to add data to the container. In other words, if the field name
     of the next value in is different from the field name of the previous value in,
     a new row is created otherwise the last row is updated.
 
@@ -344,14 +358,14 @@ class SmartDict:
     >>> instance = SmartDict("name", "surname")
     ... instance.update("name", "Kendall")
     ... str(instance)
-    ... [{"name": "Kendall Jenner", "surname": None}]
+    ... [{"name": "Kendall", "surname": None}]
 
     This example shows when the user adds both fields:
 
     >>> instance.update("name", "Kendall")
     ... instance.update("surname", "Jenner")
     ... str(instance)
-    ... [{"name": "Kendall Jenner", "surname": "Jenner"}]
+    ... [{"name": "Kendall", "surname": "Jenner"}]
 
     Multiple values can be updated at once:
 
@@ -364,10 +378,10 @@ class SmartDict:
         self.columns = Columns(self)
 
     def __repr__(self):
-        return f'<{self.__class__.__name__}[{self.as_list()}]>'
+        return f'<{self.__class__.__name__}[{self.columns.as_csv}]>'
 
     def __str__(self):
-        return str(self.as_list())
+        return str(self.columns.as_csv)
 
     @classmethod
     def new_instance(cls, *fields):
