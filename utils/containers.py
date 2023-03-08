@@ -141,10 +141,14 @@ class Columns:
             return None
 
     def get_column(self, name):
+        if name not in self.declared_fields:
+            raise IndexError(
+                f"Column '{name}' is not a declared field on the container."
+            )
+
         result = list(filter(lambda x: x == name, self.columns))
-        if not result:
-            pass
-        return result[-1]
+        try:
+            return result[-1]
 
 
 class Column:
