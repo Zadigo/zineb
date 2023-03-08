@@ -349,6 +349,31 @@ class SmartDict:
     def new_instance(cls, *fields):
         return cls(*fields)
 
+    def get_related_item(self, index, using):
+        """From a given SmartDict, return the related
+        row that would be associated with the one the
+        current SmartDict.
+
+        It is important to note that this does not enforce
+        any kind of relationship constraints that you would
+        typically find for example on a database. In other
+        words a row can exist on the initial SmartDict even
+        if it is not created on related one.
+        
+        >>> celebrities = SmartDict('name', 'age', 'country')
+        ... countries = SmartDict('name')
+        ... celebrities.update('name', 'Kendall')
+        ... celebrities.update('age', 14)
+        ... celebrities.update('country', 1)
+        ... countries.update('name', 'France')
+        ... celebrities.get_related_item(0, countries)
+        ... "<Row: id: None [{'id': None, 'name': 'France'}]>"
+        """
+        if not isinstance(using, SmartDict):
+            raise TypeError(f"{using} is not an instance of SmartDict")
+        column = using.columns.first
+        return column.get_row_by_index(index)
+
     def update(self, name, value, id_value=None):
         column = self.columns.get_column(name)
         column.add_new_row(name, value, id_value=id_value)
