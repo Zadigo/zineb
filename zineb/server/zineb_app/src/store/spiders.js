@@ -1,11 +1,20 @@
 import { defineStore } from 'pinia'
 
-const spiderStore = defineStore('spiders', {
+const useSpiders = defineStore('spiders', {
   state: () => ({
-    spiders: []
+    spiders: [
+      {
+        name: 'Google',
+        label: 'all'
+      },
+      {
+        name: 'Kendall',
+        label: 'fast'
+      }
+    ]
   })
 })
 
 export {
-  spiderStore
+  useSpiders
 }
