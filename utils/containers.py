@@ -69,12 +69,12 @@ class Synchronizer:
         # update the column_rows because when we update
         # the values in them, they are reflected automatically
         # vars(vars(self._columns_instance.get_column('name'))['column_rows'][0])
-        for column in self.columns:
-            if column == current_column:
-                continue
+        # for column in self.columns:
+        #     if column == current_column:
+        #         continue
 
-            if not column.column_rows:
-                setattr(column, 'column_rows', column_rows)
+        #     if not column.column_rows:
+        #         setattr(column, 'column_rows', column_rows)
 
 
 class Columns:
@@ -105,6 +105,9 @@ class Columns:
     def __iter__(self):
         for column in self.columns:
             yield column
+
+    def __hash__(self):
+        return hash(tuple(self.declared_fields_with_id))
 
     def __len__(self):
         return len(self.columns)
@@ -288,9 +291,9 @@ class Row:
     on that specific line
 
     >>>    ID    col1    col2
-    ...     1      A       B
+           1     "A"     "B"
 
-    The row here represents therefore `[1, A, B]`
+    The row here represents therefore `[1, "A", "B"]`
 
     >>> row = Row(1, "fullname", "Kendall Jenner", ["fullname"])
     ... {"id": 1, "fullname": "Kendall Jenner"}
@@ -341,7 +344,8 @@ class Row:
         return self.field_id >= item
 
     def __contains__(self, value):
-        return str(value) in str(self.field_id)
+        # return str(value) in str(self.field_id)
+        return str(value) in self.row_values.values()
 
     def update_column_value(self, name, value):
         self.row_values[name] = value
