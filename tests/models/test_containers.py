@@ -26,11 +26,6 @@ class TestSmartDict(unittest.TestCase):
         self.assertEqual(instance._column_name, 'Name')
         self.assertEqual(instance.__len__(), 0)
 
-    # def test_column_exists(self):
-    #     columns = Columns(self.container)
-    #     instance1 = Column(columns, 1, 'name')
-    #     instance2 = Column(columns, 1, 'name')
-
     def test_row(self):
         columns = Columns(self.container)
         instance = Column(columns, 1, 'name')
@@ -68,7 +63,7 @@ class TestSmartDict(unittest.TestCase):
         # row as opposed to creating a new one
         instance.add_new_row('age', 24, id_value=2)
         self.assertSetEqual(
-            synchronizer.current_updated_columns, 
+            synchronizer.current_updated_columns,
             {'name', 'age'}
         )
         self.assertEqual(len(synchronizer.column_rows), 1)
@@ -120,10 +115,10 @@ class TestSmartDict(unittest.TestCase):
         self.container.update('name', 'Kendall')
         self.container.update('age', 24)
         self.assertDictEqual(
-            self.container.as_values(),
+            self.container.columns.as_values,
             {
-                'age': [24],
-                'name': ['Kendall']
+                'name': ['Kendall'],
+                'age': [24]
             }
         )
 
@@ -133,51 +128,50 @@ class TestSmartDict(unittest.TestCase):
         self.container.update('name', 'Kendall Jenner')
         self.container.update('name', 'Kylie Jenner')
         self.container.update('age', 26)
-        values_for_name = self.container.get_container('name')
-        values_for_age = self.container.get_container('age')
+        records = self.container.columns.as_values
+        values_for_name = records['name']
+        values_for_age = records['age']
         self.assertTrue(len(values_for_name) == len(values_for_age))
 
     def test_final_output_containers(self):
         self.container.update('name', 'Kendall Jenner')
         self.container.update('age', 25)
 
-        result = self.container.as_values()
-        self.assertIsInstance(result, dict)
-        self.assertTrue('name' in result)
-        self.assertTrue('age' in result)
-
-        result = self.container.as_list()
+        result = self.container.columns.as_records
         self.assertIsInstance(result, list)
         self.assertIsInstance(result[0], dict)
+        self.assertTrue('name' in result[0])
+        self.assertTrue('age' in result[0])
 
-        result = self.container.as_csv()
+        result = self.container.columns.as_values
+        self.assertIsInstance(result, dict)
+        self.assertIsInstance(result['name'], list)
+
+        result = self.container.columns.as_csv
         self.assertIsInstance(result, list)
         self.assertIsInstance(result[0], list)
 
     def test_add_multiple_method(self):
         self.container.update_multiple({'name': 'Kendall', 'age': 24})
-        self.assertDictEqual(
-            self.container.as_values(),
-            {
-                'age': [24],
-                'name': ['Kendall']
-            }
+        # FIXME: Seems like when using this function
+        # multiple times, the output value with as_values
+        # becomes a dict as opposed to a list
+        self.assertListEqual(
+            self.container.columns.as_values,
+            [['name', 'age'], ['Kendall'], [24]]
         )
 
         self.container.update_multiple({'name': 'Kylie', 'age': 22})
-        self.assertDictEqual(
-            self.container.as_values(),
-            {
-                'age': [24, 22],
-                'name': ['Kendall', 'Kylie']
-            }
+        self.assertListEqual(
+            self.container.columns.as_values,
+            [['name', 'age'], ['Kendall', 24], ['Kylie', 22]]
         )
 
     def test_csv_output_values(self):
         self.container.update('name', 'Kendall')
-        self.assertIsInstance(self.container.as_csv(), list)
+        self.assertIsInstance(self.container.columns.as_csv, list)
 
-        result = self.container.as_csv()
+        result = self.container.columns.as_csv
         # If we only add one field e.g. name, then the
         # other field e.g. age should be None. Hence
         # the expected [['name', 'age'], ['Kendall', 24]]

@@ -260,20 +260,26 @@
 
 # TEST for datastructures
 
+from zineb.utils.containers import Column, Columns
 from zineb.utils.containers import SmartDict, Column, Columns, Row
 
 db = SmartDict('name', 'age', 'country')
-db2 = SmartDict('name')
-# columns = Columns(db)
-# first = columns.get_column('name')
-# first.add_new_row('name', 'Kendall Jenner', 1)
-# first.add_new_row('age', 15, 1)
-# first.add_new_row('name', 'Kylie', 2)
-# print(columns.as_records)
-db.update('name', 'Kendall')
-db.update('age', 14)
-db.update('country', 1)
-db2.update('name', 'France')
-# print(db)
-# print(db2)
-print(db.get_related_item(0, db2))
+# db2 = SmartDict('name')
+# # columns = Columns(db)
+# # first = columns.get_column('name')
+# # first.add_new_row('name', 'Kendall Jenner', 1)
+# # first.add_new_row('age', 15, 1)
+# # first.add_new_row('name', 'Kylie', 2)
+# # print(columns.as_records)
+# db.update('name', 'Kendall')
+# db.update('age', 14)
+# db.update('country', 1)
+# db2.update('name', 'France')
+# # print(db)
+# # print(db2)
+# print(db.get_related_item(1, db2))
+
+
+a = Columns(db)
+c = a.get_column('name')
+c.add_new_row('name', 'Kendall')

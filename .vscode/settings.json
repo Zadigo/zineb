@@ -12,6 +12,6 @@
         "${workspaceFolder}/zineb/"
     ],
     "python.autoComplete.extraPaths": [
-        "${workspaceFolder}/zineb/"
+        "${workspaceFolder}/zineb/zineb/"
     ]
 }

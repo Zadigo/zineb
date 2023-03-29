@@ -26,7 +26,7 @@ class Synchronizer:
             return self.column_rows[-1]
         except:
             return False
-        
+
     @property
     def index_tracker(self):
         return len(self.column_rows)
@@ -233,15 +233,15 @@ class Column:
         except:
             return False
 
+    # @cached_property
+    # def slice(self, top, bottom):
+    #     return self.column_rows[top:bottom]
+
     def get_row_by_index(self, index):
         try:
             return self.column_rows[index]
         except IndexError:
             raise IndexError(f"Row does not exist at index {index}")
-
-    # @cached_property
-    # def slice(self, top, bottom):
-    #     return self.column_rows[top:bottom]
 
     # def get_by_id(self, row_id):
     #     result = list(filter(lambda x: x.id == row_id, self.column_rows))
@@ -292,7 +292,7 @@ class Row:
 
     The row here represents therefore `[1, A, B]`
 
-    >>> row = Row(1, "fullname", "Kendall Jenner")
+    >>> row = Row(1, "fullname", "Kendall Jenner", ["fullname"])
     ... {"id": 1, "fullname": "Kendall Jenner"}
     """
     field_id = 1
@@ -305,6 +305,12 @@ class Row:
             field_name: field_value
         }
 
+        # This section balances the row
+        # by creating all the default not
+        # created fields. In that sense,
+        # if we create a row with only name
+        # and there's an age column then we'll
+        # get something like {"name": "...", "age": None}
         for field in fields:
             if field == field_name:
                 continue
@@ -389,7 +395,7 @@ class SmartDict:
 
     def get_related_item(self, index, using):
         """From a given SmartDict, return the related
-        row that would be associated with the one the
+        row that would be associated with the one of the
         current SmartDict.
 
         It is important to note that this does not enforce
@@ -397,7 +403,7 @@ class SmartDict:
         typically find for example on a database. In other
         words a row can exist on the initial SmartDict even
         if it is not created on related one.
-        
+
         >>> celebrities = SmartDict('name', 'age', 'country')
         ... countries = SmartDict('name')
         ... celebrities.update('name', 'Kendall')
@@ -409,8 +415,16 @@ class SmartDict:
         """
         if not isinstance(using, SmartDict):
             raise TypeError(f"{using} is not an instance of SmartDict")
+        # Get the first column and try
+        # to return the associated row
+        # from the given index
         column = using.columns.first
-        return column.get_row_by_index(index)
+        try:
+            return column.get_row_by_index(index)
+        except IndexError:
+            raise IntegrityError("Row does not exist on related model")
+        except Exception:
+            raise
 
     def update(self, name, value, id_value=None):
         column = self.columns.get_column(name)
@@ -475,33 +489,3 @@ class ModelSmartDict(SmartDict):
                     return values
             return multisort(values, ordering_booleans)
         return values
-
-
-# s = SmartDict('name', 'age')
-
-# Test 1: name, name, age
-# s.update('name', 'Kendall Jenner', id_value=1)
-# s.update('name', 'Kylie Jenner', id_value=2)
-# s.update('age', 21, id_value=2)
-
-# Test 2: name, age, name
-# s.update('name', 'Kendall Jenner', id_value=1)
-# s.update('age', 21, id_value=2)
-# s.update('name', 'Kylie Jenner', id_value=2)
-
-# Test 3: name, age, name, age
-# s.update('name', 'Kendall Jenner', id_value=1)
-# s.update('age', 21, id_value=1)
-# s.update('name', 'Kylie Jenner', id_value=2)
-# s.update('age', 28, id_value=2)
-
-# Test 4: Integrity
-# s.update('name', 'Kendall Jenner', id_value=1)
-# s.update('name', 'Anya Taylor Joy', id_value=2)
-# s.update('name', 'Kylie Jenner', id_value=1)
-
-
-# FIXME: We can add a similar ID key in
-# the columns
-
-# print(s.columns.as_records)

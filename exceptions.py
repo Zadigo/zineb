@@ -94,5 +94,6 @@ class ForeignKeyError(Exception):
 
 
 class IntegrityError(Exception):
-    def __init__(self, message):
+    """Relation integrity error"""
+    def __init__(self, message, model=None, related_model=None):
         super().__init__(message)
