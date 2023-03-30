@@ -1,3 +1,17 @@
+from zineb.utils.containers import Column, Columns, Row, SmartDict
+from zineb.models.datastructure import Model
+from zineb.models import fields
+
+
+class Celebrity(Model):
+    name = fields.CharField()
+
+
+c = Celebrity()
+c.add_value('name', 'Kendall')
+c.add_values(name='Kylie')
+print(c)
+
 # from zineb.management import execute_command_inline
 # import sys
 # import os
@@ -117,6 +131,8 @@
 #     pass
 
 
+# Test constraints
+
 # from zineb.models.datastructure import Model
 # from zineb.models import fields
 # class TestModel(Model):
@@ -161,6 +177,8 @@
 # constraint.prepare(m)
 # # print(constraint.check_constraint('Kendall'))
 # print(constraint)
+
+# TEST: Test relationships
 
 # from zineb.utils.containers import SmartDict
 # from zineb.models import fields
@@ -260,8 +278,6 @@
 
 # TEST for datastructures
 
-from zineb.utils.containers import Column, Columns
-from zineb.utils.containers import SmartDict, Column, Columns, Row
 
 db = SmartDict('name', 'age', 'country')
 # db2 = SmartDict('name')
@@ -280,10 +296,10 @@ db = SmartDict('name', 'age', 'country')
 # print(db.get_related_item(1, db2))
 
 
-a = Columns(db)
-c = a.get_column('name')
-c.add_new_row('name', 'Kendall')
-c.add_new_row('name', 'Kylie')
-c.add_new_row('age', 21)
-r = c.get_row_by_index(0)
-print('Kendall' in r)
+# a = Columns(db)
+# c = a.get_column('name')
+# c.add_new_row('name', 'Kendall')
+# c.add_new_row('name', 'Kylie')
+# c.add_new_row('age', 21)
+# r = c.get_row_by_index(0)
+# print('Kendall' in r)
