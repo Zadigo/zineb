@@ -91,3 +91,9 @@ class ForeignKeyError(Exception):
     def __init__(self, key, model_name):
         message = f"No related value found for '{key}' in related model '{model_name}'"
         super().__init__(message)
+
+
+class IntegrityError(Exception):
+    """Relation integrity error"""
+    def __init__(self, message, model=None, related_model=None):
+        super().__init__(message)

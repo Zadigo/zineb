@@ -1,5 +1,7 @@
 from functools import cached_property, lru_cache
+
 from zineb.exceptions import ForeignKeyError
+
 
 class BaseRelationship:
     model = None

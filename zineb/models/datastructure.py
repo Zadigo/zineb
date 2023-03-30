@@ -92,6 +92,10 @@ class ModelOptions:
         # add values to it or even save.
         return self.cached_options.get('template_model', False)
 
+    @property
+    def has_ordering(self):
+        return self.ordering
+
     def _run_checks(self, declared_fields=None):
         checks = [
             self._check_fields_ordering
@@ -109,16 +113,6 @@ class ModelOptions:
             for declared_field in declared_fields:
                 if field not in declared_field:
                     raise FieldError(field, [])
-
-    def get_option_by_name(self, name):
-        return self.cached_options.get(name)
-
-    def has_option(self, name):
-        return name in self.cached_options
-
-    @property
-    def has_ordering(self):
-        return self.ordering
 
     def _check_ordering_fields(self):
         for name in self.ordering:
@@ -156,6 +150,12 @@ class ModelOptions:
         if not self.has_field('id'):
             auto_field = AutoField(auto_created=True)
             self.add_field('id', auto_field)
+
+    def get_option_by_name(self, name):
+        return self.cached_options.get(name)
+
+    def has_option(self, name):
+        return name in self.cached_options
 
     def has_field(self, name):
         return name in self.field_names
@@ -235,7 +235,9 @@ class ModelOptions:
             for name in self.ordering
         ]
         ordering = namedtuple(
-            'Ordering', ['ascending_fields', 'descending_fields', 'booleans'])
+            'Ordering',
+            ['ascending_fields', 'descending_fields', 'booleans']
+        )
         return ordering(ascending_fields, descending_fields, ordering_map)
 
 
@@ -434,13 +436,13 @@ class Model(metaclass=Base):
         # the related fields in order to return their
         # own values
 
+        new_data = self._data_container.columns.as_records
         # TODO: This section needs to be reviewed in order
         # to be able to keep track of relationships between fields
-        new_data = self._data_container.as_list()
         related_model_fields = self._meta.related_model_fields
         if related_model_fields:
             for name, field in related_model_fields.items():
-                related_model_data = field.related_model._data_container.as_list()
+                related_model_data = field.related_model._data_container.columns.as_records
                 for item in new_data:
                     item[name] = related_model_data
         return new_data
@@ -602,8 +604,10 @@ class Model(metaclass=Base):
         # formatting whatsoever? This should be fixed in
         # order that the values that are added be deep_cleaned
         # formatted correctly for consistency
-        self._fields.has_fields(list(attrs.keys()), raise_exception=True)
-        self._data_container.update_multiple(**attrs)
+        for name in attrs.keys():
+            if not self._meta.has_field(name):
+                raise FieldError(name, self._meta.field_names, self)
+        self._data_container.update_multiple(attrs)
 
     def add_value(self, name, value):
         """

@@ -1,8 +1,9 @@
-import unittest
-from zineb.storages import FileSystemStorage, AWSFileSystemStorage
-from zineb.settings import settings
-from pathlib import Path
 import os
+import unittest
+from pathlib import Path
+
+from zineb.settings import settings
+from zineb.storages import AWSFileSystemStorage, FileSystemStorage
 
 settings(MEDIA_FOLDER=Path('.').joinpath('test_project/media').absolute())
 
