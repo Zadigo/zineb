@@ -7,7 +7,7 @@ from zineb.settings import settings
 
 # Since checks require a project scope, set this
 # to the default test one in order to avoid any errors
-os.environ.setdefault('ZINEB_SPIDER_PROJECT', 'zineb.tests.testproject')
+os.environ.setdefault('ZINEB_SPIDER_PROJECT', 'tests.testproject')
 
 
 # Reload the settings file in order to

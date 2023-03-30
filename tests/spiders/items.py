@@ -14,6 +14,15 @@ class SimpleSpider(Spider):
     start_urls = ['http://example.com']
 
 
+class ComplexSpider(Spider):
+    start_urls = [
+        'http://example.com',
+        'http://example.com',
+        'http://example.com',
+        'http://example.com'
+    ]
+
+
 class MetaSpider(Spider):
     class Meta:
         domains = ['example.com']

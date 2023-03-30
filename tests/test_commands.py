@@ -56,8 +56,10 @@ class TestUtility(unittest.TestCase):
         self.assertGreater(len(self.utility.commands_registry), 0)
 
     def test_command_calling_in_project(self):
-        os.environ.setdefault('ZINEB_SPIDER_PROJECT',
-                              'zineb.tests.testproject')
+        os.environ.setdefault(
+            'ZINEB_SPIDER_PROJECT',
+            'tests.testproject'
+        )
 
         settings()
 
