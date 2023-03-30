@@ -92,6 +92,10 @@ class ModelOptions:
         # add values to it or even save.
         return self.cached_options.get('template_model', False)
 
+    @property
+    def has_ordering(self):
+        return self.ordering
+
     def _run_checks(self, declared_fields=None):
         checks = [
             self._check_fields_ordering
@@ -109,16 +113,6 @@ class ModelOptions:
             for declared_field in declared_fields:
                 if field not in declared_field:
                     raise FieldError(field, [])
-
-    def get_option_by_name(self, name):
-        return self.cached_options.get(name)
-
-    def has_option(self, name):
-        return name in self.cached_options
-
-    @property
-    def has_ordering(self):
-        return self.ordering
 
     def _check_ordering_fields(self):
         for name in self.ordering:
@@ -156,6 +150,12 @@ class ModelOptions:
         if not self.has_field('id'):
             auto_field = AutoField(auto_created=True)
             self.add_field('id', auto_field)
+
+    def get_option_by_name(self, name):
+        return self.cached_options.get(name)
+
+    def has_option(self, name):
+        return name in self.cached_options
 
     def has_field(self, name):
         return name in self.field_names
@@ -235,7 +235,9 @@ class ModelOptions:
             for name in self.ordering
         ]
         ordering = namedtuple(
-            'Ordering', ['ascending_fields', 'descending_fields', 'booleans'])
+            'Ordering',
+            ['ascending_fields', 'descending_fields', 'booleans']
+        )
         return ordering(ascending_fields, descending_fields, ordering_map)
 
 
