@@ -118,6 +118,9 @@ class Columns:
 
     @cached_property
     def as_values(self):
+        """Returns stored data a dictionnary
+        
+        >>> [{"name": "Kendall"}]"""
         values = defaultdict(list)
         for column in self.columns:
             values[column._field_name] = column.get_column_values
@@ -125,6 +128,10 @@ class Columns:
 
     @cached_property
     def as_records(self):
+        """Returns stored data as a list stored
+        under a dictionnary key
+        
+        >>> {"name": ["Kendall"]}"""
         items = []
         for row in self.synchronizer.column_rows:
             items.append(row.row_values)
@@ -132,6 +139,9 @@ class Columns:
 
     @cached_property
     def as_csv(self):
+        """Returns values as a csv format
+        
+        >>> [["name"], ["Kendall"]]"""
         template = [list(self.declared_fields)]
         for row in self.synchronizer.column_rows:
             csv_row = []
