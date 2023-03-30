@@ -436,13 +436,13 @@ class Model(metaclass=Base):
         # the related fields in order to return their
         # own values
 
+        new_data = self._data_container.columns.as_records
         # TODO: This section needs to be reviewed in order
         # to be able to keep track of relationships between fields
-        new_data = self._data_container.as_list()
         related_model_fields = self._meta.related_model_fields
         if related_model_fields:
             for name, field in related_model_fields.items():
-                related_model_data = field.related_model._data_container.as_list()
+                related_model_data = field.related_model._data_container.columns.as_records
                 for item in new_data:
                     item[name] = related_model_data
         return new_data
@@ -604,8 +604,10 @@ class Model(metaclass=Base):
         # formatting whatsoever? This should be fixed in
         # order that the values that are added be deep_cleaned
         # formatted correctly for consistency
-        self._fields.has_fields(list(attrs.keys()), raise_exception=True)
-        self._data_container.update_multiple(**attrs)
+        for name in attrs.keys():
+            if not self._meta.has_field(name):
+                raise FieldError(name, self._meta.field_names, self)
+        self._data_container.update_multiple(attrs)
 
     def add_value(self, name, value):
         """
