@@ -122,14 +122,13 @@ class Columns:
         
         >>> {"name": ["Kendall"]}"""
         values = defaultdict(list)
-        # for column in self.columns:
-        #     values[column._field_name] = column.get_column_values
-        # return values
         for column in self.columns:
             values[column._field_name] = column.get_column_values
         return values
 
-    @cached_property
+            values[column._field_name] = []
+            for row in self.synchronizer.column_rows:
+                values[column._field_name].append(row[column._field_name])
     def as_records(self):
         """Returns stored data as a list stored
         under a dictionnary key
