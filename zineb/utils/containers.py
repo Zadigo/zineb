@@ -89,7 +89,6 @@ class Columns:
     def __init__(self, smart_dict):
         self.smart_dict = smart_dict
         self.model = getattr(smart_dict, 'model', None)
-        self.synchronizer = Synchronizer(self)
         self.declared_fields = list(smart_dict.fields)
         self.declared_fields_with_id = ['id']
         self.declared_fields_with_id.extend(self.declared_fields)
@@ -248,6 +247,10 @@ class Column:
             return False
 
     # @cached_property
+    @property
+    def get_id(self):
+        return self._columns_instance.synchronizer.number_of_rows + 1
+
     # def slice(self, top, bottom):
     #     return self.column_rows[top:bottom]
 
