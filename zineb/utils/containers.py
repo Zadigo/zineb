@@ -1,5 +1,5 @@
 from collections import defaultdict
-from functools import cached_property, total_ordering
+from functools import cached_property, total_ordering, lru_cache
 from operator import itemgetter
 
 from zineb.exceptions import FieldError, IntegrityError
@@ -7,8 +7,9 @@ from zineb.exceptions import FieldError, IntegrityError
 
 class Synchronizer:
     """A class that can synchronize multiple
-    columns together and therefore allow 
-    balanced rows
+    columns together by letting them know the amount
+    of rows and the values they container and therefore 
+    allowing for balanced rows in the database
     """
 
     def __init__(self, columns):
@@ -67,18 +68,25 @@ class Synchronizer:
         # update its new values is behind the
         # column_rows function
         # self.enforce_uniqueness(column_rows[-1])
-        self.column_rows = column_rows
-        # NOTE: Apparently a reference to the column
-        # exists and there's no need to consistently
-        # update the column_rows because when we update
-        # the values in them, they are reflected automatically
+        # NOTE: When column_rows comes from another
+        # column, the array is *logically* empty because
+        # it does not know about the number of rows in
+        # the database. Other columns need to consistently
+        # know about the existence created rows
+        # if column_rows and len(column_rows) > self.number_of_rows:
+        #     self.column_rows = column_rows
         # vars(vars(self._columns_instance.get_column('name'))['column_rows'][0])
+        # NOTE: This section helps every column updated
+        # about the number of rows created in the database.
+        # This process is important because independent columns
+        # can individually keep track of all rows.
         # for column in self.columns:
         #     if column == current_column:
         #         continue
 
         #     if not column.column_rows:
         #         setattr(column, 'column_rows', column_rows)
+        pass
 
 
 class Columns:
@@ -93,6 +101,7 @@ class Columns:
     def __init__(self, smart_dict):
         self.smart_dict = smart_dict
         self.model = getattr(smart_dict, 'model', None)
+        self.synchronizer = Synchronizer(self)
         self.declared_fields = list(smart_dict.fields)
         self.declared_fields_with_id = ['id']
         self.declared_fields_with_id.extend(self.declared_fields)
@@ -100,7 +109,6 @@ class Columns:
             Column(self, i, field_name)
             for i, field_name in enumerate(self.declared_fields)
         ]
-        self.synchronizer = Synchronizer(self)
 
     def __repr__(self):
         columns = ', '.join([repr(column) for column in self.columns])
@@ -120,31 +128,36 @@ class Columns:
     def number_of_items(self):
         return len(self.first)
 
-    @cached_property
+    @lru_cache(maxsize=1)
     def as_values(self):
         """Returns stored data a dictionnary
-        
+
         >>> {"name": ["Kendall"]}"""
         values = defaultdict(list)
+        # for column in self.columns:
+        #     values[column._field_name] = column.get_column_values
+        # return values
         for column in self.columns:
-            values[column._field_name] = column.get_column_values
+            values[column._field_name] = []
+            for row in self.synchronizer.column_rows:
+                values[column._field_name].append(row[column._field_name])
         return values
 
-    @cached_property
+    @lru_cache(maxsize=1)
     def as_records(self):
         """Returns stored data as a list stored
         under a dictionnary key
-        
+
         >>> [{"name": "Kendall"}]"""
         items = []
         for row in self.synchronizer.column_rows:
             items.append(row.row_values)
         return items
 
-    @cached_property
+    @lru_cache(maxsize=1)
     def as_csv(self):
         """Returns values as a csv format
-        
+
         >>> [["name"], ["Kendall"]]"""
         template = [list(self.declared_fields)]
         for row in self.synchronizer.column_rows:
@@ -258,6 +271,10 @@ class Column:
         except:
             return False
 
+    @property
+    def get_id(self):
+        return self._columns_instance.synchronizer.number_of_rows + 1
+
     # @cached_property
     # def slice(self, top, bottom):
     #     return self.column_rows[top:bottom]
@@ -275,15 +292,15 @@ class Column:
     #     return result[-1]
 
     def add_new_row(self, name, value, id_value=None):
+        # Track the ID be default if no ID is provided
+        # by the COlumn. This allows us to define
+        # the hash for the row
+        id_value = id_value or self.get_id
+
         creation = True
         synchronizer = self._columns_instance.synchronizer
         if name in synchronizer.current_updated_columns:
             # If the name is in the current_updated_columns,
-        # Track the ID be default if no ID is provided
-        # by the COlumn. This allows us to define 
-        # the hash for the row
-        id_value = id_value or self.get_id
-
             # we know that we are creating a new row
             creation = True
             synchronizer.current_updated_columns.clear()
@@ -325,13 +342,13 @@ class Row:
     >>> row = Row(1, "fullname", "Kendall Jenner", ["fullname"])
     ... {"id": 1, "fullname": "Kendall Jenner"}
     """
-    field_id = 1
+    row_id = 1
 
-    def __init__(self, field_id, field_name, field_value, fields):
+    def __init__(self, row_id, field_name, field_value, fields):
         self._declared_fields = fields
-        self.field_id = field_id
+        self.row_id = row_id
         self.row_values = {
-            'id': field_id,
+            'id': row_id,
             field_name: field_value
         }
 
@@ -345,9 +362,6 @@ class Row:
             if field == field_name:
                 continue
             self.row_values[field] = None
-
-    # def __hash__(self):
-    #     return hash((self.field_id, self.row_values))
 
     def __repr__(self):
         return f"<Row: id: {self.row_id}>"
@@ -365,13 +379,13 @@ class Row:
 
     def __eq__(self, item):
         if isinstance(item, Row):
-            return item.field_id == self.field_id
-        return self.field_id == item
+            return item.row_id == self.row_id
+        return self.row_id == item
 
     def __gt__(self, item):
         if isinstance(item, Row):
-            return item.field_id > self.field_id
-        return self.field_id >= item
+            return item.row_id > self.row_id
+        return self.row_id >= item
 
     def __contains__(self, value):
         return any([
@@ -380,6 +394,8 @@ class Row:
         ])
 
     def update_column_value(self, name, value):
+        """Updates the value of an existing column
+        of the given row"""
         self.row_values[name] = value
 
 
