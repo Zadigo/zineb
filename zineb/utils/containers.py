@@ -126,9 +126,7 @@ class Columns:
             values[column._field_name] = column.get_column_values
         return values
 
-            values[column._field_name] = []
-            for row in self.synchronizer.column_rows:
-                values[column._field_name].append(row[column._field_name])
+    @cached_property
     def as_records(self):
         """Returns stored data as a list stored
         under a dictionnary key
@@ -206,7 +204,15 @@ class Column:
         self.smart_dict = self._columns_instance.smart_dict
         self.column_rows = []
         self.colum_values = []
-
+        # Local tracking and implementation of the number
+        # of rows that were created in that specific column
+        # self.column_rows = []
+        # Let's the column know about existing rows
+        # that were created. This is a direct mount
+        # point to the column_rows of the synchronizer
+        self.column_rows = self._columns_instance.synchronizer.column_rows
+        # Internal tracking of values within the column
+        # that were actually created in the database
     def __repr__(self):
         return f'<Column: {self._column_name}>'
 
