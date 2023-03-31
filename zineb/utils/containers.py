@@ -31,6 +31,10 @@ class Synchronizer:
     def index_tracker(self):
         return len(self.column_rows)
 
+    @property
+    def number_of_rows(self):
+        return len(self.column_rows)
+
     def reset(self):
         self.column_rows = []
 
