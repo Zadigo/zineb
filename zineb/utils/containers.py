@@ -137,7 +137,7 @@ class Columns:
             items.append(row.row_values)
         return items
 
-    @cached_property
+    @lru_cache(maxsize=1)
     def as_csv(self):
         """Returns values as a csv format
         
