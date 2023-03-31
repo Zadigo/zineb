@@ -17,7 +17,8 @@ class TestConstraints(unittest.TestCase):
         self.assertIsInstance(self.constraint._data_container, SmartDict)
         self.assertFalse(callable(self.constraint.condition))
 
-    def test_check_constraint(self):
+    def test_fail_constraint(self):
+        self.constraint._data_container.update('name', 'Kendall')
         self.constraint._data_container.update('name', 'Kendall')
         errors = self.constraint('Kendall')
         self.assertTrue(len(errors) == 1)

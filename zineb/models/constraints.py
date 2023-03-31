@@ -22,16 +22,16 @@ class BaseConstraint:
         counter = Counter()
         if len(self.constrained_fields) == 1:
             field = self.constrained_fields[-1]
-            counter.update(self._data_container.columns.as_values[field])
+            counter.update(self._data_container.columns.as_values()[field])
             
             element_count = counter.get(value_to_check, 0)
-            if element_count == 1:
+            if element_count > 1:
                 errors.extend(
                     [(field, ConstraintError(self.model._meta.model_name, self.name))]
                 )
         else:
             for field in self.constrained_fields:
-                counter.update(self._data_container.columns.as_values[field])
+                counter.update(self._data_container.columns.as_values()[field])
 
             element_count = counter.get(value_to_check, 0)
             if element_count == 1:
