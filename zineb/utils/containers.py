@@ -202,8 +202,6 @@ class Column:
         self._columns_instance = columns_instance
 
         self.smart_dict = self._columns_instance.smart_dict
-        self.column_rows = []
-        self.colum_values = []
         # Local tracking and implementation of the number
         # of rows that were created in that specific column
         # self.column_rows = []
@@ -211,8 +209,10 @@ class Column:
         # that were created. This is a direct mount
         # point to the column_rows of the synchronizer
         self.column_rows = self._columns_instance.synchronizer.column_rows
-        # Internal tracking of values within the column
+        # Local tracking of values within the column
         # that were actually created in the database
+        self.colum_values = []
+
     def __repr__(self):
         return f'<Column: {self._column_name}>'
 
