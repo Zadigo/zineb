@@ -286,14 +286,13 @@ class Column:
 
         if creation:
             self.column_rows.append(row)
-            self.colum_values.append(value)
+        self.colum_values.append(value)
 
         # When we create or update a row, the other columns do not
         # anything about said action. With the Synchronizer
         # class, we can tell each column to update themselves
         # continuously with the new data
         self._columns_instance.synchronizer.synchronize(name, self.column_rows)
-            # self.column_rows_sync.column_rows.append(row)
 
 
 @total_ordering
