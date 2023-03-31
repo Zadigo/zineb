@@ -1,7 +1,7 @@
 import unittest
 
+from tests.models.items import BasicModel
 from zineb.models.constraints import UniqueConstraint
-from zineb.tests.models.items import BasicModel
 from zineb.utils.containers import SmartDict
 
 
