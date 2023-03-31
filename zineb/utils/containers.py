@@ -122,6 +122,9 @@ class Columns:
         
         >>> {"name": ["Kendall"]}"""
         values = defaultdict(list)
+        # for column in self.columns:
+        #     values[column._field_name] = column.get_column_values
+        # return values
         for column in self.columns:
             values[column._field_name] = column.get_column_values
         return values
