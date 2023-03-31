@@ -338,7 +338,10 @@ class Row:
     #     return hash((self.field_id, self.row_values))
 
     def __repr__(self):
-        return f'<Row: id: {self.field_id} [{self.row_values}]>'
+        return f"<Row: id: {self.row_id}>"
+
+    def __hash__(self):
+        return hash((self.row_id, self.row_values.values()))
 
     def __getitem__(self, column):
         return self.row_values[column]
