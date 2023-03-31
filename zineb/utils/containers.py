@@ -89,6 +89,7 @@ class Columns:
     def __init__(self, smart_dict):
         self.smart_dict = smart_dict
         self.model = getattr(smart_dict, 'model', None)
+        self.synchronizer = Synchronizer(self)
         self.declared_fields = list(smart_dict.fields)
         self.declared_fields_with_id = ['id']
         self.declared_fields_with_id.extend(self.declared_fields)
@@ -137,7 +138,7 @@ class Columns:
             items.append(row.row_values)
         return items
 
-    @lru_cache(maxsize=1)
+    @cached_property
     def as_csv(self):
         """Returns values as a csv format
         
