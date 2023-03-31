@@ -247,10 +247,6 @@ class Column:
             return False
 
     # @cached_property
-    @property
-    def get_id(self):
-        return self._columns_instance.synchronizer.number_of_rows + 1
-
     # def slice(self, top, bottom):
     #     return self.column_rows[top:bottom]
 
@@ -271,6 +267,11 @@ class Column:
         synchronizer = self._columns_instance.synchronizer
         if name in synchronizer.current_updated_columns:
             # If the name is in the current_updated_columns,
+        # Track the ID be default if no ID is provided
+        # by the COlumn. This allows us to define 
+        # the hash for the row
+        id_value = id_value or self.get_id
+
             # we know that we are creating a new row
             creation = True
             synchronizer.current_updated_columns.clear()
