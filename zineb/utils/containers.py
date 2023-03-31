@@ -374,7 +374,10 @@ class Row:
         return self.field_id >= item
 
     def __contains__(self, value):
-        return str(value) in self.row_values.values()
+        return any([
+            str(value) in list(self.row_values.values()),
+            value in list(self.row_values.values())
+        ])
 
     def update_column_value(self, name, value):
         self.row_values[name] = value
