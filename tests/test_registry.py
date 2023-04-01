@@ -8,7 +8,7 @@ from zineb.middleware import Middleware
 from zineb.registry import MasterRegistry, SpiderConfig
 from zineb.settings import settings
 
-os.environ.setdefault('ZINEB_SPIDER_PROJECT', 'zineb.tests.testproject')
+os.environ.setdefault('ZINEB_SPIDER_PROJECT', 'tests.testproject')
 
 settings()
 
@@ -17,7 +17,7 @@ class TestSpiderConfig(unittest.TestCase):
     def setUp(self):
         self.config = SpiderConfig(
             'MySpider',
-            import_module('zineb.tests.testproject.spiders')
+            import_module('tests.testproject.spiders')
         )
 
     def test_global_options(self):
@@ -53,15 +53,15 @@ class TestMasterRegistry(unittest.TestCase):
 
     def test_registry_integrity(self):
         self.assertFalse(self.registry.is_ready)
-        
+
         self.registry.populate()
         spiders = self.registry.get_spiders()
-        
+
         self.assertTrue(self.registry.is_ready)
         self.assertTrue(len(spiders) > 0)
         self.assertTrue(self.registry.has_spider('MySpider'))
         self.assertIsInstance(
-            self.registry.get_spider('MySpider'), 
+            self.registry.get_spider('MySpider'),
             SpiderConfig
         )
         self.assertIsInstance(self.registry.middlewares, Middleware)
@@ -72,7 +72,7 @@ class TestMasterRegistry(unittest.TestCase):
     def test_error_spider_not_found(self):
         self.assertRaises(
             SpiderExistsError,
-            self.registry.get_spider, 
+            self.registry.get_spider,
             'TestSpider'
         )
 

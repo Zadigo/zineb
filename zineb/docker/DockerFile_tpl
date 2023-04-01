@@ -1,0 +1,30 @@
+FROM ubuntu:latest
+
+RUN apt update
+
+RUN apt upgrade
+
+RUN sudo adduser "zineb"
+
+RUN sudo addgrp "zineb"
+
+RUN sudo add user to group
+
+COPY . home
+
+WORKDIR /home
+
+RUN chown zineb "/home"
+RUN chmod zineb 770 "/home"
+
+RUN apt install python
+
+RUN pipenv shell
+
+RUN pipenv install zineb-scrapper
+
+EXPOSE 8000
+
+CMD [ "start" ]
+
+ENTRYPOINT [ "python", "manage.py" ]

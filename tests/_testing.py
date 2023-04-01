@@ -1,3 +1,31 @@
+from zineb.utils.containers import Column, Columns, Row, SmartDict
+from zineb.models.datastructure import Model
+from zineb.models import fields
+
+
+# class Celebrity(Model):
+#     name = fields.CharField()
+
+
+# c = Celebrity()
+# c.add_value('name', 'Kendall')
+# c.add_values(name='Kylie')
+# print(c)
+
+container = SmartDict('name', 'age')
+# FIXME: When using these methods consecutively, the
+# values inside the container do not update correctly
+# FIXME: Seems like the as_csv, as_values are the ones
+# that do not update correctly
+container.update_multiple({'name': 'Kendall', 'age': 24})
+container.update_multiple({'name': 'Kylie', 'age': 22})
+container.update_multiple({'name': 'Lucie'})
+# container.update('name', 'Kendall')
+# container.update('age', 22)
+# container.update('name', 'Kylie')
+# container.update('age', 15)
+print(container.columns.as_values())
+
 # from zineb.management import execute_command_inline
 # import sys
 # import os
@@ -117,6 +145,8 @@
 #     pass
 
 
+# Test constraints
+
 # from zineb.models.datastructure import Model
 # from zineb.models import fields
 # class TestModel(Model):
@@ -162,6 +192,8 @@
 # # print(constraint.check_constraint('Kendall'))
 # print(constraint)
 
+# TEST: Test relationships
+
 # from zineb.utils.containers import SmartDict
 # from zineb.models import fields
 # from zineb.models.datastructure import Model
@@ -204,7 +236,7 @@ class Celebrity(Model):
     height = fields.RelatedModel(Height)
 
 
-# model1 = Location()
+model1 = Location()
 model2 = Celebrity()
 
 # FIXME: Why does the first addition to the related model
@@ -213,7 +245,7 @@ model2 = Celebrity()
 # in the model if there is no corresponding value in
 # the related model
 # model2.add_value('fullname', 'Kendall Jenner')
-# model2.location.add_value('name', 'USA')
+model2.location.add_value('name', 'USA')
 # model2.height.add_value('value', 174)
 # model2.add_value('fullname', 'Kylie Jenner')
 # model2.height.add_value('value', 156)
@@ -234,21 +266,21 @@ model2 = Celebrity()
 # model2.location.add_value('name', 'ITA')
 # print(model2.location)
 
-model2.add_value('fullname', 'Kendall Jenner')
-model2.location.add_value('name', 'FRA')
-model2.height.add_value('value', 180)
-model2.add_value('fullname', 'Kylie Jenner')
+# model2.add_value('fullname', 'Kendall Jenner')
+# model2.location.add_value('name', 'FRA')
+# model2.height.add_value('value', 180)
+# model2.add_value('fullname', 'Kylie Jenner')
 # FIXME: In this configuration, we only get one item
 # in the column height, the one from above. This one
 # does not get saved in the model
 # Expected: We should be creating a new row
 # not updating the last one
-# BUG: SmartDict.update both the self._last_created_row 
+# BUG: SmartDict.update both the self._last_created_row
 # is True and the name is not in self._current_updated_field and
 # since there is a last_created_row, the logic
 # moves to updating the last created row
-model2.height.add_value('value', 150)
-print(model2.height)
+# model2.height.add_value('value', 150)
+# print(model2.height)
 
 # r = OneToOneRelationship()
 # r.update_relationship_options(model2)
@@ -256,3 +288,32 @@ print(model2.height)
 
 # TODO: Check is there are checks for when an item that is not
 # a model is passed in the RelatedModel field
+
+
+# TEST for datastructures
+
+
+# db = SmartDict('name', 'age', 'country')
+# db2 = SmartDict('name')
+# # columns = Columns(db)
+# # first = columns.get_column('name')
+# # first.add_new_row('name', 'Kendall Jenner', 1)
+# # first.add_new_row('age', 15, 1)
+# # first.add_new_row('name', 'Kylie', 2)
+# # print(columns.as_records)
+# db.update('name', 'Kendall')
+# db.update('age', 14)
+# db.update('country', 1)
+# db2.update('name', 'France')
+# # print(db)
+# # print(db2)
+# print(db.get_related_item(1, db2))
+
+
+# a = Columns(db)
+# c = a.get_column('name')
+# c.add_new_row('name', 'Kendall')
+# c.add_new_row('name', 'Kylie')
+# c.add_new_row('age', 21)
+# r = c.get_row_by_index(0)
+# print('Kendall' in r)

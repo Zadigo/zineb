@@ -1,6 +1,7 @@
 import unittest
 
 from bs4 import BeautifulSoup
+
 from zineb.extractors.base import ImageExtractor, LinkExtractor, TableExtractor
 from zineb.tags import ImageTag
 
@@ -17,7 +18,7 @@ from zineb.tags import ImageTag
 #             width = table.attrs.get('width')
 #             if width == '631':
 #                 player_table = table
-    
+
 
 # class TestImagesExtractor(unittest.TestCase):
 #     extractor_class = ImageExtractor
@@ -98,7 +99,7 @@ class TestTableExtactor(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-    
+
     # runner = unittest.TextTestRunner()
     # suite = unittest.TestSuite()
     # suite.addTest(TestRowsExtractor('test_using_soup'))
