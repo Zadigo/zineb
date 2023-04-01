@@ -21,6 +21,10 @@ class BaseRelationship:
             return f'<{class_name}({self.model._meta.model_name} [1 -> 1] {self.related_model._meta.model_name})>'
         return f'<{class_name}({self.model._meta.model_name} [1 -> x] {self.related_model._meta.model_name})>'
 
+    def update_options(self, model, related_model):
+        self.model = model
+        self.related_model = related_model
+
     def update_relationship_options(self, model):
         from zineb.models.datastructure import Model
         if not isinstance(model, Model):
@@ -50,13 +54,13 @@ class BaseRelationship:
         related_model = self._related_models[field_name]
         result = list(
             filter(
-                lambda x: x['id'] == item_id, 
+                lambda x: x['id'] == item_id,
                 related_model._data_container.as_list()
             )
         )
         if len(result) == 0:
             raise ForeignKeyError(
-                field_name, 
+                field_name,
                 related_model._meta.verbose_name
             )
         return result[-1]
@@ -73,7 +77,7 @@ class OneToOneRelationship(BaseRelationship):
         # In a one to one relationship,
         # a value can be added to the related
         # model only if the ID also exists on
-        # on the related model e.g. 1 <-> 1
+        # the related model e.g. 1 <-> 1
         model_ids = self.model._data_container.get_container('id')
         related_model_ids = self._related_model_container.get_container('id')
         if for_value not in model_ids and for_value not in related_model_ids:

@@ -215,29 +215,29 @@ print(container.columns.as_values())
 # print(model.save(commit=False))
 
 
-# from zineb.models.datastructure import Model
-# from zineb.models import fields
-# from zineb.models.relationships import OneToOneRelationship
+from zineb.models.datastructure import Model
+from zineb.models import fields
+from zineb.models.relationships import OneToOneRelationship
 
 
-# class Location(Model):
-#     name = fields.CharField()
+class Location(Model):
+    name = fields.CharField()
 
 
-# class Height(Model):
-#     value = fields.IntegerField()
+class Height(Model):
+    value = fields.IntegerField()
 
 
-# class Celebrity(Model):
-#     fullname = fields.CharField()
-#     # Resolve the fact that attributes point
-#     # to the wrong things
-#     location = fields.RelatedModel(Location)
-#     height = fields.RelatedModel(Height)
+class Celebrity(Model):
+    fullname = fields.CharField()
+    # Resolve the fact that attributes point
+    # to the wrong things
+    location = fields.RelatedModel(Location)
+    height = fields.RelatedModel(Height)
 
 
-# model1 = Location()
-# model2 = Celebrity()
+model1 = Location()
+model2 = Celebrity()
 
 # FIXME: Why does the first addition to the related model
 # is successful while there is no related value ?
@@ -245,7 +245,7 @@ print(container.columns.as_values())
 # in the model if there is no corresponding value in
 # the related model
 # model2.add_value('fullname', 'Kendall Jenner')
-# model2.location.add_value('name', 'USA')
+model2.location.add_value('name', 'USA')
 # model2.height.add_value('value', 174)
 # model2.add_value('fullname', 'Kylie Jenner')
 # model2.height.add_value('value', 156)
@@ -293,7 +293,7 @@ print(container.columns.as_values())
 # TEST for datastructures
 
 
-db = SmartDict('name', 'age', 'country')
+# db = SmartDict('name', 'age', 'country')
 # db2 = SmartDict('name')
 # # columns = Columns(db)
 # # first = columns.get_column('name')

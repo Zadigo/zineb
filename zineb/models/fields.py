@@ -9,6 +9,7 @@ from w3lib.url import canonicalize_url, safe_download_url
 from zineb.checks import messages
 from zineb.exceptions import ValidationError
 from zineb.models import validators as model_validators
+from zineb.models import relationships
 from zineb.settings import settings
 from zineb.utils.characters import deep_clean
 from zineb.utils.conversion import detect_object_in_string
@@ -147,22 +148,6 @@ class DeferredAttribute:
         if field_name not in data:
             field_data = instance._data_container.get_container(field_name)
             data[field_name] = field_data
-        return data[field_name]
-
-
-class OneToOneDescriptor(DeferredAttribute):
-    def __get__(self, instance, cls=None):
-        if instance is None:
-            return self
-
-        # This section dynamically adds the
-        # field that is called as an attribute
-        # to the instance's dict and then
-        # returns the related model to that field
-        data = instance.__dict__
-        field_name = self.field.field_name
-        if field_name not in data:
-            data[field_name] = self.field.related_model
         return data[field_name]
 
 
@@ -842,6 +827,23 @@ class AutoField(Field):
         self._cached_result = self._cached_result + 1
 
 
+class OneToOneDescriptor(DeferredAttribute):
+    def __get__(self, instance, cls=None):
+        if instance is None:
+            return self
+
+        # This section dynamically adds the
+        # field that is called as an attribute
+        # to the instance's dict and then
+        # returns the related model to that field
+        data = instance.__dict__
+        field_name = self.field.field_name
+        if field_name not in data:
+            # self.field.relationship.update_relationship_options(self.field.model)
+            data[field_name] = self.field.related_model
+        return data[field_name]
+
+
 class RelatedField(Field):
     is_relationship_field = True
 
@@ -851,6 +853,7 @@ class RelatedField(Field):
         self.related_name = relation_name
         self.reverse_related_name = None
         self.is_relationship_field = True
+        self.relationship = None
 
     def checks(self):
         errors = super().checks()
@@ -912,10 +915,15 @@ class RelatedModel(RelatedField):
             # RelatedModelField, then we should be able to do
             # model2.field_set in reverse for model1
             setattr(self.related_model, self.reverse_related_name, self.model)
+        
+        # self.relationship = relationships.OneToOneRelationship()
+        # self.relationship.update_options(model, self.related_model)
 
         # TODO: We should not be able to create a RelatedModel field
         # for the model that is a superclass of the model that wants
         # to create the relationship
 
+        # In order to access the relationship, we use a proxy
+        # class (e.g. OneToOneDescriptor) aka descriptor class
         setattr(model, field_name, self.field_descriptor(self))
         model._meta.add_field(self.field_name, self)
