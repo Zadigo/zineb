@@ -391,6 +391,9 @@ class Model(metaclass=Base):
         # other pieces that compose the model
         self.global_errors = []
 
+        # TODO: Send a signal when the model
+        # has initialized
+
     def __str__(self):
         return str(self.resolve_all_related_fields())
 
