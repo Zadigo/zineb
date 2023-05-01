@@ -13,12 +13,17 @@ import pytz
 from zineb.exceptions import RequiresProjectError, SpiderExistsError
 from zineb.logger import logger
 from zineb.middleware import Middleware
+from zineb.signals import Signal
 
 SPIDERS_MODULE = 'spiders'
 
 MODELS_MODULE = 'models'
 
 ENVIRONMENT_VARIABLE = 'ZINEB_SPIDER_PROJECT'
+
+registry_completed = Signal()
+spider_started = Signal()
+spider_completed = Signal()
 
 
 class ModelsDescriptor:
@@ -233,7 +238,8 @@ class MasterRegistry:
         self.middlewares = middlewares
 
         # TODO: Send a signal when the master registry
-        # has completed all the initial setting up
+        # has completed all the initial setup
+        registry_completed.send(self)
 
         # Load the current storage and store it as
         # an instance on the spider. NOTE: Storages
@@ -358,6 +364,8 @@ class MasterRegistry:
             for config in self.get_spiders():
                 # TODO: Send a signal before the spider has
                 # started parsing
+                spider_started.send(config, state=True)
+
                 try:
                     config.run()
                 except Exception:
@@ -367,7 +375,7 @@ class MasterRegistry:
                 else:
                     # TODO: Send a signal once the spider has
                     # terminated the parsing
-                    pass
+                    spider_completed.send(config, state=False)
 
 
 registry = MasterRegistry()
