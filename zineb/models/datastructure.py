@@ -25,8 +25,9 @@ DEFAULT_META_OPTIONS = {
 
 class ModelRegistry:
     """
-    This class is a convienience container that remembers
-    the models that were created and the order
+    A convienience container that remembers
+    the models that were created and the order 
+    in which they were completed
     """
     counter = 0
     registry = defaultdict(dict)
@@ -439,13 +440,13 @@ class Model(metaclass=Base):
         # the related fields in order to return their
         # own values
 
-        new_data = self._data_container.columns.as_records
+        new_data = self._data_container.columns.as_records()
         # TODO: This section needs to be reviewed in order
         # to be able to keep track of relationships between fields
         related_model_fields = self._meta.related_model_fields
         if related_model_fields:
             for name, field in related_model_fields.items():
-                related_model_data = field.related_model._data_container.columns.as_records
+                related_model_data = field.related_model._data_container.columns.as_records()
                 for item in new_data:
                     item[name] = related_model_data
         return new_data
