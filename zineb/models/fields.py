@@ -381,6 +381,10 @@ class Field:
         and/or call super().resolve() to benefit from the cleaning
         and normalizing logic
         """
+        # Force the binding to the Value class
+        # in case it was not previously done
+        if not isinstance(value, Value) and value is not None:
+            value = Value(value)
         self._simple_resolve(value)
 
 
