@@ -1,7 +1,7 @@
 from zineb.utils.containers import Column, Columns, Row, SmartDict
 from zineb.models.datastructure import Model
 from zineb.models import fields
-
+from zineb.http.request import HTTPRequest
 
 # class Celebrity(Model):
 #     name = fields.CharField()
@@ -12,19 +12,19 @@ from zineb.models import fields
 # c.add_values(name='Kylie')
 # print(c)
 
-container = SmartDict('name', 'age')
-# FIXME: When using these methods consecutively, the
-# values inside the container do not update correctly
-# FIXME: Seems like the as_csv, as_values are the ones
-# that do not update correctly
-container.update_multiple({'name': 'Kendall', 'age': 24})
-container.update_multiple({'name': 'Kylie', 'age': 22})
-container.update_multiple({'name': 'Lucie'})
-# container.update('name', 'Kendall')
-# container.update('age', 22)
-# container.update('name', 'Kylie')
-# container.update('age', 15)
-print(container.columns.as_values())
+# container = SmartDict('name', 'age')
+# # FIXME: When using these methods consecutively, the
+# # values inside the container do not update correctly
+# # FIXME: Seems like the as_csv, as_values are the ones
+# # that do not update correctly
+# container.update_multiple({'name': 'Kendall', 'age': 24})
+# container.update_multiple({'name': 'Kylie', 'age': 22})
+# container.update_multiple({'name': 'Lucie'})
+# # container.update('name', 'Kendall')
+# # container.update('age', 22)
+# # container.update('name', 'Kylie')
+# # container.update('age', 15)
+# print(container.columns.as_values())
 
 # from zineb.management import execute_command_inline
 # import sys
