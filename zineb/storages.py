@@ -8,6 +8,9 @@ from io import BytesIO
 from PIL.Image import Image
 
 from zineb.settings import settings
+from zineb.logger import logger
+
+storage_logger = logger.create('Storage')
 
 
 class FileDescriptor:
@@ -33,7 +36,7 @@ class File:
     def __init__(self, full_path):
         self.name = full_path.stem
         self.verbose_name = full_path.name
-        self.extension = self.verbose_name.split('.', maxsplit=1)[-1]
+        self.extension = full_path.suffix.removeprefix('.')
         self.size = full_path.stat().st_size
         self.full_path = full_path
         self.is_valid = full_path.exists() and full_path.is_file()
@@ -56,22 +59,26 @@ class File:
     @classmethod
     def create(cls, full_path):
         return cls(full_path)
+    
+    # def get_parser(self):
+    #     return self.choose_parser(self.extension)
 
-    def choose_parser(self, extension):
-        extensions = {
-            'json': json.load,
-            'csv': csv.reader,
-            'jpg': Image,
-            'jpeg': Image,
-            'png': Image,
-            'svg': Image,
-            'mp4': None
-        }
-        return extensions[extension]
+    # def choose_parser(self, extension):
+    #     extensions = {
+    #         'json': json.load,
+    #         'csv': csv.reader,
+    #         'jpg': Image,
+    #         'jpeg': Image,
+    #         'png': Image,
+    #         'svg': Image,
+    #         'mp4': None
+    #     }
+    #     return extensions.get(extension, None)
 
 
 class BaseStorage:
     def __init__(self):
+        self.files = []
         self.storage = None
 
     def prepare(self):
@@ -114,29 +121,39 @@ class FileSystemStorage(BaseStorage):
     def __init__(self):
         super().__init__()
         self.storage_path = settings.MEDIA_FOLDER
-        self.storage = self.load_files()
-        self.files = []
+        self.files = self.load_files()
+        self.storage = []
+        self.storage_ready = False
 
     @lru_cache(maxsize=10)
     def load_files(self):
         items = []
-        if self.storage_path is not None:
-            items = list(os.walk(self.storage_path))
+
+        logic = [
+            not self.storage_path.exists(),
+            not self.storage_path.is_dir(),
+            self.storage_path is None
+        ]
+        if any(logic):
+            message = f"Media folder does not exist at {self.storage_path}"
+            storage_logger.instance.warning(message)
+        else:
+            items = list(self.storage_path.glob('**/*'))
+        self.files = items
         return items
 
     def prepare(self):
+        """Creates the abstract File classes
+        for each file in the storage"""
         files = self.load_files()
-        for item in files:
-            full_path, _, files = item
-
-            for name in files:
-                file_path = pathlib.Path(full_path).joinpath(name)
-                instance = File.create(file_path)
-                self.files.append((instance.name, instance))
+        for file_path in files:
+            instance = File.create(file_path)
+            self.storage.append((file_path.name, instance))
+        self.storage_ready = True
 
     def get_file(self, name):
         instance = None
-        for item in self.files:
+        for item in self.storage:
             name, instance = item
             if name == instance:
                 break
