@@ -18,13 +18,12 @@ from zineb.utils.conversion import transform_to_bytes
 
 EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9-_.]+@\w+\.\w+$')
 
-USER_AGENT = UserAgent()
-
 
 class BaseRequest:
     """
     Base HTTP request for all requests
     """
+    user_agent_class = UserAgent
     only_secured_requests = False
     only_domains = []
     # Indicates whether the HTTPRequest can be sent
@@ -120,8 +119,8 @@ class BaseRequest:
     def _set_headers(self, request, **extra_headers):
         headers = settings.get('DEFAULT_REQUEST_HEADERS', {})
 
-        user_agent = USER_AGENT.get_random_agent()
-        headers.update({'User-Agent': user_agent})
+        user_agent = self.user_agent_class()
+        headers.update({'User-Agent': user_agent.get_random_agent()})
 
         extra_headers.update(headers)
         request.headers = headers
