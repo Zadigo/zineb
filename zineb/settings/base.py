@@ -1,10 +1,12 @@
 import os
+import pathlib
 import logging
 
 # Global path that stores the path to the Zineb
 # main directory. This is useful for functionalities
 # that require using this for various tasks
 
+# TODO: pathlib.Path('.').absolute()
 GLOBAL_ZINEB_PATH = os.path.dirname(os.path.dirname(__file__))
 
 PROJECT_PATH = None
@@ -71,9 +73,9 @@ RANDOMIZE_USER_AGENTS = False
 # every HTTP request in the application
 
 DEFAULT_REQUEST_HEADERS = {
-    'Accept-Language': 'en',
+    'Accept-Language': 'fr,en-US;q=0.8,en-GB;q=0.8,*;q=0.5',
     'Accept': 'text/html,application/json,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'Referrer': 'https://google.com',
+    'Referrer': 'https://google.com'
 }
 
 
