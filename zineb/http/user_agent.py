@@ -1,32 +1,41 @@
+import gzip
 import random
+from functools import cached_property
 
 from zineb.settings import settings
 
 
-# TODO: RotatingUserAgent
 class UserAgent:
-    agents = [
-        'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.3',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X x.y; rv:42.0) Gecko/20100101 Firefox/43.4',
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36',
-        'Mozilla/5.0 (iPhone; CPU iPhone OS 11_3_1 like Mac OS X) AppleWebKit/603.1.30 (KHTML, like Gecko) Version/10.0 Mobile/14E304 Safari/602.1',
-        'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X x.y; rv:42.0) Gecko/20100101 Firefox/42.0',
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36',
-        'Mozilla/5.0 (compatible; MSIE 9.0; Windows Phone OS 7.5; Trident/5.0; IEMobile/9.0)'
-    ]
-
     def __init__(self):
+        # user_agents_file = settings.GLOBAL_ZINEB_PATH / 'http/user_agents.rar'
+        # print(user_agents_file)
+        # content = gzip.open(user_agents_file)
+        self.agents = self.get_user_agents
         self.current_agent = None
 
-    def get_random_agent(self) -> str:
+    @cached_property
+    def get_user_agents(self):
+        user_agents_file = settings.GLOBAL_ZINEB_PATH + '/http/user_agents.txt'
+        with open(user_agents_file, mode='r') as f:
+            agents = [_.strip() for _ in f.readlines()]
+            # Save the current list of user agents
+            # to the settings as cache mechanism
+            settings.USER_AGENTS = agents
+        return agents
+    
+    @property
+    def has_agents(self):
+        return len(self.get_user_agents) > 0
+
+    def get_random_agent(self):
         """
         Get a random user agent from a list of agents
         """
         user_agents_from_settings = settings.get('USER_AGENTS', [])
         self.agents.extend(user_agents_from_settings)
         random.shuffle(self.agents)
-        return random.choice(list(set(self.agents)))
+        self.current_agent = random.choice(list(set(self.agents)))
+        return self.current_agent
 
 
 # TODO: RotatingProxy
