@@ -893,7 +893,7 @@ class RelatedModel(RelatedField):
     keep track of the relationship between individual data
     and the related model. In other words, all the data
     from the related model will be included in the model
-    
+
     Forward resolution:
 
     >>> model1.related_field.add_value(...)
@@ -919,7 +919,7 @@ class RelatedModel(RelatedField):
             # RelatedModelField, then we should be able to do
             # model2.field_set in reverse for model1
             setattr(self.related_model, self.reverse_related_name, self.model)
-        
+
         # self.relationship = relationships.OneToOneRelationship()
         # self.relationship.update_options(model, self.related_model)
 

@@ -13,11 +13,12 @@ main items:
 import datetime
 import unittest
 
+from tests.models import items
+
 from zineb.exceptions import ModelExistsError, ValidationError
 from zineb.models import fields
 from zineb.models.datastructure import ModelOptions, model_registry
 from zineb.models.functions import ExtractYear, Substract, When
-from zineb.tests.models import items
 
 
 class TestModel(unittest.TestCase):
@@ -182,11 +183,13 @@ class TestModel(unittest.TestCase):
         self.assertListEqual(result, expected_result)
 
     def test_sorting(self):
+        # TODO: Resolve sorting
         model = items.ModelWithMeta()
         model.add_value('name', 'Kendall')
         model.add_value('name', 'Candice')
         result = model.save(commit=False)
-        expected = [{'name': 'Candice'}, {'name': 'Kendall'}]
+        expected = [{'id': None, 'name': 'Candice'},
+                    {'id': None, 'name': 'Kendall'}]
         self.assertListEqual(result, expected)
 
     def test_can_add_multiple_consecutive_values(self):
@@ -195,11 +198,12 @@ class TestModel(unittest.TestCase):
         self.model.add_value('name', 'Aurélie Konaté')
         self.model.add_value('name', 'Julien Koréa')
         self.model.add_value('height', 156)
-        values_for_name = self.model._data_container.get_container('name')
-        number_of_items_for_name = len(values_for_name)
-        self.assertTrue(number_of_items_for_name == 4)
-        values_for_height = self.model._data_container.get_container('height')
-        self.assertTrue(len(values_for_name), len(values_for_height))
+
+        column = self.model._data_container.columns.get_column('name')
+        self.assertTrue(len(column.colum_values) == 4)
+
+        column = self.model._data_container.columns.get_column('height')
+        self.assertTrue(len(column.colum_values) == 1)
 
     def test_relationships(self):
         # 1. We should be able to get the related
@@ -249,11 +253,11 @@ class TestModelWithValidators(unittest.TestCase):
     def test_field_with_validation(self):
         self.model.add_value('height', 156)
         self.assertDictEqual(
-            self.model._data_container.as_values(),
+            dict(self.model._data_container.columns.as_values()),
             {
-                'weight': [None],
                 'height': [156],
-                'id': []
+                'id': [None],
+                'weight': [None]
             }
         )
 
@@ -268,9 +272,7 @@ class TestModelRegistery(unittest.TestCase):
 
     @unittest.expectedFailure
     def test_adding_existing_model(self):
-        model_registry.add('SimpleModel', items.SimpleModel)
-        with self.assertRaises(ModelExistsError):
-            print('Model exists')
+        self.assertRaises(ModelExistsError, model_registry.add('SimpleModel', items.SimpleModel))
 
 
 if __name__ == '__main__':
