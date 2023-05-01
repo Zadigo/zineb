@@ -1,10 +1,12 @@
 import os
+import pathlib
 import logging
 
 # Global path that stores the path to the Zineb
 # main directory. This is useful for functionalities
 # that require using this for various tasks
 
+# TODO: pathlib.Path('.').absolute()
 GLOBAL_ZINEB_PATH = os.path.dirname(os.path.dirname(__file__))
 
 PROJECT_PATH = None
@@ -51,6 +53,7 @@ LOGGING = {
 # certain specific actions within the application
 
 MIDDLEWARES = [
+    'zineb.middlewares.rotators.RotatingProxies'
     # 'zineb.middlewares.referer.Referer',
     # 'zineb.middlewares.history.History',
     # 'zineb.middlewares.statistics.GeneralStatistics'
@@ -70,9 +73,9 @@ RANDOMIZE_USER_AGENTS = False
 # every HTTP request in the application
 
 DEFAULT_REQUEST_HEADERS = {
-    'Accept-Language': 'en',
+    'Accept-Language': 'fr,en-US;q=0.8,en-GB;q=0.8,*;q=0.5',
     'Accept': 'text/html,application/json,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'Referrer': 'https://google.com',
+    'Referrer': 'https://google.com'
 }
 
 
@@ -84,10 +87,15 @@ DEFAULT_REQUEST_HEADERS = {
 
 
 # Set a list of proxies to use
-# structured as (http, 1.1.1.1) 
+# structured as (http, 1.1.1.1)
 # or (http, http://1.1.1.1)
 
 PROXIES = []
+
+# Indicates a CSV file from which
+# the proxies should be loaded
+
+PROXY_FILE = None
 
 
 # How to handle HTTP retries when a request
@@ -159,3 +167,9 @@ DEFAULT_DATE_FORMATS = (
 # found at https://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 
 TIME_ZONE = 'America/Chicago'
+
+
+# The rate at which the web scrapper should
+# fetch data from the internet
+
+RATE_LIMIT = 5

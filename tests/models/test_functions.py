@@ -8,37 +8,29 @@ class TestMathOperations(unittest.TestCase):
     def setUp(self):
         self.model = items.SimpleModel()
 
-    def test_addition(self):
-        instance = functions.Add(5)
-        instance._cached_data = 30
-        instance.field_name = 'age'
+    def _instantiate_function(self, klass):
+        instance = klass(5)
+        instance._cached_data = 202
+        instance.field_name = 'height'
         instance.model = self.model
         instance.resolve()
-        self.assertEqual(instance._cached_data, 35)
+        return instance._cached_data
+
+    def test_addition(self):
+        result = self._instantiate_function(functions.Add)
+        self.assertEqual(result, 207)
 
     def test_substraction(self):
-        instance = functions.Substract(5)
-        instance._cached_data = 30
-        instance.model = self.model
-        instance.field_name = 'age'
-        instance.resolve()
-        self.assertEqual(instance._cached_data, 25)
+        result = self._instantiate_function(functions.Substract)
+        self.assertEqual(result, 197)
 
     def test_multiplication(self):
-        instance = functions.Multiply(2)
-        instance._cached_data = 30
-        instance.model = self.model
-        instance.field_name = 'age'
-        instance.resolve()
-        self.assertEqual(instance._cached_data, 60)
+        result = self._instantiate_function(functions.Multiply)
+        self.assertEqual(result, 1010)
 
     def test_division(self):
-        instance = functions.Divide(2)
-        instance._cached_data = 30
-        instance.model = self.model
-        instance.field_name = 'age'
-        instance.resolve()
-        self.assertEqual(instance._cached_data, 15)
+        result = self._instantiate_function(functions.Divide)
+        self.assertEqual(result, 40.4)
 
     # def test_with_string(self):
     #     # TODO: Allow addition on strings ??
@@ -58,19 +50,45 @@ class TestWhen(unittest.TestCase):
         instance.model = self.model
         self.instance = instance
 
+    @unittest.expectedFailure
+    def test_wrong_field_name(self):
+        instance = functions.When('WRONG__gt=1', 1)
+        instance._cached_data = 25
+        instance.model = self.model
+        instance.resolve()
+
+    @unittest.expectedFailure
+    def test_no_model(self):
+        instance = functions.When('age__gt=1', 1)
+        instance.resolve()
+
+    @unittest.expectedFailure
+    def test_wrong_expressions(self):
+        instance = functions.When(
+            'age__gt=21',
+            'Facebook',
+            else_condition='Google'
+        )
+        instance.model = self.model
+        instance.resolve()
+
+    def test_no_operator(self):
+        instance = functions.When('age=1', 1)
+        with self.assertRaises(ValueError):
+            instance.resolve()
+
     def test_resolution(self):
         # if age > 15, 20 else 15
         field_name, result = self.instance.resolve()
         self.assertIsInstance(field_name, str)
         self.assertEqual(result, 20)
 
-    # @unittest.expectedFailure
-    # def test_cannot_compare_in_when(self):
-    #     self.model.add_case('google', functions.When('age__eq=21', 23))
-    #     self.assertRaises(TypeError)
-
-    # def test_wrong_expression_in_when(self):
-    #     self.assertRaises(TypeError, functions.When, if_condition='fast', then_condition=0)
+    # def test_can_add_case(self):
+    #     # BUG: "Could not find a valid format for date '23' on field 'age'."
+    #     from zineb.models.functions import When
+    #     self.model.add_case(21, When('age__eq=21', 23))
+    #     result = self.model._data_container.as_values()
+    #     self.assertDictEqual(result, {'age': [23]})
 
     def test_comparision(self):
         result = self.instance.compare('gt', '10')
@@ -96,7 +114,8 @@ class TestWhen(unittest.TestCase):
                 field_name, exp, value = self.instance.parse_expression(
                     expression)
                 self.assertEqual(field_name, 'age')
-                self.assertIn(exp, ['gt', 'lt', 'eq', 'lte', 'gte', 'contains'])
+                self.assertIn(
+                    exp, ['gt', 'lt', 'eq', 'lte', 'gte', 'contains'])
                 self.assertEqual(value, '15')
 
 
@@ -104,25 +123,28 @@ class TestExtractDates(unittest.TestCase):
     def setUp(self):
         self.model = items.CalculatedModel()
 
-    def test_day_resolution(self):
-        instance = functions.ExtractDay('1987-1-1')
+    @unittest.expectedFailure
+    def test_field_should_not_be_a_datefield(self):
+        model = items.AgeModel()
+        model.add_value('age', functions.ExtractDay('11-1-2021'))
+
+    def _instantiate_function(self, klass, value='1987-1-1'):
+        instance = klass(value)
         instance.model = self.model
         instance.field_name = 'age'
         instance.resolve()
+        return instance
+
+    def test_day_resolution(self):
+        instance = self._instantiate_function(functions.ExtractDay)
         self.assertEqual(instance._cached_data, 1)
 
     def test_year_resolution(self):
-        instance = functions.ExtractYear('1987-1-1')
-        instance.model = self.model
-        instance.field_name = 'age'
-        instance.resolve()
+        instance = self._instantiate_function(functions.ExtractYear)
         self.assertEqual(instance._cached_data, 1987)
 
     def test_month_resolution(self):
-        instance = functions.ExtractMonth('1987-1-1')
-        instance.model = self.model
-        instance.field_name = 'age'
-        instance.resolve()
+        instance = self._instantiate_function(functions.ExtractMonth)
         self.assertEqual(instance._cached_data, 1)
 
     def test_can_extract_from_any_format(self):
@@ -146,26 +168,23 @@ class TestExtractDates(unittest.TestCase):
                 instance.resolve()
                 self.assertEqual(instance._cached_data, 1987)
 
-    @unittest.expectedFailure
-    def test_field_should_not_be_a_datefield(self):
-        self.model._meta.fields_map['age'] = fields.DateField()
-        self.assertRaises(TypeError,
-            self.model.add_value,
-            name='age', 
-            value=functions.ExtractYear('11-1-2021')
-        )
-
 
 class TestComparision(unittest.TestCase):
+    @unittest.expectedFailure
+    def test_different_types_error(self):
+        instance = functions.Greatest('15', 15)
+        instance.resolve()
+
     def test_greatest(self):
         instance = functions.Greatest(15, 31, 24)
         instance.resolve()
         self.assertEqual(instance._cached_data, 31)
-    
+
     def test_smallest(self):
         instance = functions.Smallest(15, 31, 24)
         instance.resolve()
         self.assertEqual(instance._cached_data, 15)
+
 
 if __name__ == '__main__':
     unittest.main()

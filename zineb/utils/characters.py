@@ -3,7 +3,7 @@ import random
 from typing import Any
 
 from zineb.utils.encoders import convert_to_unicode
-from zineb.utils.iteration import drop_while
+from zineb.utils.iterations import drop_while
 
 ESCAPE_CHARACTERS = ('\n', '\t', '\r')
 
@@ -23,7 +23,8 @@ def replace_escape_chars(value, replace_by=u'', encoding=None):
     """
     text = convert_to_unicode(value)
     for escape_char in ESCAPE_CHARACTERS:
-        text = text.replace(escape_char, convert_to_unicode(replace_by, encoding))
+        text = text.replace(
+            escape_char, convert_to_unicode(replace_by, encoding))
     return text
 
 
@@ -53,7 +54,7 @@ def deep_clean(value: str):
     return ' '.join(cleaned_words)
 
 
-def create_random_string(length: int=5, lowercased: bool=False):
+def create_random_string(length: int = 5, lowercased: bool = False):
     """Return a random string"""
     result = ''.join(random.choice(RANDOM_STRING_CHARS) for _ in range(length))
     if lowercased:

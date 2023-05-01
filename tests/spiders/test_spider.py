@@ -1,10 +1,10 @@
 import unittest
 
 from zineb.tests.spiders import items
-from zineb.utils.iteration import RequestQueue
+from zineb.utils.iterations import RequestQueue
 
 
-class TestSpider(unittest.TestCase):
+class TestSpiderDebug(unittest.TestCase):
     def setUp(self):
         self.spider = items.SimpleSpider(debug=True)
 
@@ -15,6 +15,12 @@ class TestSpider(unittest.TestCase):
         self.assertTrue(len(self.spider.start_urls) > 0)
         self.assertEqual(self.spider.meta.spider_name, 'simplespider')
         self.assertListEqual(self.spider.meta.domains, [])
+
+
+class TestSpider(unittest.TestCase):
+    def test_spider(self):
+        spider = items.ComplexSpider()
+        
 
 
 if __name__ == '__main__':

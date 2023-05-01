@@ -1,4 +1,5 @@
 import re
+import time
 from collections import OrderedDict
 from typing import Union
 from urllib import parse
@@ -9,20 +10,33 @@ from w3lib.url import is_url, safe_download_url, safe_url_string, urlparse
 
 from zineb.exceptions import ResponseFailedError
 from zineb.http.responses import HTMLResponse
+from zineb.http.signals import request_completed
 from zineb.http.user_agent import UserAgent
-from zineb.logger import Logger
+from zineb.logger import logger
 from zineb.settings import settings
 from zineb.tags import Link
+from zineb.http.analysis import SEOAnalysis
 from zineb.utils.conversion import transform_to_bytes
 
 EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9-_.]+@\w+\.\w+$')
 
-USER_AGENT = UserAgent()
+http_logger = logger.create('HTTPRequest')
+
+
+def analyze_page(sender, **kwargs):
+    """A receiver that creates a new SEOAnalysis
+    class for a given page."""
+    if sender.resolved:
+        instance = SEOAnalysis(sender.html_response)
+        return instance
+    return False
+
 
 class BaseRequest:
     """
     Base HTTP request for all requests
     """
+    user_agent_class = UserAgent
     only_secured_requests = False
     only_domains = []
     # Indicates whether the HTTPRequest can be sent
@@ -34,12 +48,12 @@ class BaseRequest:
     can_be_sent = True
     http_methods = ['GET', 'POST']
 
-    def __init__(self, url, method='GET', **kwargs):
-        self.local_logger = Logger(self.__class__.__name__)
+    _proxy = {}
 
+    def __init__(self, url, method='GET', **kwargs):
         if method not in self.http_methods:
             raise ValueError("The provided method is not valid. Should be "
-            f"one of {''.join(self.http_methods)}.")
+                             f"one of {''.join(self.http_methods)}.")
 
         # Calling "str" on the pseudo-url allows
         # us to get the string contained in classes
@@ -48,9 +62,6 @@ class BaseRequest:
 
         session = Session()
 
-        proxy_list = dict(set(settings.PROXIES))
-        session.proxies.update(proxy_list)
-
         self.only_domains = settings.DOMAINS
         self.only_secured_requests = settings.get('ENSURE_HTTPS', False)
 
@@ -58,7 +69,9 @@ class BaseRequest:
         self.url = self._precheck_url(url)
 
         request = Request(method=method, url=self.url)
-        self._unprepared_request = self._set_headers(request, **kwargs.get('headers', {}))
+        self._unprepared_request = self._set_headers(
+            request, **kwargs.get('headers', {})
+        )
 
         # Use this error class to add any errors that
         # would have occured during the HTTP request
@@ -73,24 +86,48 @@ class BaseRequest:
             # whole process for just one badly formed url, just pass that
             # given url and use the self.resolved flag to determine if
             # a request should indeed be sent with the given class
-            self.prepared_request = session.prepare_request(self._unprepared_request)
+            self.prepared_request = session.prepare_request(
+                self._unprepared_request)
         except requests.exceptions.MissingSchema as e:
             self.errors.extend([e.args])
         except Exception as e:
             self.errors.extend([e.args])
-            
+
         self.resolved = False
         self._http_response = None
 
         self.domain = self._url_meta.netloc
         self.root_url = None
 
+        # Create a signal-space for when the request
+        # is completed. The receiver is a page analyzer
+        # that implements addiational functionnalities
+        # to the request class
+        request_completed.connect(analyze_page, sender=self)
+
     def __repr__(self):
         return f"{self.__class__.__name__}(url={self.url}, resolved={self.resolved})"
 
+    def __del__(self):
+        # Since this is a one way request, disconnect
+        # the signal for the current request once the
+        # class body is destroyed
+        request_completed.disconnect(receiver=analyze_page, sender=self)
+
     @classmethod
     def follow(cls, url):
+        # When running external requests to the
+        # main request loop, the IP address resets
+        #
+        from zineb.registry import registry
+
+        # TODO: This reverts to the user's IP address
+        # as opposed to using the proxy IP
+        # print(cls._proxy)
         instance = cls(str(url))
+        # setattr(instance, '_proxy', cls._proxy)
+        registry.middlewares.run_middlewares(instance)
+        # print(instance._proxy)
         instance._send()
         return instance
 
@@ -105,12 +142,12 @@ class BaseRequest:
 
     def _set_headers(self, request, **extra_headers):
         headers = settings.get('DEFAULT_REQUEST_HEADERS', {})
-        
-        user_agent = USER_AGENT.get_random_agent()
-        headers.update({'User-Agent': user_agent})
-        
+
+        user_agent = self.user_agent_class()
+        headers.update({'User-Agent': user_agent.get_random_agent()})
+
         extra_headers.update(headers)
-        request.headers = headers        
+        request.headers = headers
         return request
 
     def _precheck_url(self, url):
@@ -128,7 +165,7 @@ class BaseRequest:
             # TODO: When using https:// this returns True
             # when this is not even a real URL
             message = (f"The url that was provided is not valid. Got: {url}.")
-            self.local_logger.instance.error(message, stack_info=True)
+            http_logger.instance.error(message, stack_info=True)
             raise requests.exceptions.InvalidURL(message)
 
         parsed_url = urlparse(url)
@@ -150,36 +187,40 @@ class BaseRequest:
             # if not all(logic):
 
             if 'https' not in parsed_url.scheme:
-                self.local_logger.instance.critical(f"{url} is not secured. No HTTPS scheme is present.")
+                http_logger.instance.critical(
+                    f"{url} is not secured. No HTTPS scheme is present.")
                 self.can_be_sent = False
 
         if self.only_domains:
             if parsed_url.netloc not in self.only_domains:
-                self.local_logger.instance.critical((f"{url} is not a memeber of the allowed "
-                "domains settings list and will not be sent. Adjust your settings if you "
-                "want to prevent this security check on his domain."))
+                http_logger.instance.critical((f"{url} is not a memeber of the allowed "
+                                               "domains settings list and will not be sent. Adjust your settings if you "
+                                               "want to prevent this security check on his domain."))
                 self.can_be_sent = False
-            
+
         return safe_url_string(url)
 
     def _send(self):
         response = None
 
+        if self._proxy:
+            self.session.proxies.update(self._proxy)
+
         if not self.can_be_sent:
-            self.local_logger.instance.logger.info(("A request cannot be sent for the following "
-            f"url {self.url} because self.can_be_sent is marked as False. Ensure that "
-            "the url is not part of a restricted DOMAIN or that ENSURE_HTTPS does not"
-            "force only secured requests."))
+            http_logger.instance.logger.info(("A request cannot be sent for the following "
+                                              f"url {self.url} because self.can_be_sent is marked as False. Ensure that "
+                                              "the url is not part of a restricted DOMAIN or that ENSURE_HTTPS does not"
+                                              "force only secured requests."))
             return None
 
         # TODO: Send signal before the request
         # is sent by the class
-        
+
         try:
             response = self.session.send(self.prepared_request)
         except requests.exceptions.HTTPError as e:
-            self.local_logger.instance.logger.error(f"An error occured while processing "
-            "request for {self.prepared_request}", stack_info=True)
+            http_logger.instance.logger.error(f"An error occured while processing "
+                                              "request for {self.prepared_request}", stack_info=True)
             self.errors.append([e.args])
         except Exception as e:
             self.errors.extend([e.args])
@@ -187,11 +228,17 @@ class BaseRequest:
         if self.errors or response is None:
             raise ResponseFailedError(self.errors)
 
+        # Handle 400 and 500 codes
+        if response.status_code >= 400:
+            raise ResponseFailedError(self.errors)
+
         if response.status_code == 200:
             self.resolved = True
 
         # TODO: Send signal after the request
         # was sent by the class
+        items = request_completed.send(self, url=self.url)
+        _, seo_class = items[0]
 
         parsed_url = urlparse(response.url)
         # Factually this represents the domain. This
@@ -199,39 +246,34 @@ class BaseRequest:
         # that the url was valid
         self.root_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
 
+        # time.sleep(settings.RATE_LIMIT)
         return response
-    
+
 
 class HTTPRequest(BaseRequest):
     """
-    Represents a basic HTTP request which wraps
-    an HTMLResponse and requests.Request instance
-    request
-
-    Parameters
-    ----------
-
-        - url (str): the url to which to send the request
-        - is_download_url (bool, optional): the url is going to be
-          used for a download. Defaults to False.
+    Represents a basic HTTP request and overall proxy
+    for an `HTMLResponse` and a `requests.Request`
+    instance
 
     Example
     -------
-            Sending a basic request can be done in the followin way:
 
-            >>> instance = HttpRequest('http://example.com')
-            ... instance._send()
+    Sending a basic request can be done in the followin way:
 
-            You can also follow additional links using these methods:
+    >>> instance = HttpRequest('http://example.com')
+    ... instance._send()
 
-            >>> new_instance = instance.follow('http://example.com/1')
-            >>> new_instance = instance.follow_all(['http://example.com/2'])
+    You can also follow additional links using these methods:
 
-            Finally, you can also join a relative path to the url's domain
+    >>> new_instance = instance.follow('http://example.com/1')
+    ... new_instance = instance.follow_all(['http://example.com/2'])
 
-            >>> new_url = instance.urljoin('kendall')
-            ... 'http://example.com/kendall'
-            ... instance.follow(new_url)
+    Finally, you can also join a relative path to the url's domain
+
+    >>> new_url = instance.urljoin('kendall')
+    ... 'http://example.com/kendall'
+    ... instance.follow(new_url)
     """
     referer = None
 
@@ -243,8 +285,8 @@ class HTTPRequest(BaseRequest):
         is_download_url = kwargs.get('is_download_url', False)
         if is_download_url:
             url = safe_download_url(url)
-            
-        # Use this to pass additional parameters 
+
+        # Use this to pass additional parameters
         # into the HTTPRequest object
         self.options = OrderedDict()
 
@@ -254,9 +296,9 @@ class HTTPRequest(BaseRequest):
         """
         http_response = super()._send()
         if http_response is not None:
+            self._http_response = http_response
             if http_response.ok:
-                self.local_logger.instance.info(f'Sent request for {self.url}')
-                self._http_response = http_response
+                http_logger.instance.info(f'Sent request for {self.url}')
                 self.html_response = HTMLResponse(
                     http_response,
                     url=self.url,
@@ -265,27 +307,22 @@ class HTTPRequest(BaseRequest):
                 self.session.close()
             else:
                 response_code = http_response.status_code
-                self.local_logger.instance.error(f'Response failed with code {response_code}.')
+                http_logger.instance.error(
+                    f'Response failed with code {response_code}.')
         else:
-            self.local_logger.instance.error(f'An error occured on this request: {self.url} with status code {http_response.status_code}')
+            http_logger.instance.error(
+                f'An error occured on this request: {self.url} with status code {http_response.status_code}')
 
     def urljoin(self, path, use_domain=False):
         """
         To compensate for relative paths not being
         full ones, this helper function joins a main url 
         to a relative path
-
-        Parameters
-        ----------
-
-            - path (str): the relative path to use
-            - use_domain (bool, optional): Use the domain present 
-              of the in the requested url. Defaults to False
         """
         if use_domain:
             return parse.urljoin(self.root_url, str(path))
         return safe_url_string(parse.urljoin(self._http_response.url, str(path)))
-    
+
     def json(self, sort_by=None, filter_func=None):
         """If the expected response is not an HTML object, 
         return the JSON content via this method"""
@@ -298,12 +335,13 @@ class HTTPRequest(BaseRequest):
 
 
 class FormRequest(BaseRequest):
-    def __init__(self, url: Union[Link, str], data: dict, method: str='POST', **attrs):
+    def __init__(self, url: Union[Link, str], data: dict, method: str = 'POST', **attrs):
         super().__init__(url, method=method)
 
         encoded_data = parse.urlencode(data, encoding='utf-8')
         if method == 'POST':
-            self.prepared_request.headers.setdefault(b'Content-Type', b'application/x-www-form-urlencoded')
+            self.prepared_request.headers.setdefault(
+                b'Content-Type', b'application/x-www-form-urlencoded')
             self.prepared_request.body = transform_to_bytes(encoded_data)
         elif method == 'GET':
             url_to_get = self.prepared_request.url
@@ -313,10 +351,15 @@ class FormRequest(BaseRequest):
                 self.prepared_request.url = f"{url_to_get}?{encoded_data}"
 
 
+class SitemapRequest(BaseRequest):
+    """A special request for working 
+    with sitemaps"""
+
+
 # class FormRequestFromResponse(FormRequest):
 #     fields = []
 
-#     def __init__(self, form_or_soup: BeautifulSoup, url: Union[Link, str], 
+#     def __init__(self, form_or_soup: BeautifulSoup, url: Union[Link, str],
 #                  data: dict, method='POST', **attrs):
 #         if form_or_soup.name != 'form':
 #             form_or_soup = form_or_soup.get('form')

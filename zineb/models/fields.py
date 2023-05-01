@@ -9,6 +9,7 @@ from w3lib.url import canonicalize_url, safe_download_url
 from zineb.checks import messages
 from zineb.exceptions import ValidationError
 from zineb.models import validators as model_validators
+from zineb.models import relationships
 from zineb.settings import settings
 from zineb.utils.characters import deep_clean
 from zineb.utils.conversion import detect_object_in_string
@@ -44,9 +45,10 @@ class Empty:
 
 class Value:
     """
-    Interface that represents the raw value 
+    Interface that represents a raw value 
     that comes from the internet. It is stripped 
-    from whitespace and the html tags are removed
+    from whitespace and html tags are removed
+    if present
 
     >>> Value("some data")
     ... "some data"
@@ -129,7 +131,7 @@ class DeferredAttribute:
     of a model field
 
     >>> class MyModel(Model):
-            name = fields.CharField()  
+    ...     name = fields.CharField()  
     ... model.name
     ... [..., ...]
     """
@@ -146,18 +148,6 @@ class DeferredAttribute:
         if field_name not in data:
             field_data = instance._data_container.get_container(field_name)
             data[field_name] = field_data
-        return data[field_name]
-
-
-class OneToOneDescriptor(DeferredAttribute):
-    def __get__(self, instance, cls=None):
-        if instance is None:
-            return self
-
-        data = instance.__dict__
-        field_name = self.field.field_name
-        if field_name not in data:
-            data[field_name] = self.field.related_model
         return data[field_name]
 
 
@@ -257,31 +247,23 @@ class Field:
         if value is None:
             return None
 
-        # validator_return_value = None
         for validator in self._validators:
             if not callable(validator):
                 raise TypeError('A Validator should be a callable.')
             try:
-                # if validator_return_value is None:
-                #     validator_return_value = validator(value)
-                # else:
-                #     validator_return_value = validator(validator_return_value)
-                # NOTE: Validators should not return any value
-                # instead, they should just validate that a
-                # value respects a certan logic and if not raise
-                # a ValidationError
                 validator(value)
             except:
-                message = ("A validation error occured on "
-                           "field '{name}' with value '{value}'.")
-                raise Exception(LazyFormat(
-                    message,
-                    name=self.field_name,
-                    value=value
+                message = (
+                    "A validation error occured on "
+                    "field '{name}' with value '{value}'."
                 )
+                raise Exception(
+                    LazyFormat(
+                        message,
+                        name=self.field_name,
+                        value=value
+                    )
                 )
-        # if self._validators:
-        #     return validator_return_value
         return value
 
     # TODO: Rename this method
@@ -399,6 +381,10 @@ class Field:
         and/or call super().resolve() to benefit from the cleaning
         and normalizing logic
         """
+        # Force the binding to the Value class
+        # in case it was not previously done
+        if not isinstance(value, Value) and value is not None:
+            value = Value(value)
         self._simple_resolve(value)
 
 
@@ -434,7 +420,7 @@ class CharField(Field):
 
 
 class TextField(CharField):
-    def __init__(self, max_length = 500, **kwargs):
+    def __init__(self, max_length=500, **kwargs):
         super().__init__(max_length=max_length, **kwargs)
 
     @property
@@ -835,14 +821,31 @@ class AutoField(Field):
     def __init__(self, auto_created=False):
         super().__init__()
         self.auto_created = auto_created
-        self._tracked_id = 0
+        self._cached_result = 0
 
     @property
     def internal_name(self):
         return 'AutoField'
 
     def resolve(self):
-        self._tracked_id = self._tracked_id + 1
+        self._cached_result = self._cached_result + 1
+
+
+class OneToOneDescriptor(DeferredAttribute):
+    def __get__(self, instance, cls=None):
+        if instance is None:
+            return self
+
+        # This section dynamically adds the
+        # field that is called as an attribute
+        # to the instance's dict and then
+        # returns the related model to that field
+        data = instance.__dict__
+        field_name = self.field.field_name
+        if field_name not in data:
+            # self.field.relationship.update_relationship_options(self.field.model)
+            data[field_name] = self.field.related_model
+        return data[field_name]
 
 
 class RelatedField(Field):
@@ -854,6 +857,7 @@ class RelatedField(Field):
         self.related_name = relation_name
         self.reverse_related_name = None
         self.is_relationship_field = True
+        self.relationship = None
 
     def checks(self):
         errors = super().checks()
@@ -881,13 +885,6 @@ class RelatedField(Field):
             f"A RelatedModel field cannot resolve data directly. Use {self.model._meta.model_name}.{self.field_name}.add_value(...) for example to add a value to the related model.")
 
 
-# TODO: When the related field is set on the model
-# we get [{'ages': [{'age': 30}], 'name': 'Kendall'}]
-# for example. I think we should get instead
-# [{'ages': {'age': 30}, 'name': 'Kendall'}] and create
-# as many fields as the initial result that we
-# are getting
-
 # FIXME: Maybe find a better name for this field
 # so that we know explicitly what it does
 
@@ -896,8 +893,14 @@ class RelatedModel(RelatedField):
     keep track of the relationship between individual data
     and the related model. In other words, all the data
     from the related model will be included in the model
-    
-    >>> model.related_field.add_value("field_name", "...")
+
+    Forward resolution:
+
+    >>> model1.related_field.add_value(...)
+
+    Backward resolution:
+
+    >>> model2.related_field_set.add_value(...)
     """
     field_descriptor = OneToOneDescriptor
 
@@ -917,9 +920,14 @@ class RelatedModel(RelatedField):
             # model2.field_set in reverse for model1
             setattr(self.related_model, self.reverse_related_name, self.model)
 
+        # self.relationship = relationships.OneToOneRelationship()
+        # self.relationship.update_options(model, self.related_model)
+
         # TODO: We should not be able to create a RelatedModel field
         # for the model that is a superclass of the model that wants
         # to create the relationship
 
+        # In order to access the relationship, we use a proxy
+        # class (e.g. OneToOneDescriptor) aka descriptor class
         setattr(model, field_name, self.field_descriptor(self))
         model._meta.add_field(self.field_name, self)

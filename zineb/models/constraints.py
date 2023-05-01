@@ -22,22 +22,50 @@ class BaseConstraint:
         counter = Counter()
         if len(self.constrained_fields) == 1:
             field = self.constrained_fields[-1]
-            counter.update(self._data_container.get_container(field))
-            
+            counter.update(self._data_container.columns.as_values()[field])
+
             element_count = counter.get(value_to_check, 0)
-            if element_count == 1:
+            if element_count > 1:
                 errors.extend(
                     [(field, ConstraintError(self.model._meta.model_name, self.name))]
                 )
         else:
-            for field in self.constrained_fields:
-                counter.update(self._data_container.get_container(field))
+            # TODO: Think of a workflow that can validate
+            # multiple fields at once
+            pass
+            # truth_array = []
+            # items = self._data_container.columns.as_records()
+            # for item in items:
+            #     item_truth_array = []
+            #     for field in self.constrained_fields:
+            #         item_truth_array.append(item[field] == value_to_check)
+            #         truth_array.append(all())
+            # for field in self.constrained_fields:
+            #     values = self._data_container.columns.as_values()[field]
+            #     for value in values:
+            #         if value is None:
+            #             continue
+            #         counter.update([value])
 
-            element_count = counter.get(value_to_check, 0)
-            if element_count == 1:
-                errors.extend(
-                    [(self.constrained_fields, ConstraintError(self.model._meta.model_name, self.name))]
-                )
+            # values_to_check = [
+            #     counter.get(key, 0)
+            #     for key in self.constrained_fields
+            # ]
+
+            # truth_array = []
+            # for item, element_count in values_to_check:
+            #     truth_array.append(element_count > 1)
+
+            # if element_count > 1:
+            #     errors.extend(
+            #         [(
+            #             self.constrained_fields,
+            #             ConstraintError(
+            #                 self.model._meta.model_name,
+            #                 self.name
+            #             )
+            #         )]
+            #     )
 
         if self.condition is not None:
             result = self.condition(value_to_check)
@@ -61,7 +89,7 @@ class BaseConstraint:
         #         errors.extend([FieldError(field, model._meta.fields, self.model.name)])
 
         # if errors:
-        #     raise ExceptionGroup('', errors) 
+        #     raise ExceptionGroup('', errors)
 
 
 class UniqueConstraint(BaseConstraint):

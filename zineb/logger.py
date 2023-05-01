@@ -27,7 +27,7 @@ class Logger:
         self.instance = logger
 
     @classmethod
-    def create(cls, name: str=None):
+    def create(cls, name=None):
         instance = cls(name=name)
         return instance
 
