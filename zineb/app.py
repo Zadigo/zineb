@@ -8,6 +8,7 @@ from zineb.utils.iterations import RequestQueue
 
 DEFAULT_META_OPTIONS = {'domains', 'verbose_name', 'limit_requests_to'}
 
+
 class SpiderOptions:
     def __init__(self):
         self.spider = None
@@ -15,29 +16,29 @@ class SpiderOptions:
         self.verbose_name = None
         self.start_urls = []
         self.prepared_requests = None
-        
+
         self.domains = []
         self.base_url = None
         self.limit_requests_to = 0
-        
+
     def __repr__(self):
         return f'<{self.__class__.__name__} for {self.spider_name}>'
-        
+
     def update_options(self, cls, name):
         self.spider = cls
         self.spider_name = name.lower()
         self.verbose_name = name
-        
+
     def add(self, name, value):
         if name not in DEFAULT_META_OPTIONS:
             raise ValueError(f"Meta received an illegal option {name}")
-        
+
         if name == 'verbose_name':
             if self.verbose_name is not None:
-                self.verbose_name = value     
-        
+                self.verbose_name = value
+
         setattr(self, name, value)
-        
+
     def initialize_queue(self):
         queue = RequestQueue(*self.start_urls)
         queue.prepare(self.spider)
@@ -48,33 +49,33 @@ class SpiderOptions:
 class BaseSpider(type):
     def __new__(cls, name, bases, attrs):
         create_new = super().__new__
-        
+
         parents = [b for b in bases if not isinstance(b, Spider)]
         if not parents:
             return create_new(cls, name, bases, attrs)
-        
+
         meta_attributes = attrs.pop('Meta', None)
         meta = SpiderOptions()
-        
+
         start_urls = attrs.get('start_urls', [])
         meta.start_urls = start_urls
-        
+
         new_class = create_new(cls, name, bases, attrs)
         setattr(new_class, 'meta', meta)
-        
+
         meta.update_options(new_class, name)
-        
+
         if meta_attributes is not None:
             attributes_dict = meta_attributes.__dict__
-        
+
             for name, value in attributes_dict.items():
                 if name.startswith('__'):
                     continue
-                
+
                 meta.add(name, value)
         meta.initialize_queue()
         return new_class
-    
+
 
 class Spider(metaclass=BaseSpider):
     """
@@ -89,17 +90,18 @@ class Spider(metaclass=BaseSpider):
 
     def __init__(self, debug=False):
         logger.instance.info(f'Starting {self.__class__.__name__}')
-        logger.instance.info(f"{self.__class__.__name__} contains {len(self.meta.prepared_requests)} request(s)")
+        logger.instance.info(
+            f"{self.__class__.__name__} contains {len(self.meta.prepared_requests)} request(s)")
 
         # TODO: Send signal when the spider is
         # initialized
-        
+
         if not debug:
             self._resolve_requests()
 
     def __repr__(self):
         return f"{self.__class__.__name__}(requests={len(self.meta.prepared_requests)})"
-    
+
     def __getattribute__(self, name):
         if name == 'storage':
             return registry.get_default_storage()
@@ -115,16 +117,20 @@ class Spider(metaclass=BaseSpider):
         for i, items in enumerate(self.meta.prepared_requests):
             if i == limit_requests_to:
                 break
-            
+
             _, request = items
-                        
-            soup_object = request.html_response.html_page
+
+            # If we got no response, makes no sense
+            # to send something to the "start" method
+            if request.html_response is None:
+                continue
+
             self.start(
                 request.html_response,
                 request=request,
-                soup=soup_object
+                soup=request.html_response.html_page
             )
-            
+
         # TODO: Send a signal after the spider
         # has resolved all the requests
 
@@ -141,7 +147,7 @@ class Spider(metaclass=BaseSpider):
         ----------
 
             - response (HTMLResponse): an HTMLResponse object
-        
+
         In addition to the response, these objects are also
         passed in the kwargs parameter:
 
@@ -189,7 +195,7 @@ class FileCrawler:
         # default to the default
         # 'media' folder
         if self.root_dir is None:
-            self.root_dir  = 'media'
+            self.root_dir = 'media'
 
         # FIXME: When using collect_files, this blocks
         # because it tries to recreate a full path of
@@ -210,14 +216,16 @@ class FileCrawler:
             buffer = StringIO(opened_file.read())
             self.buffers.append((file, buffer))
             opened_file.close()
-            
+
         from bs4 import BeautifulSoup
-        
+
         for path, buffer in self.buffers:
             filename = os.path.basename(path)
             filename, _ = filename.split('.')
-            logger.instance.info(LazyFormat('Parsing file: {filename}', filename=filename))
-            self.start(BeautifulSoup(buffer, 'html.parser'), filename=filename, filepath=path)
+            logger.instance.info(LazyFormat(
+                'Parsing file: {filename}', filename=filename))
+            self.start(BeautifulSoup(buffer, 'html.parser'),
+                       filename=filename, filepath=path)
 
     def __del__(self):
         for _, buffer in self.buffers:
