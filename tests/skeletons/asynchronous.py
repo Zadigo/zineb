@@ -1,9 +1,11 @@
 import asyncio
-from zineb.http.request import HTTPRequest
 from abc import abstractmethod
 from collections.abc import AsyncGenerator
+
 import requests
+
 from zineb.http.request import HTTPRequest
+
 
 # async def sender(url):
 #     return requests.get(url)
@@ -24,7 +26,6 @@ from zineb.http.request import HTTPRequest
 #     print(responses)
 
 
-
 async def request1():
     request = HTTPRequest('https://jsonplaceholder.typicode.com/todos')
     request._send()
@@ -37,6 +38,7 @@ async def request2():
     request._send()
     print(2)
     return request
+
 
 async def request3():
     await asyncio.sleep(2)

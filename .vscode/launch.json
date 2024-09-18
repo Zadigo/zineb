@@ -10,7 +10,13 @@
             "request": "launch",
             "program": "${workspaceFolder}/tests/_project.py",
             "console": "integratedTerminal",
-            "justMyCode": true
+            "cwd": "${workspaceFolder}/zineb",
+            "justMyCode": true,
+            "presentation": {
+                "hidden": false,
+                "group": "Zineb",
+                "order": 1
+            }
         },
         {
             "name": "Python : Zineb",
@@ -18,7 +24,13 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "justMyCode": true
+            "cwd": "${workspaceFolder}/zineb",
+            "justMyCode": true,
+            "presentation": {
+                "hidden": false,
+                "group": "Zineb",
+                "order": 2
+            }
         },
         {
             "name": "Python : Zineb Commands",
@@ -26,11 +38,17 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/zineb",
             "justMyCode": true,
             "args": [
                 "createspider",
                 "Temptation"
             ],
+            "presentation": {
+                "hidden": false,
+                "group": "Zineb",
+                "order": 3
+            }
             // "env": {
             //     "celebrity": "Kendall"
             // }
