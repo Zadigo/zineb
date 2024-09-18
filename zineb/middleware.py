@@ -11,7 +11,7 @@ class Middleware:
     Loads every middleware present in the
     settings file
     """
-    
+
     def __init__(self):
         self.middlewares = {}
 
@@ -20,18 +20,24 @@ class Middleware:
             try:
                 module = import_module(module_to_load)
             except:
-                message = LazyFormat("Middleware with path '{path}' does not exist", path=middleware)
+                message = LazyFormat(
+                    "Middleware with path '{path}' does not exist", path=middleware)
                 raise ImportError(message)
-                                    
+
             for name, klass in inspect.getmembers(module, inspect.isclass):
                 try:
                     instance = klass()
                 except Exception as e:
-                    raise TypeError(f"{klass} could not be instantiated. {e.args[0]}")
-                
-                self.middlewares[name] = instance                    
-                logger.instance.info(f"Loaded middleware: {middleware}")
-    
-    def run_middlewares(self):
+                    raise TypeError(
+                        f"{klass} could not be instantiated. {e.args[0]}")
+                else:
+                    if hasattr(klass, 'process_middleware') and name != 'MiddlewareMixin':
+                        self.middlewares[name] = instance
+                        logger.instance.info(
+                            f"Loaded middleware: {middleware}")
+
+    def run_middlewares(self, spider, request):
+        """Runs all the middlewares on the
+        the actual request"""
         for middleware in self.middlewares.values():
-            middleware()
+            middleware(request)

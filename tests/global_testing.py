@@ -1,8 +1,6 @@
 from zineb.app import Spider
+from zineb.models import fields, functions
 from zineb.models.datastructure import Model
-from zineb.models import fields
-from zineb.models import functions
-
 
 # class SuperModel(Model):
 #     class Meta:

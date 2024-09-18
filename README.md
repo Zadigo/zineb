@@ -2,13 +2,13 @@
 
 # Introduction
 
-Zineb is a lightweight tool solution for simple and efficient web scrapping and crawling built around BeautifulSoup and Pandas. It's main purpose is to help __quickly structure your data in order to be used as fast as possible in data science or machine learning projects.__
+Zineb is a lightweight tool solution for simple and efficient web scrapping and crawling built around BeautifulSoup. It's main purpose is to help __structure your data efficiently in order to be used in data science or machine learning projects.__
 
 # Understanding how Zineb works
 
-Zineb gets your custom spider, creates a set of ``HTTPRequest`` objects for each url, sends the requests and caches a BeautifulSoup object of the page within an ``HTMLResponse`` class of that request.
+Zineb works within a project and then proceeds to create a set of ``HTTPRequest`` objects for each url. The response is cached in an `HTTPREsponse` proxy in which the `BeautifulSoup` object of the page is stored.
 
-Most of your interactions with the HTML page will be done through the ``HTMLResponse`` class.
+Most of your interactions with the HTML page will be done through the `HTMLResponse` class.
 
 When the spider starts crawling the page, each response and request in past through the start function:
 
@@ -41,21 +41,19 @@ To create a project do `python -m zineb startproject <project name>` which will 
 
 Once the project folder is created, all your interractions with Zineb will be made trough the management commands that are executed through `python manage.py` from your project's directory.
 
-The models directory allows you to place the elements that will help structure the data that you have scrapped from from the internet.
-
-The `manage.py` file will allow you to run all the required commands from your project.
+The models directory allows you to place the elements that will help structure the scrapped data.
 
 Finally, the spiders module will contain all the spiders for your project.
 
 ## Configuring your project
 
-On startup, Zineb implements a set of basic settings (`zineb.settings.base`) that will get overrided by the values that you would have defined in your `settings.py` located in your project.
+On startup, Zineb implements a set of basic settings (`zineb.settings.base`) that will get overrided by the values that you would have defined in your local `settings.py` project.
 
 You can read more about this in the [settings section of this file](#Settings).
 
 ## Creating a spider
 
-Creating a spider is extremely easy and requires a set of starting urls that can be used to scrap one or many HTML pages.
+Creating a spider is extremely easy with `python -m zineb startproject myproject` and requires a set of starting urls that can be used to scrap one or many HTML pages.
 
 ```python
 class Celebrities(Zineb):
@@ -65,15 +63,13 @@ class Celebrities(Zineb):
         # Do something here
 ```
 
-Once the Celibrities class is called, each request is passed through the `start` method. In other words the `zineb.http.responses.HTMLResponse`,  `zineb.http.request.HTTPRequest` and the `BeautifulSoup` HTML page object are sent through the function.
+Once the Celibrities class is called, each request is passed through the `start` method. In other words the `zineb.http.responses.HTMLResponse`,  `zineb.http.request.HTTPRequest` and the `BeautifulSoup`.
 
-You are not required to use all these parameters at once. They're just for convinience.
-
-In which case, you can also write the start method as so if you only need one of these.
+You are not required to use all these parameters at once. They're just for convinience. You can also write the start method as so if you only need one of these.
 
 ```python
 def start(self, response, **kwargs):
-  # Do something here
+    # Do something here
 ```
 
 Other objects can be passes through the function such as the models that you have created but also the settings of the application etc.
@@ -96,7 +92,7 @@ This option limits a spider to a very specific set of domains.
 
 #### Verbose name
 
-This option writer as `verbose_name` will specific a different name to your spider.
+This option will specify a different name to your spider.
 
 ## Running commands
 
@@ -117,11 +113,7 @@ Extractors are passed using aliases:
 * `multilinks`: MultiLinkExtractor
 * `tables`: TableExtractor
 
-The extractors are also all passed within the shell in addition to the project settings.
-
-In that regards, the shell becomes a interesting place where you can test various querying before using it in your project. For example, using the shell with `http://example.com`.
-
-We can get a simple url :
+The interractive shell becomes a interesting place where you can test various querying before using it in your original project. For example, we can get a simple url :
 
 ```python
 IPython 7.19.0
@@ -167,7 +159,7 @@ from zineb.http.requests import HTTPRequest
 request = HTTPRequest("http://example.com")
 ```
 
-Requests, when created a not sent [or resolved] automatically if the `_send` function is not called. In that case, they are marked as being unresolved ex. `HTTPRequest("http://example.co", resolved=False)`.
+Requests, when created a not sent [or resolved] automatically if the `_send` function is not called. In that case, they are marked as being unresolved.
 
 Once the `_send` method is called, by using the `html_page` attribute or calling any BeautifulSoup function on the class, you can do all the classic querying on the page e.g. find, find_all...
 
@@ -236,9 +228,9 @@ request.html_response.tables
 Finally you can retrieve all the text of the web page at once.
 
 ```python
-request.html_response.text
+>> request.html_response.text
 
-    -> '\n\n\nExample Domain\n\n\n\n\n\n\n\nExample Domain\nThis domain is for use in   illustrative examples in documents. You may use this\n    domain in literature without prior coordination or asking for permission.\nMore information...\n\n\n\n'
+>> '\n\n\nExample Domain\n\n\n\n\n\n\n\nExample Domain\nThis domain is for use in   illustrative examples in documents. You may use this\n    domain in literature without prior coordination or asking for permission.\nMore information...\n\n\n\n'
 ```
 
 ## FileCrawler
@@ -460,15 +452,9 @@ Zineb comes with number of preset fields that you can use out of the box:
 
 ### How they work
 
-Each fields comes with a `resolve` function whiche gets called by the model. The resulting data is then passed unto the model's data store.
+Each fields comes with a `resolve` function which gets called by the model. 
 
-The resolve function will then do the following things.
-
-First, it will run all cleaning functions on the original value for example by stripping tags like "<" or ">" which normalizes the value before additional processing.
-
-Second, a `deep_clean` function is run on the result by removing any useless spaces, escape characters and finally reconstructing the value to ensure that any none-detected white space be eliminated.
-
-Finally, all the registered validators (default and custom) are called.
+When a value comes a from the internet, it is first encapsulated in a `Value` proxy field that runs cleaning functions on the data in order to normalize it as much a possible. It is then passed unto the field object which runs respsectively `resolve`, `_simple_resolve` then `_to_python_object`, if necessary, and finally `_run_validation` before being store in the model.
 
 ### Accessing data from the field instance
 
@@ -487,7 +473,7 @@ model.add_value('surname', 'Fraiser')
 # -> model.surname -> ["Fraiser"]
 ```
 
-By calling `model.name` you will receive an array containing all the values that were registered on in the data container e.g. `["Shelly-Ann"]`. Each field has a descriptor `FieldDescriptor`
+By calling `model.name` you will receive an array containing all the values that were registered in the data container e.g. `["Shelly-Ann"]`. Each field has a descriptor `FieldDescriptor`.
 
 ### CharField
 
@@ -550,9 +536,10 @@ This field allows you to pass a float value into your model.
 
 ### DateField
 
-The date field allows you to pass dates to your model. This field uses a preset of custom date formats to identify the structure of date incoming value. For instance `%d-%m-%Y` will be able to resolve `1-1-2021`.
+The date field allows you to pass dates to your model. This field uses a preset of custom date formats to identify the structure of a date incoming value. For instance `%d-%m-%Y` will be able to resolve `1-1-2021`.
 
 * `date_format`: Additional format that can be used to parse the incoming value
+* `default`: Default value if None
 
 ```python
 class MyModel(Model):
@@ -563,11 +550,10 @@ Generally speaking, most date formats are covered so you wouldn't need to implem
 
 ### AgeField
 
-The age field works likes the DateField but instead of returning the date, it will return the difference between the date and the current date which corresponds to the age.
+The age field works likes the DateField but instead of returning the date, it will return the difference between the date and the current date which corresponds to a person's age.
 
 * `date_format`: Indicates how to parse the incoming data value
 * `default`: Default value if None
-* `tz_info`: Timezone information
 
 ### ListField
 
@@ -610,7 +596,7 @@ class Player(Model):
 
 ```
 
-You might be tempted when scrapping your data to instantiate both models in order to add values like this:
+You might be tempted when scrapping your data to instantiate both models like this:
 
 ```python
 class MySpider(Spider):
@@ -618,11 +604,11 @@ class MySpider(Spider):
         player = Player()
         tournament = Tournament()
         
-        player.add_value('full_name', 'Kendall Jenner')
+        player.add_value('full_name', 'Roland Garros')
         tournament.add_value('location', 'Paris')
 ```
 
-There's lots of code and this is not necessarily the most efficient way for this task. The `RelatedModelField` allows us then to create both a forward and backward relationship between two different models.
+This creates a lot of code and is not necessarily the most efficient way. The `RelatedModelField` resolves this problem by creating a forward and backward relationship between two different models.
 
 The above technique can then be simplified the code below:
 
@@ -646,17 +632,72 @@ class MySpider(Spider):
     def start(self, soup, **kwargs):
         player = Player()
         
-        player.add_value('full_name', 'Kendall Jenner')
+        player.add_value('full_name', 'Roland Garros')
         player.tournament.add_value('location', 'Paris')
 
-        player.save(commit=False)
-
-# -> [{"full_name": "Kendall Jenner", "tournament": [{"location": "Paris"}]}]     
+        player.save(commit=False)   
 ```
 
-It does not keep track of the individual relationship the main model and the related model. In other words, all data from the main model will receive the same data from the related model contrarily to a database foreign key.
+It does not keep track of the individual relationship between the main model and the related model. In other words, all data from the main model will receive the same data from the related model contrarily to a database foreign key.
 
 This is ideal for creating nested data within your model.
+
+The resulting data would be:
+
+```json
+[
+    {
+        "id": 1,
+        "full_name": "Roland Garros",
+        "tournament": [
+            {
+                "id": 1,
+                "location": "Paris"
+            },
+            {
+                "id": 2,
+                "location": "New-York"
+            }
+        ]
+    }
+]
+```
+
+If you want to keep track of the relationship between an item between two models use the `foreign_key` flag. The result would then be:
+
+```json
+[
+    {
+        "id": 1,
+        "full_name": "Roland Garros",
+        "tournament": {
+            "id": 1,
+            "location": "Paris"
+        }
+    }
+]
+```
+
+Finally you can also keep track of multiple related values by using the `multiple` flag:
+
+```json
+[
+    {
+        "id": 1,
+        "full_name": "Roland Garros",
+        "tournament": [
+            {
+                "id": 1,
+                "location": "Paris"
+            },
+            {
+                "id": 5,
+                "location": "France"
+            }
+        ]
+    }
+]
+```
 
 ### Creating your own field
 
@@ -692,8 +733,6 @@ The maximum or minimum length check ensures that the value does not exceed a cer
 
 The nullity validation ensures that the value is not null and that if a default is provided, that null value be replaced by the latter. It uses `validators.validate_is_not_null`.
 
-The defaultness provides a default value for null or none existing ones.
-
 ### Practical examples
 
 For instance, suppose you want only values that do not exceed a certain length:
@@ -715,8 +754,7 @@ Suppose you want only values that would be `Kendall Jenner`. Then you could crea
 ```python
 def check_name(value):
     if value == "Kylie Jenner":
-        return None
-    return value
+        raise ValidationError(...)
 
 name = CharField(validators=[check_name])
 ```
@@ -726,40 +764,32 @@ You can also create validators that match a specific regex pattern using the `zi
 ```python
 from zineb.models.datastructure import Model
 from zineb.models.fields import CharField
+from zineb.exceptions import ValidationError
 from zineb.models.validators import regex_compiler
 
 @regex_compiler(r'\d+')
-def custom_validator(value):
+def custom_validator(clean_value):
     if value > 10:
-        return value
-    return 0
+        raise ValidationError(...)
 
 class Player(Model):
     age = IntegerField(validators=[custom_validator])
 ```
 
-__NOTE:__ The result of the regex compiler is reinjected into your custom validator on which you can then do your custom checks.
+__NOTE:__ The result of the regex compiler is reinjected into your custom validator on which you can then do your own custom checks.
+
+__NOTE:__ Validators are not expected to return any result and will also raise a blocking error 
 
 #### Field resolution
 
-In order to get the complete structured data, you need to call `resolve_fields` which will return the values as list stored into the `SmartDict` container.
+In order to get the complete structured data, you need to call `save` which will return the values as list stored into the `SmartDict` container.
 
 ```python
 player.add_value("name", "Kendall Jenner")
-player.resolve_values()
+player.save()
 
 # -> List
 ```
-
-Practically though, you'll be using the `save` method which then calls the `resolve_fields` under the hood:
-
-```python
-player.save(commit=True, filename=None, **kwargs)
-
-# -> List // New File
-```
-
-By calling the save method, you'll also be able to store the data directly to a JSON or CSV file.
 
 ## Functions
 
@@ -806,12 +836,14 @@ Allows you to conditionally implement a value in the model if it respects a set 
 ```python
 from zineb.models.functions import When
 
-player.add_value('age', When(21, 25, else_condition=21))
+player.add_value('age', When(21, 25, else_condition=None))
 ```
+
+__NOTE__: If no value is provided to the `else_condition`, the incoming value is considered to be the default one to implement in the model.
 
 ### Smallest, Greatestt
 
-From a set of incoming data, pick the smallest or the greatest one. This requires that all the incoming values be of the same type.
+From a set of incoming data, pick the smallest or the greatest from the list. This requires that all values are of the same type or an error will be raised.
 
 ```python
 from zineb.models.functions import Smallest, Greatest
@@ -824,15 +856,15 @@ player.add_value('revenue', Greatest(12000, 5000, 156000))
 
 # HTTPRequest
 
-Zineb uses a special built-in HTTPRequest class which wraps the following for better cohesion:
+Zineb uses a special built-in HTTPRequest proxy class that wraps the following classes:
 
 * The `requests.Request` response class
 * The `bs4.BeautifulSoup` object
 
-In general, you will not need to interact with this class because it's just an interface for implementing additional functionnalities the base Request class from the requests module.
+In general, you will not need to interact with this class because it's just an interface for implementing additional functionnalities to the above classes.
 
-* `follow`: create a new instance of the class whose response will be one created from the url tha was followed
-* `follow_all`: create new instances of the class who responses will be ones created from the urls tha were followed
+* `follow`: create a new instance of the class whose response will be one created from the url to follow
+* `follow_all`: create new instances of the class who responses will be ones created from the urls to follow
 * `urljoin`: join a domain to a given path
 
 # HTMLResponse

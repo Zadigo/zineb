@@ -1,8 +1,9 @@
 from zineb.app import Spider
 from zineb.settings import settings
-from zineb.tests.testproject.models import SimpleModel
+from tests.testproject.models import SimpleModel
 
 # Create your spiders here
+
 
 class MySpider(Spider):
     start_urls = ['http://example.com']

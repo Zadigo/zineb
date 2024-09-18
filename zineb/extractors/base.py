@@ -15,7 +15,7 @@ from zineb.extractors._mixins import MultipleRowsMixin
 from zineb.settings import settings
 from zineb.utils.characters import deep_clean
 from zineb.utils.decoders import decode_email
-from zineb.utils.iteration import keep_while
+from zineb.utils.iterations import keep_while
 from zineb.utils.paths import is_path
 
 

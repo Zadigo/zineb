@@ -1,4 +1,5 @@
-from itertools import chain 
+from itertools import chain
+
 
 class ValidationError(Exception):
     def __init__(self, message):
@@ -8,15 +9,15 @@ class ValidationError(Exception):
 class FieldError(Exception):
     def __init__(self, field_name, available_fields, model_name=None):
         msg = (f"The field '{field_name}' is not present on your model. "
-        f"Available fields are: {', '.join(available_fields)}.")
+               f"Available fields are: {', '.join(available_fields)}.")
         super().__init__(msg)
 
 
 class ParserError(Exception):
     def __init__(self):
         msg = (f"You should provide one of html_document, html_tag or HTMLResponse "
-            "object to the model in order to resolve fields with a "
-            "value from the HTML document")
+               "object to the model in order to resolve fields with a "
+               "value from the HTML document")
         super().__init__(msg)
 
 
@@ -28,13 +29,13 @@ class ProjectExistsError(FileExistsError):
 class ProjectNotConfiguredError(Exception):
     def __init__(self):
         super().__init__(("You are trying to run a functionnality that requires "
-        "you project to be fully configured via your settings file."))
+                          "you project to be fully configured via your settings file."))
 
 
 class ModelNotImplementedError(Exception):
-    def __init__(self, message: str=None):
+    def __init__(self, message: str = None):
         super().__init__(("Conditional (When), aggregate (Add, Substract, Multiply, Divide)"
-        f" functions should point to a model. {message}"))
+                          f" functions should point to a model. {message}"))
 
 
 class ModelExistsError(Exception):
@@ -54,7 +55,7 @@ class ImproperlyConfiguredError(Exception):
 class SpiderExistsError(Exception):
     def __init__(self, name: str):
         super().__init__(f"'{name}' does not exist in the registry. "
-        f"Did you create '{name}' in your spiders module?")
+                         f"Did you create '{name}' in your spiders module?")
 
 
 class ResponseFailedError(Exception):
@@ -62,7 +63,7 @@ class ResponseFailedError(Exception):
         # FIXME: Show additional errors that
         # would come from the HTTPRequest
         super().__init__("The request was not sent either"
-        " due to a response with a fail status code or being None.")
+                         " due to a response with a fail status code or being None.")
 
 
 class RequestAborted(Exception):
@@ -71,7 +72,8 @@ class RequestAborted(Exception):
 
 class ModelConstraintError(Exception):
     def __init__(self, field_name, value):
-        super().__init__(f"Constraint not respected on '{field_name}'. '{value}' already present in the model.")
+        super().__init__(
+            f"Constraint not respected on '{field_name}'. '{value}' already present in the model.")
 
 
 class RequiresProjectError(Exception):
@@ -82,4 +84,16 @@ class RequiresProjectError(Exception):
 class ConstraintError(Exception):
     def __init__(self, model_name, constraint):
         message = f"Model {model_name} did no pass constraint for {constraint}"
+        super().__init__(message)
+
+
+class ForeignKeyError(Exception):
+    def __init__(self, key, model_name):
+        message = f"No related value found for '{key}' in related model '{model_name}'"
+        super().__init__(message)
+
+
+class IntegrityError(Exception):
+    """Relation integrity error"""
+    def __init__(self, message, model=None, related_model=None):
         super().__init__(message)

@@ -1,9 +1,11 @@
 import unittest
-from zineb.utils.iteration import RequestQueue
+from zineb.utils.iterations import RequestQueue
+
 
 class TestRequestQueue(unittest.TestCase):
     def setUp(self):
-        mockup_spider = type('Spider', (), {'meta': type('SpiderOptions', (), {'domains': []})})
+        mockup_spider = type('Spider', (), {'meta': type(
+            'SpiderOptions', (), {'domains': []})})
         urls = [
             'http://example.com',
             'https://jsonplaceholder.typicode.com/todos',
@@ -14,10 +16,10 @@ class TestRequestQueue(unittest.TestCase):
         instance = RequestQueue(*urls)
         instance.prepare(mockup_spider)
         self.instance = instance
-        
+
     def test_preparation_result(self):
         self.assertEqual(len(self.instance.request_queue.values()), 5)
-        
+
     def test_asynchronous_iteration(self):
         responses = self.instance._iter()
         for response in responses:

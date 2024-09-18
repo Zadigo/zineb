@@ -9,9 +9,9 @@
     "python.testing.pytestEnabled": false,
     "python.testing.unittestEnabled": true,
     "python.analysis.extraPaths": [
-        "${workspaceFolder}/zineb/"
+        "${workspaceFolder}/zineb/zineb/"
     ],
     "python.autoComplete.extraPaths": [
-        "${workspaceFolder}/zineb/"
+        "${workspaceFolder}/zineb/zineb/"
     ]
 }

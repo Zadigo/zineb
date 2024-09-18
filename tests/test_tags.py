@@ -2,6 +2,7 @@ import unittest
 
 from bs4 import BeautifulSoup
 from bs4.element import Tag
+
 from zineb.extractors.base import TableExtractor
 from zineb.tags import Link, TableTag
 
